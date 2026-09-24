@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #0b0d12;
+  color: #e6e8ef;
+}
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial;
+}
+
+/* Make the top strip draggable so users can move the window even though the
+   native title bar is hidden. */
+.window-drag {
+  -webkit-app-region: drag;
+}
+.window-no-drag,
+button,
+input,
+textarea,
+select,
+a {
+  -webkit-app-region: no-drag;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+.btn-primary {
+  @apply btn bg-accent text-white shadow-[0_6px_24px_-12px_rgba(124,92,255,0.9)] hover:bg-accent/90;
+}
+.btn-ghost {
+  @apply btn border border-line text-zinc-200 hover:bg-panel2 hover:border-line2;
+}
+.btn-danger {
+  @apply btn border border-red-900/60 text-red-300 hover:bg-red-950/40;
+}
+.btn-live {
+  @apply btn bg-live/15 border border-live/40 text-emerald-300 hover:bg-live/25;
+}
+
+.card {
+  @apply rounded-xl border border-line bg-panel p-4;
+}
+.card-tight {
+  @apply rounded-xl border border-line bg-panel p-3;
+}
+.input,
+.textarea,
+.select {
+  @apply w-full rounded-md border border-line bg-ink px-3 py-2 text-sm outline-none focus:border-accent;
+}
+.label {
+  @apply mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500;
+}
+.badge {
+  @apply inline-flex rounded-full border border-line bg-ink px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-300;
+}
+
+/* Hero gradient for the status bar — subtle but distinguishes from cards. */
+.hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(124, 92, 255, 0.10), transparent 70%),
+    radial-gradient(ellipse 60% 80% at 100% 100%, rgba(16, 185, 129, 0.06), transparent 70%),
+    #11141b;
+}
+.hero-live {
+  background:
+    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(16, 185, 129, 0.16), transparent 70%),
+    radial-gradient(ellipse 60% 80% at 100% 100%, rgba(16, 185, 129, 0.08), transparent 70%),
+    #11141b;
+}
+
+.live-dot {
+  @apply inline-block h-2.5 w-2.5 rounded-full bg-live;
+  animation: live-pulse 2.2s ease-out infinite;
+}
+
+.chip {
+  @apply inline-flex items-center gap-1 rounded-full border border-line bg-ink/60 px-2.5 py-1 text-xs text-zinc-300 transition;
+}
+.chip-on {
+  @apply chip border-accent/40 bg-accent/15 text-zinc-100;
+}
+.chip-suggest {
+  @apply chip hover:border-line2 hover:text-zinc-100;
+}
+
+/* Avatar circles by handle initial. Background colors are inline in the
+   component — these classes give the round/size/typography rhythm. */
+.avatar {
+  @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-semibold text-sm text-white shadow-inner;
+}
+
+/* Subtle scrollbar that doesn't shout */
+.feed::-webkit-scrollbar { width: 8px; }
+.feed::-webkit-scrollbar-track { background: transparent; }
+.feed::-webkit-scrollbar-thumb { background: #1f2430; border-radius: 4px; }
+.feed::-webkit-scrollbar-thumb:hover { background: #2a3142; }

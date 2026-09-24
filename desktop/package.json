@@ -1,0 +1,100 @@
+{
+  "name": "kyrelo",
+  "version": "0.1.10",
+  "private": true,
+  "description": "Local desktop app that watches X handles, generates AI-written @grok replies, and schedules posts across multiple X accounts.",
+  "author": "SoBytes",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build && node scripts/postbuild.mjs",
+    "typecheck": "tsc --noEmit",
+    "worker": "node worker/index.mjs",
+    "desktop": "electron .",
+    "pw:install": "node scripts/pw-install.mjs",
+    "pack": "npm run build && npm run pw:install && SKIP_NOTARIZE=true electron-builder --dir",
+    "dist": "npm run build && npm run pw:install && electron-builder",
+    "release:mac": "node scripts/release-mac.js",
+    "release:mac:test": "node scripts/release-mac.js --test",
+    "release:win": "node scripts/release-win.js",
+    "release:win:test": "node scripts/release-win.js --test",
+    "icon": "node scripts/generate-icon.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "next": "^15.1.0",
+    "playwright": "^1.49.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@electron/notarize": "^3.1.1",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "dotenv": "^17.4.2",
+    "electron": "^42.1.0",
+    "electron-builder": "^25.1.8",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2"
+  },
+  "build": {
+    "appId": "com.sobytes.kyrelo",
+    "productName": "Kyrelo",
+    "asar": false,
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      ".next/**/*",
+      "public/**/*",
+      "worker/**/*",
+      "next.config.mjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/pw-browsers",
+        "to": "pw-browsers",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "afterSign": "build/afterSign.js",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": "dmg",
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png",
+      "publisherName": "SoBytes Ltd",
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
+      "rfc3161TimeStampServer": "http://timestamp.sectigo.com"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Kyrelo"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}

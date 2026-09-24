@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #0b0d12;
+  color: #e6e8ef;
+}
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial;
+}
+
+/* Background grid + glow */
+.hero-bg {
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 0%, rgba(124, 92, 255, 0.18), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80% 0%, rgba(16, 185, 129, 0.10), transparent 70%),
+    #0b0d12;
+}
+
+.glow-purple {
+  box-shadow: 0 30px 80px -30px rgba(124, 92, 255, 0.55);
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition;
+}
+.btn-primary {
+  @apply btn bg-accent text-white shadow-[0_10px_30px_-10px_rgba(124,92,255,0.6)] hover:bg-accent/90;
+}
+.btn-ghost {
+  @apply btn border border-line text-zinc-200 hover:bg-panel2 hover:border-line2;
+}
