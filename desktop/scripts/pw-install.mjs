@@ -5,20 +5,37 @@
 // chromium-headless-shell binary.
 //
 // Works the same on macOS, Windows, and Linux — no shell-specific syntax.
+//
+// PW_TARGET_ARCH (x64 | arm64) picks the Chromium arch to bundle on macOS.
+// Playwright otherwise downloads for the build machine, so an Intel Mac
+// building the arm64 release would ship an x64 Chromium that fails to spawn.
 
 import { execSync } from "node:child_process";
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const root = process.cwd();
 const target = path.join(root, "build", "pw-browsers");
+const arch = process.env.PW_TARGET_ARCH || process.arch;
+const env = { ...process.env, PLAYWRIGHT_BROWSERS_PATH: target };
 
-console.log(`Installing Playwright Chromium → ${target}`);
+if (process.platform === "darwin") {
+  const major = parseInt(os.release().split(".")[0], 10);
+  env.PLAYWRIGHT_HOST_PLATFORM_OVERRIDE =
+    `mac${Math.min(major - 9, 15)}` + (arch === "arm64" ? "-arm64" : "");
+}
 
-execSync("npx playwright install chromium", {
-  stdio: "inherit",
-  env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: target },
-});
+// Browser dirs are named by revision, not arch, so a cache from another arch
+// would be silently reused. Wipe it when the arch changes.
+const marker = path.join(target, ".arch");
+const cached = await fs.readFile(marker, "utf8").catch(() => null);
+if (cached !== arch) await fs.rm(target, { recursive: true, force: true });
+
+console.log(`Installing Playwright Chromium (${arch}) → ${target}`);
+
+execSync("npx playwright install chromium", { stdio: "inherit", env });
+await fs.writeFile(marker, arch);
 
 try {
   const entries = await fs.readdir(target);

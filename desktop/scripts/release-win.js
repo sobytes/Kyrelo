@@ -43,7 +43,7 @@ const WINDOWS_CERT_THUMBPRINT = (process.env.WINDOWS_CERT_THUMBPRINT || "").trim
 const SIGNING_ENABLED = WINDOWS_CERT_THUMBPRINT.length > 0;
 
 const VERSION = require("../package.json").version;
-const REPO = "sobytes/Kyrelo-Buffer-Alternative";
+const REPO = "sobytes/Kyrelo";
 
 function fail(msg) {
   console.error(`\nERROR: ${msg}\n`);

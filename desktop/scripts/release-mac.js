@@ -39,6 +39,8 @@ if (!process.env.GIT_SSH_COMMAND && process.env.GIT_SSH_KEY) {
   process.env.GIT_SSH_COMMAND = `ssh -i "${process.env.GIT_SSH_KEY}" -o IdentitiesOnly=yes`;
 }
 
+const REPO = "sobytes/Kyrelo";
+
 const TEST_MODE = process.argv.slice(2).some((a) => a === "--test" || a === "test");
 
 const APPLE_ID = process.env.APPLE_ID;
@@ -132,7 +134,7 @@ function build() {
 
   console.log("Building Next + downloading Playwright Chromium…");
   run("npm run build");
-  run("npm run pw:install");
+  run("npm run pw:install", { env: { ...process.env, PW_TARGET_ARCH: "arm64" } });
   console.log("");
 
   if (TEST_MODE) {
@@ -177,7 +179,7 @@ function uploadRelease(version) {
   console.log(`\nCreating GitHub release v${version}…`);
   const fileArgs = files.map((f) => `"${f}"`).join(" ");
   run(
-    `gh release create v${version} ${fileArgs} ` +
+    `gh release create v${version} -R ${REPO} ${fileArgs} ` +
       `--title "v${version}" ` +
       `--generate-notes`,
   );
@@ -196,7 +198,7 @@ function uploadRelease(version) {
 function updateReleaseNotes(version) {
   try {
     const assetsJson = execSync(
-      `gh release view v${version} --json assets -q '[.assets[].name]'`,
+      `gh release view v${version} -R ${REPO} --json assets -q '[.assets[].name]'`,
       { encoding: "utf8" },
     );
     const names = JSON.parse(assetsJson) || [];
@@ -204,7 +206,7 @@ function updateReleaseNotes(version) {
     const hasWin = names.some((n) => n.endsWith(".exe"));
 
     const currentBody = execSync(
-      `gh release view v${version} --json body -q .body`,
+      `gh release view v${version} -R ${REPO} --json body -q .body`,
       { encoding: "utf8" },
     ).trimStart();
 
@@ -227,7 +229,7 @@ function updateReleaseNotes(version) {
     const tmp = path.join(os.tmpdir(), `kyrelo-notes-${Date.now()}.md`);
     fs.writeFileSync(tmp, newBody);
     try {
-      run(`gh release edit v${version} --notes-file "${tmp}"`);
+      run(`gh release edit v${version} -R ${REPO} --notes-file "${tmp}"`);
     } finally {
       fs.rmSync(tmp, { force: true });
     }
@@ -258,7 +260,7 @@ async function main() {
     console.log("  App: dist/mac-arm64/Kyrelo.app");
     console.log("  (Not notarized — Gatekeeper will warn.)");
   } else {
-    console.log(`  Release: https://github.com/sobytes/Kyrelo-Buffer-Alternative/releases/tag/v${version}`);
+    console.log(`  Release: https://github.com/${REPO}/releases/tag/v${version}`);
   }
   console.log("========================================\n");
 }
