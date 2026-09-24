@@ -78,6 +78,22 @@ function validate() {
   console.log(`  APPLE_TEAM_ID: [set]`);
   console.log(`  APPLE_APP_SPECIFIC_PASSWORD: [set]`);
 
+  // Check the Apple login now rather than after a ~40 min build + sign.
+  try {
+    execSync(
+      `xcrun notarytool history --apple-id "${APPLE_ID}" ` +
+        `--password "${APPLE_APP_SPECIFIC_PASSWORD}" --team-id "${APPLE_TEAM_ID}"`,
+      { stdio: "pipe" },
+    );
+  } catch {
+    fail(
+      "Apple rejected the notarization credentials. Check APPLE_ID is the " +
+        "developer account on APPLE_TEAM_ID and the app-specific password " +
+        "was generated for that same Apple ID.",
+    );
+  }
+  console.log("  notarytool login: OK");
+
   try {
     execSync("gh auth status", { stdio: "pipe" });
   } catch {
@@ -116,8 +132,12 @@ function bumpVersion() {
   const pkgPath = path.join(__dirname, "../package.json");
   const before = JSON.parse(fs.readFileSync(pkgPath, "utf8")).version;
   console.log(`Bumping version (current: ${before})…`);
-  run('npm version patch -m "Release v%s"');
+  // desktop/ isn't the git root, so npm won't commit or tag on its own.
+  run("npm version patch --no-git-tag-version");
   const after = JSON.parse(fs.readFileSync(pkgPath, "utf8")).version;
+  run("git add package.json package-lock.json");
+  run(`git commit -m "Release v${after}"`);
+  run(`git tag -a v${after} -m "v${after}"`);
   console.log(`  new version: ${after}\n`);
   return after;
 }
