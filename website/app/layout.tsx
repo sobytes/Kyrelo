@@ -4,12 +4,23 @@ import "./globals.css";
 const url = "https://kyrelo.com";
 const title = "Kyrelo — Local Buffer alternative for X";
 const description =
-  "Schedule X posts, watch handles, and reply with AI from your own computer. An open-source, local-first alternative to Buffer for macOS and Windows — no SaaS account, no outages.";
+  "Schedule X posts, watch handles, reply with AI, and bulk delete your old tweets and reposts for free — all from your own computer. An open-source, local-first alternative to Buffer for macOS and Windows.";
 
 export const metadata: Metadata = {
   title,
   description,
   metadataBase: new URL(url),
+  keywords: [
+    "Buffer alternative",
+    "X scheduler",
+    "schedule tweets",
+    "delete all tweets",
+    "tweet deleter",
+    "bulk delete tweets",
+    "delete reposts",
+    "undo retweets",
+    "free tweet deleter",
+  ],
   openGraph: {
     title,
     description,

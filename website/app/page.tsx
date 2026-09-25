@@ -10,6 +10,7 @@ export default function Home() {
       <Hero />
       <Why />
       <Features />
+      <Deleter />
       <HowItWorks />
       <CTA />
       <Footer />
@@ -27,6 +28,7 @@ function Nav() {
         </a>
         <nav className="hidden items-center gap-6 text-sm text-zinc-400 sm:flex">
           <a href="#features" className="hover:text-zinc-100">Features</a>
+          <a href="#delete-tweets" className="hover:text-zinc-100">Delete tweets</a>
           <a href="#how" className="hover:text-zinc-100">How it works</a>
           <a href={GITHUB_URL} className="hover:text-zinc-100" target="_blank" rel="noreferrer">
             GitHub
@@ -55,8 +57,9 @@ function Hero() {
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-400">
           Kyrelo is a local Buffer alternative for X. Schedule posts across multiple accounts,
-          watch handles for new tweets, and reply with AI-generated questions — all running on
-          your machine, with the only network calls going to X and your AI provider.
+          watch handles for new tweets, reply with AI-generated questions, and bulk delete your
+          old tweets and reposts for free — all running on your machine, with the only network
+          calls going to X and your AI provider.
         </p>
         <div id="download" className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <a href={RELEASES_URL} className="btn-primary" target="_blank" rel="noreferrer">
@@ -147,6 +150,11 @@ const FEATURES = [
     icon: "sparkles",
   },
   {
+    title: "Bulk delete tweets & reposts",
+    body: "Clear out your X history for free. Delete your old posts and undo reposts up to 100 at a time, keep your newest ones, and never touch your pinned tweet.",
+    icon: "trash",
+  },
+  {
     title: "Image attachments",
     body: "Attach an image to any scheduled post. Kyrelo uploads it through X's normal compose flow at send time.",
     icon: "image",
@@ -192,6 +200,113 @@ function Features() {
   );
 }
 
+const DELETER_POINTS = [
+  {
+    title: "Delete tweets in bulk",
+    body: "Pick an account, choose how many posts to remove (up to 100 per run) and press go. Run it again to keep going until your timeline is as clean as you want it.",
+  },
+  {
+    title: "Undo reposts too",
+    body: "Flip on “Include reposts” and Kyrelo un-retweets as it goes, so old reposts disappear from your profile along with your own posts.",
+  },
+  {
+    title: "Keep what matters",
+    body: "Set “Starting at” to skip your most recent posts and only delete older ones. Pinned tweets are always left alone.",
+  },
+  {
+    title: "Free, private, no API",
+    body: "No subscription, no paid X API access, and no third-party app holding your login. It runs in your own signed-in Chrome session on your machine.",
+  },
+];
+
+const DELETER_FAQ = [
+  {
+    q: "How do I delete all my tweets on X for free?",
+    a: "Download Kyrelo, connect your X account, open the Deleter and choose how many posts to remove. Each run deletes up to 100 posts. Run it as many times as you need to clear your whole timeline. It costs nothing and needs no X API plan.",
+  },
+  {
+    q: "Can I delete reposts (retweets) as well?",
+    a: "Yes. Turn on “Include reposts” and Kyrelo will undo your reposts alongside deleting your own posts. Leave it off to delete only your own tweets.",
+  },
+  {
+    q: "Can I keep my newest tweets and only delete old ones?",
+    a: "Yes. The “Starting at” setting skips your most recent posts, so you can keep, say, your latest 50 and delete everything older. Your pinned tweet is never deleted.",
+  },
+  {
+    q: "Is it safe to give Kyrelo access to my X account?",
+    a: "Kyrelo never sends your login anywhere. You sign in to X in a real Chrome window on your own computer, and the deleter works through that local session, clicking Delete just as you would. The code is open source, so you can check exactly what it does.",
+  },
+  {
+    q: "Can deleted tweets be recovered?",
+    a: "No. Deleting a post on X is permanent, so double-check your settings before you run it. Undone reposts can be reposted again from the original tweet.",
+  },
+];
+
+function Deleter() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: DELETER_FAQ.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+
+  return (
+    <section id="delete-tweets" className="border-t border-line bg-ink py-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto mb-12 max-w-3xl text-center">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            New · Tweet deleter
+          </span>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
+            Delete your old tweets and reposts. <span className="text-accent">Free.</span>
+          </h2>
+          <p className="mt-5 text-base leading-relaxed text-zinc-400">
+            Tweet deleter services charge a monthly fee and ask for access to your account.
+            Kyrelo&apos;s built-in Deleter bulk deletes your X posts and undoes your reposts
+            straight from your own computer, at no cost. Wipe years of old tweets, tidy up your
+            profile before a job hunt, or just start fresh.
+          </p>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          {DELETER_POINTS.map((p) => (
+            <div key={p.title} className="rounded-xl border border-line bg-panel p-5">
+              <h3 className="text-base font-semibold text-zinc-100">{p.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">{p.body}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mx-auto mt-14 max-w-3xl">
+          <h3 className="text-center text-xl font-semibold tracking-tight text-zinc-100">
+            Tweet deleter FAQ
+          </h3>
+          <div className="mt-6 divide-y divide-line rounded-xl border border-line bg-panel">
+            {DELETER_FAQ.map((f) => (
+              <details key={f.q} className="group px-5 py-4">
+                <summary className="cursor-pointer list-none text-sm font-medium text-zinc-100 marker:hidden">
+                  <span className="flex items-center justify-between gap-4">
+                    {f.q}
+                    <span className="text-zinc-500 transition group-open:rotate-45">+</span>
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-400">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 const STEPS = [
   {
     n: 1,
@@ -205,8 +320,8 @@ const STEPS = [
   },
   {
     n: 3,
-    title: "Schedule, monitor, reply",
-    body: "Use the Scheduler timeline to queue posts at specific times. Add handles in the Monitor to get notified on new activity. Generate AI replies on demand.",
+    title: "Schedule, monitor, clean up",
+    body: "Use the Scheduler timeline to queue posts at specific times. Add handles in the Monitor to get notified on new activity. Generate AI replies on demand, and clear out old tweets with the Deleter.",
   },
 ];
 
@@ -328,6 +443,13 @@ function Icon({ name }: { name: string }) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={common}>
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           <path d="M9 12l2 2 4-4" />
+        </svg>
+      );
+    case "trash":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={common}>
+          <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          <path d="M10 11v6M14 11v6" />
         </svg>
       );
     default:
