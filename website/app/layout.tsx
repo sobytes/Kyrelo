@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { SITE_URL } from "./site";
 
-const url = "https://kyrelo.com";
-const title = "Kyrelo — Local Buffer alternative for X";
+const url = SITE_URL;
+const title = "Kyrelo — Free Buffer Alternative & Tweet Deleter for X";
 const description =
-  "Schedule X posts, watch handles, reply with AI, and bulk delete your old tweets and reposts for free — all from your own computer. An open-source, local-first alternative to Buffer for macOS and Windows.";
+  "Free, open-source X scheduler and tweet deleter for Mac and Windows. Schedule posts, bulk delete old tweets and reposts, all from your own computer.";
 
 export const metadata: Metadata = {
   title,
   description,
   metadataBase: new URL(url),
+  alternates: { canonical: "/" },
   keywords: [
     "Buffer alternative",
     "X scheduler",
@@ -27,7 +29,7 @@ export const metadata: Metadata = {
     url,
     siteName: "Kyrelo",
     type: "website",
-    images: [{ url: "/screenshot.png", width: 1200, height: 720 }],
+    images: [{ url: "/screenshot.png", width: 1592, height: 1032 }],
   },
   twitter: {
     card: "summary_large_image",

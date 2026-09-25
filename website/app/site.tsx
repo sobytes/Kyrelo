@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+export const SITE_URL = "https://www.kyrelo.com";
 export const GITHUB_URL = "https://github.com/sobytes/Kyrelo";
 export const RELEASES_URL = `${GITHUB_URL}/releases`;
 

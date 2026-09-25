@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Footer, GITHUB_URL, Nav, RELEASES_URL } from "../site";
+import { Footer, GITHUB_URL, Nav, RELEASES_URL, SITE_URL } from "../site";
 
 const title = "Free, Open-Source TweetDelete Alternative — Kyrelo";
 const description =
-  "Looking for a free TweetDelete alternative? Kyrelo is an open-source desktop app that bulk deletes your X (Twitter) posts and undoes reposts from your own computer — no subscription, no third-party app access.";
+  "Kyrelo is a free, open-source TweetDelete alternative. Bulk delete your X (Twitter) posts and undo reposts from your own computer. No subscription.";
 
 export const metadata: Metadata = {
   title,
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     url: "/tweetdelete-alternative",
     siteName: "Kyrelo",
     type: "article",
-    images: [{ url: "/screenshot.png", width: 1200, height: 720 }],
+    images: [{ url: "/screenshot.png", width: 1592, height: 1032 }],
   },
   twitter: {
     card: "summary_large_image",
@@ -145,7 +145,7 @@ export default function TweetDeleteAlternative() {
       operatingSystem: "macOS, Windows",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       license: "https://opensource.org/licenses/MIT",
-      url: "https://kyrelo.com",
+      url: SITE_URL,
       downloadUrl: RELEASES_URL,
     },
     {

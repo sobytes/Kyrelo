@@ -1,9 +1,28 @@
 import Image from "next/image";
-import { Footer, GITHUB_URL, Nav, RELEASES_URL } from "./site";
+import { Footer, GITHUB_URL, Nav, RELEASES_URL, SITE_URL } from "./site";
+
+const APP_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Kyrelo",
+  description:
+    "Free, open-source desktop app to schedule X posts, monitor handles, draft AI replies and bulk delete tweets and reposts.",
+  applicationCategory: "SocialNetworkingApplication",
+  operatingSystem: "macOS, Windows",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  license: "https://opensource.org/licenses/MIT",
+  url: SITE_URL,
+  downloadUrl: RELEASES_URL,
+  image: `${SITE_URL}/screenshot.png`,
+};
 
 export default function Home() {
   return (
     <main className="relative">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(APP_JSON_LD) }}
+      />
       <Nav />
       <Hero />
       <Why />
