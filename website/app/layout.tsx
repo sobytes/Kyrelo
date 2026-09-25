@@ -29,13 +29,11 @@ export const metadata: Metadata = {
     url,
     siteName: "Kyrelo",
     type: "website",
-    images: [{ url: "/screenshot.png", width: 1592, height: 1032 }],
   },
   twitter: {
     card: "summary_large_image",
     title,
     description,
-    images: ["/screenshot.png"],
   },
   icons: {
     icon: "/icon.png",

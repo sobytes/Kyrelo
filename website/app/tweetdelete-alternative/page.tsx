@@ -25,13 +25,13 @@ export const metadata: Metadata = {
     url: "/tweetdelete-alternative",
     siteName: "Kyrelo",
     type: "article",
-    images: [{ url: "/screenshot.png", width: 1592, height: 1032 }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Kyrelo — free, open-source X scheduler and tweet deleter" }],
   },
   twitter: {
     card: "summary_large_image",
     title,
     description,
-    images: ["/screenshot.png"],
+    images: ["/twitter-image"],
   },
 };
 
