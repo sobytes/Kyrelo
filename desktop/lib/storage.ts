@@ -1,12 +1,24 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { ApiKeys, GrokSettings, GrokState, ScheduledPost, XAccount } from "./types";
+import {
+  ApiKeys,
+  BrandProfile,
+  Campaign,
+  GrokSettings,
+  GrokState,
+  MediaItem,
+  ScheduledPost,
+  XAccount,
+} from "./types";
 
 const GROK_SETTINGS_KEY = "grok-settings";
 const GROK_STATE_KEY = "grok-state";
 const API_KEYS_KEY = "api-keys";
 const SCHEDULED_POSTS_KEY = "scheduled-posts";
 const X_ACCOUNTS_KEY = "x-accounts";
+const CAMPAIGNS_KEY = "campaigns";
+const BRAND_PROFILE_KEY = "brand-profile";
+const MEDIA_LIBRARY_KEY = "media-library";
 
 const dataDir = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
 
@@ -110,4 +122,36 @@ export async function listXAccounts(): Promise<XAccount[]> {
 
 export async function saveXAccounts(accounts: XAccount[]): Promise<void> {
   await write(X_ACCOUNTS_KEY, accounts);
+}
+
+export async function listCampaigns(): Promise<Campaign[]> {
+  return (await read<Campaign[]>(CAMPAIGNS_KEY)) ?? [];
+}
+
+export async function getCampaign(id: string): Promise<Campaign | null> {
+  return (await listCampaigns()).find((c) => c.id === id) ?? null;
+}
+
+export async function upsertCampaign(campaign: Campaign): Promise<void> {
+  const all = await listCampaigns();
+  const idx = all.findIndex((c) => c.id === campaign.id);
+  if (idx >= 0) all[idx] = campaign;
+  else all.push(campaign);
+  await write(CAMPAIGNS_KEY, all.slice(-50));
+}
+
+export async function getBrandProfile(): Promise<BrandProfile> {
+  return (await read<BrandProfile>(BRAND_PROFILE_KEY)) ?? { brief: "", url: "", competitors: "" };
+}
+
+export async function saveBrandProfile(profile: BrandProfile): Promise<void> {
+  await write(BRAND_PROFILE_KEY, profile);
+}
+
+export async function listMediaItems(): Promise<MediaItem[]> {
+  return (await read<MediaItem[]>(MEDIA_LIBRARY_KEY)) ?? [];
+}
+
+export async function saveMediaItems(items: MediaItem[]): Promise<void> {
+  await write(MEDIA_LIBRARY_KEY, items);
 }

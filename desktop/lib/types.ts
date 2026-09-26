@@ -56,6 +56,8 @@ export interface ScheduledPost {
   postedAt?: string;
   postedUrl?: string;
   error?: string;
+  /** Set when this post was created by an Auto Campaign. */
+  campaignId?: string;
 }
 
 export interface XAccount {
@@ -64,4 +66,67 @@ export interface XAccount {
   /** Handle as captured from X, preserving case. */
   handle: string;
   addedAt: string;
+}
+
+/** Saved once, reused by every Auto Campaign so the user only types count + duration. */
+export interface BrandProfile {
+  brief: string;
+  url: string;
+  competitors: string;
+}
+
+/** An image the user uploaded for the campaign automator to pick from. */
+export interface MediaItem {
+  id: string;
+  /** Filename inside .data/uploads/. */
+  filename: string;
+  /** User-written or AI-written description, used to match images to tweets. */
+  description: string;
+  addedAt: string;
+}
+
+export type CampaignMediaKind = "none" | "library" | "og" | "screenshot" | "ai" | "youtube";
+
+export interface CampaignDraft {
+  id: string;
+  angle: string;
+  text: string;
+  media: {
+    kind: CampaignMediaKind;
+    /** Filename inside .data/uploads/ once the media step resolved an image. */
+    imagePath?: string;
+    /** Why the automator chose this media, or what it tried and failed. */
+    note?: string;
+  };
+  sources: string[];
+  scheduledFor: string;
+}
+
+export type CampaignStatus =
+  | "researching"
+  | "writing"
+  | "media"
+  | "review"
+  | "scheduled"
+  | "failed";
+
+export interface Campaign {
+  id: string;
+  accountId: string;
+  brief: string;
+  url: string;
+  competitors: string;
+  count: number;
+  windowMinutes: number;
+  useAiImages: boolean;
+  autoSchedule: boolean;
+  provider: AiProvider;
+  status: CampaignStatus;
+  /** Human-readable progress line for the current step. */
+  progress: string;
+  research?: string;
+  drafts: CampaignDraft[];
+  postIds: string[];
+  error?: string;
+  createdAt: string;
 }

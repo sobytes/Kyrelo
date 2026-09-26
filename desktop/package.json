@@ -21,7 +21,7 @@
     "icon": "node scripts/generate-icon.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.40.0",
+    "@anthropic-ai/sdk": "^0.128.0",
     "next": "^15.1.0",
     "playwright": "^1.49.0",
     "react": "^19.0.0",

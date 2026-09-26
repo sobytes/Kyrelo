@@ -106,6 +106,7 @@ export async function createScheduledPost(input: {
   text: string;
   imagePath?: string;
   scheduledFor: string;
+  campaignId?: string;
 }): Promise<ScheduledPost> {
   const post: ScheduledPost = {
     id: crypto.randomUUID(),
@@ -116,6 +117,7 @@ export async function createScheduledPost(input: {
     scheduledFor: input.scheduledFor,
     createdAt: new Date().toISOString(),
     status: "pending",
+    campaignId: input.campaignId,
   };
   await upsertScheduledPost(post);
   return post;

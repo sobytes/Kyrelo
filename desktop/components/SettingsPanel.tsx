@@ -98,7 +98,15 @@ export function SettingsPanel() {
       </section>
 
       <section className="card space-y-4">
-        <div className="label">API keys</div>
+        <div>
+          <div className="label">API keys</div>
+          <p className="text-[11px] leading-relaxed text-zinc-500">
+            Kyrelo uses your own AI key, so you only pay the provider for what you use, usually a few
+            cents per reply and well under $1 per auto campaign. You need at least one key: Claude or
+            OpenAI, matching the provider picked above. Add an OpenAI key too if you want AI-generated
+            images in auto campaigns.
+          </p>
+        </div>
         <KeyRow
           label="Anthropic (Claude)"
           set={status?.anthropic ?? false}
@@ -106,6 +114,30 @@ export function SettingsPanel() {
           value={anthropicKey}
           onChange={setAnthropicKey}
           placeholder="sk-ant-..."
+          help={
+            <>
+              <p>Powers replies, rewrites and auto campaign research and writing (with live web search).</p>
+              <ol className="list-decimal space-y-1 pl-4">
+                <li>
+                  Sign up or log in at the{" "}
+                  <ExtLink href="https://platform.claude.com/">Claude Console</ExtLink>.
+                </li>
+                <li>
+                  Add credit under{" "}
+                  <ExtLink href="https://platform.claude.com/settings/billing">Billing</ExtLink>. The API is
+                  prepaid and separate from a Claude.ai subscription, and $5 goes a long way.
+                </li>
+                <li>
+                  Open <ExtLink href="https://platform.claude.com/settings/keys">API keys</ExtLink>, click{" "}
+                  <b>Create key</b> and give it a name like &quot;Kyrelo&quot;.
+                </li>
+                <li>
+                  Copy the key (it starts with <code>sk-ant-</code>). It&apos;s only shown once, so paste it
+                  here straight away and click <b>Save keys</b>.
+                </li>
+              </ol>
+            </>
+          }
         />
         <KeyRow
           label="OpenAI"
@@ -114,6 +146,39 @@ export function SettingsPanel() {
           value={openaiKey}
           onChange={setOpenaiKey}
           placeholder="sk-..."
+          help={
+            <>
+              <p>An alternative to Claude for all AI features, and needed for AI-generated images.</p>
+              <ol className="list-decimal space-y-1 pl-4">
+                <li>
+                  Sign up or log in at the{" "}
+                  <ExtLink href="https://platform.openai.com/">OpenAI Platform</ExtLink>.
+                </li>
+                <li>
+                  Add credit under{" "}
+                  <ExtLink href="https://platform.openai.com/settings/organization/billing/overview">
+                    Billing
+                  </ExtLink>
+                  . This is separate from a ChatGPT Plus subscription.
+                </li>
+                <li>
+                  Open <ExtLink href="https://platform.openai.com/api-keys">API keys</ExtLink> and click{" "}
+                  <b>Create new secret key</b>.
+                </li>
+                <li>
+                  Copy the key (it starts with <code>sk-</code>). It&apos;s only shown once, so paste it here
+                  straight away and click <b>Save keys</b>.
+                </li>
+                <li>
+                  For AI images, OpenAI may ask you to{" "}
+                  <ExtLink href="https://platform.openai.com/settings/organization/general">
+                    verify your organization
+                  </ExtLink>{" "}
+                  first. Image generation fails until that&apos;s done.
+                </li>
+              </ol>
+            </>
+          }
         />
         {(anthropicKey || openaiKey) && (
           <button
@@ -203,6 +268,7 @@ function KeyRow({
   value,
   onChange,
   placeholder,
+  help,
 }: {
   label: string;
   set: boolean;
@@ -210,6 +276,7 @@ function KeyRow({
   value: string;
   onChange: (s: string) => void;
   placeholder: string;
+  help: React.ReactNode;
 }) {
   return (
     <div className="space-y-1">
@@ -232,6 +299,22 @@ function KeyRow({
           onChange={(e) => onChange(e.target.value)}
         />
       )}
+      <details open={!set} className="group text-[11px] leading-relaxed text-zinc-400">
+        <summary className="cursor-pointer select-none text-zinc-500 hover:text-zinc-300">
+          How do I get this key?
+        </summary>
+        <div className="mt-2 space-y-2 rounded-md border border-line bg-ink p-3">{help}</div>
+      </details>
     </div>
+  );
+}
+
+// target=_blank links are routed to the system browser by Electron's
+// window-open handler (electron/main.cjs).
+function ExtLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="text-accent underline hover:text-zinc-200">
+      {children}
+    </a>
   );
 }

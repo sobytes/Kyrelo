@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { AutoCampaignModal } from "@/components/AutoCampaignModal";
 import { GrokSettings, ScheduledPost, XAccount } from "@/lib/types";
 
 interface ConnectStatus {
@@ -21,6 +22,7 @@ export function SchedulerPanel() {
   const [imagePath, setImagePath] = useState<string | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [campaignOpen, setCampaignOpen] = useState(false);
 
   async function pickImage(file: File) {
     setUploadingImage(true);
@@ -155,7 +157,12 @@ export function SchedulerPanel() {
       <AccountTabs accounts={accounts} accountId={accountId} setAccountId={setAccountId} />
 
       <section className="card space-y-3">
-        <div className="label">Schedule a post</div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="label !mb-0">Schedule a post</div>
+          <button type="button" onClick={() => setCampaignOpen(true)} className="btn-ghost text-xs">
+            ✨ Auto-generate campaign
+          </button>
+        </div>
 
         <form onSubmit={schedule} className="space-y-3">
           <div>
@@ -267,6 +274,14 @@ export function SchedulerPanel() {
             setReschedulingPost(null);
             loadPosts();
           }}
+        />
+      )}
+
+      {campaignOpen && accounts.find((a) => a.id === accountId) && (
+        <AutoCampaignModal
+          account={accounts.find((a) => a.id === accountId)!}
+          onClose={() => setCampaignOpen(false)}
+          onScheduled={loadPosts}
         />
       )}
 
@@ -462,6 +477,9 @@ function TimelineRow({
                   ? `in ${formatCountdown(dueMs)}`
                   : "any moment…"}
             </span>
+            {post.campaignId && (
+              <span className="rounded-full bg-panel2 px-1.5 py-0.5 text-[10px] text-zinc-400">✨ auto</span>
+            )}
           </div>
           {post.status === "pending" && (
             <div className="flex items-center gap-3">

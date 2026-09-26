@@ -5,14 +5,14 @@ import { AiProvider } from "./types";
 const MODEL = "claude-sonnet-4-6";
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
-async function resolveAnthropicKey(): Promise<string> {
+export async function resolveAnthropicKey(): Promise<string> {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
   const stored = await getApiKeys();
   if (stored.anthropic) return stored.anthropic;
   throw new Error("ANTHROPIC_API_KEY is not set. Add it under Settings → API keys.");
 }
 
-async function resolveOpenAiKey(): Promise<string> {
+export async function resolveOpenAiKey(): Promise<string> {
   if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
   const stored = await getApiKeys();
   if (stored.openai) return stored.openai;
