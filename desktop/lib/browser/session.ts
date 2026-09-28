@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { BrowserContext, chromium, Page } from "playwright";
+import { findChrome } from "./system-chrome";
 import { dataDir } from "../storage";
 
 const USERDATA_ROOT = path.join(dataDir, "userdata");
@@ -135,12 +136,14 @@ export function browserHasWaiters(platform: string, accountId: string): boolean 
 //    without removing them the next launch fails to create a ProcessSingleton.
 //
 //  - "Last Version" — the Connect flow opens this profile with the user's real
-//    (auto-updating) Chrome, which stamps the dir with that version. Our
-//    bundled Chromium lags behind, and Chrome refuses to open a profile
-//    stamped by a NEWER build — it exits immediately with code 21. Dropping
-//    the stamp lets the older bundled build open the profile.
+//    (auto-updating) Chrome, which stamps the dir with that version. Chrome
+//    refuses to open a profile stamped by a NEWER build (exit code 21), which
+//    also bites when Chrome is later downgraded or only the bundled Chromium
+//    is available. Dropping the stamp lets it start; openBrowser prefers the
+//    user's own Chrome so this is rarely needed.
 //
-// Safe: the mutex above ensures only one of OUR processes touches the dir.
+// Safe: the per-profile lock above and the app's single-instance lock mean
+// only one browser touches the dir.
 async function clearStaleProfileLocks(dir: string) {
   for (const name of [
     "SingletonLock",
@@ -205,39 +208,37 @@ export async function openBrowser(
     // the same profile dir each time." History, GPU caches, fonts, even cookies
     // all persist exactly as a real user accumulates them. Strongest free win
     // against fingerprint-based detection.
-    try {
-      context = await chromium.launchPersistentContext(dir, {
-        headless,
-        channel,
-        userAgent: UA,
-        viewport: { width: 1366, height: 820 },
-        locale: "en-US",
-        timezoneId: "America/New_York",
-        args: ["--disable-blink-features=AutomationControlled"],
-        ignoreDefaultArgs: ["--enable-automation"],
-      });
-    } catch (err) {
-      if (
-        channel === "chrome" &&
-        err instanceof Error &&
-        /chrome|channel/i.test(err.message)
-      ) {
-        console.warn(
-          `[browser] Couldn't launch real Chrome via channel="${channel}" — ` +
-            `falling back to bundled Chromium. Actual launch error: ${err.message}`,
-        );
-        context = await chromium.launchPersistentContext(dir, {
-          headless,
-          userAgent: UA,
-          viewport: { width: 1366, height: 820 },
-          locale: "en-US",
-          timezoneId: "America/New_York",
-          args: ["--disable-blink-features=AutomationControlled"],
-          ignoreDefaultArgs: ["--enable-automation"],
-        });
-      } else {
-        throw err;
+    const launchOptions = {
+      headless,
+      userAgent: UA,
+      viewport: { width: 1366, height: 820 },
+      locale: "en-US",
+      timezoneId: "America/New_York",
+      args: ["--disable-blink-features=AutomationControlled"],
+      ignoreDefaultArgs: ["--enable-automation"],
+    };
+
+    // Use the same Chrome the connect flow logs in with (findChrome in
+    // system-chrome.ts). Playwright's channel="chrome" only looks in
+    // /Applications on macOS, so a Chrome installed elsewhere (e.g.
+    // ~/Applications) used to fall back to the bundled Chromium. That is older
+    // than the Chrome that wrote the account's profile, so Chrome showed
+    // "Something went wrong when opening your profile". If the user's Chrome
+    // exists but won't start, say so rather than open the profile with an
+    // older browser.
+    const chromePath = channel === "chrome" ? findChrome() : null;
+    if (chromePath) {
+      try {
+        context = await chromium.launchPersistentContext(dir, { ...launchOptions, executablePath: chromePath });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(`Couldn't start Google Chrome (${chromePath}): ${message}`);
       }
+    } else if (channel === "chrome") {
+      console.warn("[browser] Google Chrome not found — using the bundled Chromium.");
+      context = await chromium.launchPersistentContext(dir, launchOptions);
+    } else {
+      context = await chromium.launchPersistentContext(dir, { ...launchOptions, channel });
     }
 
     openBrowserCount++;
