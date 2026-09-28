@@ -21,6 +21,7 @@ const ACCOUNTS_KEY = "accounts";
 // Before other platforms existed, accounts were X-only and had no `platform`.
 const LEGACY_X_ACCOUNTS_KEY = "x-accounts";
 const ACCOUNT_SECRETS_KEY = "account-secrets";
+const MOBILE_BRIDGE_KEY = "mobile-bridge";
 const CAMPAIGNS_KEY = "campaigns";
 const BRAND_PROFILE_KEY = "brand-profile";
 const MEDIA_LIBRARY_KEY = "media-library";
@@ -259,4 +260,19 @@ export async function listMediaItems(): Promise<MediaItem[]> {
 
 export async function modifyMediaItems(change: (items: MediaItem[]) => MediaItem[]): Promise<MediaItem[]> {
   return modify<MediaItem[]>(MEDIA_LIBRARY_KEY, [], change);
+}
+
+/** Phone app access (lib/mobile-bridge.ts). Off until the user turns it on. */
+export interface MobileBridgeConfig {
+  enabled: boolean;
+  /** Pairing secret the phone sends with every request. Rotated on "Reset pairing". */
+  token: string | null;
+}
+
+export async function getMobileBridgeConfig(): Promise<MobileBridgeConfig> {
+  return (await read<MobileBridgeConfig>(MOBILE_BRIDGE_KEY)) ?? { enabled: false, token: null };
+}
+
+export async function saveMobileBridgeConfig(config: MobileBridgeConfig): Promise<void> {
+  await write(MOBILE_BRIDGE_KEY, config);
 }

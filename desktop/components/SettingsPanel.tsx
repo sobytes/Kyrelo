@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { GrokSettings } from "@/lib/types";
+import { PhoneAccess } from "./PhoneAccess";
 
 interface KeyStatus {
   anthropic: boolean;
@@ -257,6 +258,8 @@ export function SettingsPanel() {
           />
         </label>
       </section>
+
+      <PhoneAccess />
 
       <section className="card space-y-2">
         <div className="label">Danger zone</div>
