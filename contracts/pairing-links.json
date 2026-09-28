@@ -1,0 +1,24 @@
+{
+  "valid": [
+    {
+      "link": "kyrelo://pair?hosts=100.101.1.2%2C192.168.1.5&port=47771&token=abc_DEF-123",
+      "hosts": ["100.101.1.2", "192.168.1.5"],
+      "port": 47771,
+      "token": "abc_DEF-123"
+    },
+    {
+      "link": "kyrelo://pair?hosts=192.168.8.107&port=47771&token=t0k",
+      "hosts": ["192.168.8.107"],
+      "port": 47771,
+      "token": "t0k"
+    }
+  ],
+  "invalid": [
+    "https://kyrelo.com/pair?hosts=1.2.3.4&port=1&token=x",
+    "kyrelo://pair?hosts=&port=47771&token=x",
+    "kyrelo://pair?hosts=1.2.3.4&port=0&token=x",
+    "kyrelo://pair?hosts=1.2.3.4&port=47771",
+    "kyrelo://other?hosts=1.2.3.4&port=47771&token=x",
+    "not a link"
+  ]
+}

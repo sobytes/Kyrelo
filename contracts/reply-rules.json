@@ -1,0 +1,14 @@
+{
+  "replyMaxLength": 270,
+  "tones": ["curious", "contrarian", "supportive", "witty", "expert"],
+  "styles": ["grok", "direct", "mix"],
+  "lengthCases": [
+    { "text": "hello world", "length": 11 },
+    { "text": "see https://example.com/a/very/long/path/that/goes/on", "length": 27 },
+    { "text": "https://a.co and https://b.co", "length": 51 },
+    { "text": "café", "length": 4 },
+    { "text": "🦋 hi", "length": 5 },
+    { "text": "👨‍👩‍👧", "length": 8 },
+    { "text": "line one\nline two", "length": 17 }
+  ]
+}

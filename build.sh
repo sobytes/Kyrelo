@@ -20,6 +20,7 @@ usage() {
     echo "Targets (pipe-separate for multiple):"
     echo "  desktop         Electron app (Next.js UI + worker + Playwright)"
     echo "  website         Marketing site (kyrelo.com)"
+    echo "  ios             iPhone app (mobile/ios): Monitor + Autopilot, paired with desktop"
     echo "  check           Type-check both apps, run the desktop tests and scan tracked"
     echo "                  files for secrets."
     echo "                  No build, no server."
@@ -38,6 +39,7 @@ usage() {
     echo "Examples:"
     echo "  $0 desktop run            Launch the Electron app in dev mode"
     echo "  $0 website run            Website on http://localhost:3000"
+    echo "  $0 ios run                iPhone app in the simulator"
     echo "  $0 'desktop|website'      Production builds of both"
     echo "  $0 check                  Everything that must pass before a release"
     echo "  $0 desktop pack           Unsigned local build to click through"
@@ -227,6 +229,56 @@ build_website() {
     npm run dev
 }
 
+IOS_DIR="$BASE_DIR/mobile/ios"
+
+# The committed Kyrelo.xcodeproj is generated from project.yml. Regenerate when
+# xcodegen is installed; otherwise build the committed project as-is.
+ios_project() {
+    if command -v xcodegen >/dev/null 2>&1; then
+        (cd "$IOS_DIR" && xcodegen generate >/dev/null) || return 1
+    fi
+}
+
+# First available iPhone simulator: "udid|name".
+ios_simulator() {
+    xcrun simctl list devices available | grep -m1 -E "^\s+iPhone" \
+        | sed -E 's/^ *(.*) \(([0-9A-F-]{36})\).*/\2|\1/'
+}
+
+build_ios() {
+    ios_project || return 1
+    cd "$IOS_DIR" || return 1
+
+    if ! $RUN; then
+        echo -e "${GREEN}Building iOS app...${NC}"
+        xcodebuild -project Kyrelo.xcodeproj -scheme Kyrelo -destination "generic/platform=iOS" \
+            -derivedDataPath .build CODE_SIGNING_ALLOWED=NO build -quiet || return 1
+        echo -e "${GREEN}Done!${NC}"
+        return 0
+    fi
+
+    local sim id name
+    sim="$(ios_simulator)"
+    [ -n "$sim" ] || { echo -e "${RED}No iPhone simulator available${NC}"; return 1; }
+    id="${sim%%|*}"; name="${sim##*|}"
+    echo -e "${GREEN}Building for $name...${NC}"
+    xcodebuild -project Kyrelo.xcodeproj -scheme Kyrelo -destination "platform=iOS Simulator,id=$id" \
+        -derivedDataPath .build build -quiet || return 1
+    xcrun simctl boot "$id" 2>/dev/null
+    open -a Simulator
+    xcrun simctl install "$id" .build/Build/Products/Debug-iphonesimulator/Kyrelo.app || return 1
+    xcrun simctl launch "$id" com.sobytes.kyrelo.mobile >/dev/null || return 1
+    echo -e "${GREEN}Kyrelo is running on $name.${NC}"
+}
+
+ios_tests() {
+    local sim
+    sim="$(ios_simulator)"
+    [ -n "$sim" ] || return 1
+    cd "$IOS_DIR" && xcodebuild -project Kyrelo.xcodeproj -scheme Kyrelo \
+        -destination "platform=iOS Simulator,id=${sim%%|*}" -derivedDataPath .build test -quiet
+}
+
 # The repo is public, so a leaked key in a tracked file is a real leak.
 # Matches the shapes of the keys this project handles, not generic words.
 scan_secrets() {
@@ -269,6 +321,15 @@ run_checks() {
     step "desktop tests"      bash -c "cd '$BASE_DIR/desktop' && npm test --silent"
     step "website type-check" bash -c "cd '$BASE_DIR/website' && npm run typecheck --silent"
     step "secret scan"        scan_secrets
+    # iOS needs Xcode. Skip rather than fail on machines without it (the
+    # Windows release box); the same contracts/ are still checked by the
+    # desktop tests above.
+    if command -v xcodebuild >/dev/null 2>&1; then
+        step "ios tests"          ios_tests
+    else
+        echo -e "${YELLOW}[CHECK] ios tests - skipped, no Xcode here${NC}"
+        summary="${summary}\n  ${YELLOW}skip${NC}  ios tests"
+    fi
 
     echo ""
     echo -e "${CYAN}Summary${NC}${summary}"
@@ -292,7 +353,7 @@ fi
 
 if $RUN && [ ${#TARGETS[@]} -gt 1 ]; then
     # Both dev servers use port 3000 and each run blocks, so run them one at a time.
-    echo -e "${RED}run takes one target at a time (desktop and website both use port 3000)${NC}"
+    echo -e "${RED}run takes one target at a time${NC}"
     exit 1
 fi
 
@@ -300,6 +361,7 @@ for target in "${TARGETS[@]}"; do
     case "$target" in
         desktop)  build_desktop  || FAILED=1 ;;
         website)  build_website  || FAILED=1 ;;
+        ios)      build_ios      || FAILED=1 ;;
         check)    run_checks     || FAILED=1 ;;
         *)
             echo -e "${RED}Unknown target: $target${NC}"

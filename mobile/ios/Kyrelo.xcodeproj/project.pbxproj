@@ -1,0 +1,562 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		31376F0C7CCECE209878C13B /* BridgeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CB294475FDCBC98CD8B75E /* BridgeClient.swift */; };
+		3FF285A433827E3DE3B3CAEE /* AutopilotSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35ED055D0549A2C9014DB264 /* AutopilotSheet.swift */; };
+		4B04E3FBF069A0DC47FF9624 /* Pairing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDC1DD2178E7D129B675A6F /* Pairing.swift */; };
+		58ADD9A4B832DD48C46EA4F0 /* ContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB4F2DEE5B8A6843A610C22 /* ContractTests.swift */; };
+		61D4EB61A22D1A325410C66B /* Monitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF3E4FD91F35F915EDFBF8B /* Monitor.swift */; };
+		66FEF89E6369A3072399BFDE /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638C56556323F47AB21F7E5A /* Theme.swift */; };
+		6A77B94C2DBFB40F0FFD0D94 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1C06956099474C430820B9B1 /* Assets.xcassets */; };
+		7B234632DC321BEB5F6AD286 /* ReplyRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBBDB3C9B2C596E5A2FF9BAA /* ReplyRules.swift */; };
+		81DC671A78C59A248B5D85FF /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F58F07499D76A6FC072BD3 /* QRScannerView.swift */; };
+		8858F1B26DF619265AC4797A /* FeedModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17391502916ECFCD1B7F08C /* FeedModel.swift */; };
+		976525F85F434DDAA9ED6B57 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDBEDE774CA8267ACAB9DE1 /* FeedView.swift */; };
+		A496F16368C4C30401F6DAFF /* KyreloApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCD3CF5425F6BACD9BC06C9 /* KyreloApp.swift */; };
+		BDEF2DDB735F3D02CBABDC28 /* contracts in Resources */ = {isa = PBXBuildFile; fileRef = 482BEEAD1F871EB8ACB432BF /* contracts */; };
+		E80B812F8E38316361A62799 /* PairView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3DF1CD38AD16C85A46C68C /* PairView.swift */; };
+		FEB5F5F40645EB19EFDAC2DC /* ReplySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E134E95736207463E2A2D0 /* ReplySheet.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A6B5AA8D9721BB597B203675 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8F250DD5F646B2BAEF677FFF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AC515E5B1D1C40137A5A2C7A;
+			remoteInfo = Kyrelo;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		02916DB1BB57F6B515272490 /* KyreloTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = KyreloTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0EDC1DD2178E7D129B675A6F /* Pairing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pairing.swift; sourceTree = "<group>"; };
+		1C06956099474C430820B9B1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		35ED055D0549A2C9014DB264 /* AutopilotSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutopilotSheet.swift; sourceTree = "<group>"; };
+		37CB294475FDCBC98CD8B75E /* BridgeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeClient.swift; sourceTree = "<group>"; };
+		482BEEAD1F871EB8ACB432BF /* contracts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = contracts; path = ../../contracts; sourceTree = SOURCE_ROOT; };
+		59F58F07499D76A6FC072BD3 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
+		5AB4F2DEE5B8A6843A610C22 /* ContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests.swift; sourceTree = "<group>"; };
+		638C56556323F47AB21F7E5A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		65E134E95736207463E2A2D0 /* ReplySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplySheet.swift; sourceTree = "<group>"; };
+		6FCD3CF5425F6BACD9BC06C9 /* KyreloApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KyreloApp.swift; sourceTree = "<group>"; };
+		72AA012DBF0BC290D566C87C /* Kyrelo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kyrelo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8BDBEDE774CA8267ACAB9DE1 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		9B3DF1CD38AD16C85A46C68C /* PairView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairView.swift; sourceTree = "<group>"; };
+		A17391502916ECFCD1B7F08C /* FeedModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedModel.swift; sourceTree = "<group>"; };
+		DFF3E4FD91F35F915EDFBF8B /* Monitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Monitor.swift; sourceTree = "<group>"; };
+		EBBDB3C9B2C596E5A2FF9BAA /* ReplyRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplyRules.swift; sourceTree = "<group>"; };
+		EDC4E4F512248344C85F1871 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		11C5A2E3D27ED098BE11140A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				72AA012DBF0BC290D566C87C /* Kyrelo.app */,
+				02916DB1BB57F6B515272490 /* KyreloTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		27B2F7904D80D77F39C6827D /* Reply */ = {
+			isa = PBXGroup;
+			children = (
+				65E134E95736207463E2A2D0 /* ReplySheet.swift */,
+			);
+			path = Reply;
+			sourceTree = "<group>";
+		};
+		2BB1BD221FD490AF186FB041 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				638C56556323F47AB21F7E5A /* Theme.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		2EEA943550FC7445D5082B86 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				6FCD3CF5425F6BACD9BC06C9 /* KyreloApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		37ACD23C976450679DE492F4 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				1C06956099474C430820B9B1 /* Assets.xcassets */,
+				EDC4E4F512248344C85F1871 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		3DC6B60896FD145F85CE9D8D /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				40623FC3C225E5202EE8BB9D /* Autopilot */,
+				A60FEF81FFCE87E19F23EAE0 /* Feed */,
+				8BE9AFF56DD9E6ABF8CBC00E /* Pair */,
+				27B2F7904D80D77F39C6827D /* Reply */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		40623FC3C225E5202EE8BB9D /* Autopilot */ = {
+			isa = PBXGroup;
+			children = (
+				35ED055D0549A2C9014DB264 /* AutopilotSheet.swift */,
+			);
+			path = Autopilot;
+			sourceTree = "<group>";
+		};
+		73841B331674433362950BD2 /* Bridge */ = {
+			isa = PBXGroup;
+			children = (
+				37CB294475FDCBC98CD8B75E /* BridgeClient.swift */,
+				0EDC1DD2178E7D129B675A6F /* Pairing.swift */,
+			);
+			path = Bridge;
+			sourceTree = "<group>";
+		};
+		8BE9AFF56DD9E6ABF8CBC00E /* Pair */ = {
+			isa = PBXGroup;
+			children = (
+				9B3DF1CD38AD16C85A46C68C /* PairView.swift */,
+				59F58F07499D76A6FC072BD3 /* QRScannerView.swift */,
+			);
+			path = Pair;
+			sourceTree = "<group>";
+		};
+		8D43D9288D3A8DACB26E119F /* KyreloTests */ = {
+			isa = PBXGroup;
+			children = (
+				5AB4F2DEE5B8A6843A610C22 /* ContractTests.swift */,
+			);
+			path = KyreloTests;
+			sourceTree = "<group>";
+		};
+		A60FEF81FFCE87E19F23EAE0 /* Feed */ = {
+			isa = PBXGroup;
+			children = (
+				A17391502916ECFCD1B7F08C /* FeedModel.swift */,
+				8BDBEDE774CA8267ACAB9DE1 /* FeedView.swift */,
+			);
+			path = Feed;
+			sourceTree = "<group>";
+		};
+		B5D075199D97932F1E671090 /* Kyrelo */ = {
+			isa = PBXGroup;
+			children = (
+				2EEA943550FC7445D5082B86 /* App */,
+				C0BA436565744C2D4F3AA381 /* Core */,
+				3DC6B60896FD145F85CE9D8D /* Features */,
+				C3508A852FE9EAA8B1C9F7DE /* Models */,
+				37ACD23C976450679DE492F4 /* Resources */,
+				2BB1BD221FD490AF186FB041 /* Shared */,
+			);
+			path = Kyrelo;
+			sourceTree = "<group>";
+		};
+		C0BA436565744C2D4F3AA381 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				73841B331674433362950BD2 /* Bridge */,
+				EBBDB3C9B2C596E5A2FF9BAA /* ReplyRules.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		C3508A852FE9EAA8B1C9F7DE /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				DFF3E4FD91F35F915EDFBF8B /* Monitor.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CECEF011A36E45F27B436D18 = {
+			isa = PBXGroup;
+			children = (
+				B5D075199D97932F1E671090 /* Kyrelo */,
+				8D43D9288D3A8DACB26E119F /* KyreloTests */,
+				482BEEAD1F871EB8ACB432BF /* contracts */,
+				11C5A2E3D27ED098BE11140A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		69B71B954FAE01068F1E9545 /* KyreloTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B94D1A5C2CFCE6D7EADA2FA /* Build configuration list for PBXNativeTarget "KyreloTests" */;
+			buildPhases = (
+				A5593B2635EF1D8F534D1A93 /* Sources */,
+				B6AC69B69BF0177AD9767302 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7C8495E8AE205945C2331962 /* PBXTargetDependency */,
+			);
+			name = KyreloTests;
+			packageProductDependencies = (
+			);
+			productName = KyreloTests;
+			productReference = 02916DB1BB57F6B515272490 /* KyreloTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		AC515E5B1D1C40137A5A2C7A /* Kyrelo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 15C65C46EA131EEBD1774E39 /* Build configuration list for PBXNativeTarget "Kyrelo" */;
+			buildPhases = (
+				D413B74ADAC69AFCA6E3C07B /* Sources */,
+				0EB2914EF887804B2B566F71 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Kyrelo;
+			packageProductDependencies = (
+			);
+			productName = Kyrelo;
+			productReference = 72AA012DBF0BC290D566C87C /* Kyrelo.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8F250DD5F646B2BAEF677FFF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					69B71B954FAE01068F1E9545 = {
+						DevelopmentTeam = FT97GD7996;
+						ProvisioningStyle = Automatic;
+					};
+					AC515E5B1D1C40137A5A2C7A = {
+						DevelopmentTeam = FT97GD7996;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 5619B9EFD2B8D9ED79BF3F06 /* Build configuration list for PBXProject "Kyrelo" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = CECEF011A36E45F27B436D18;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 11C5A2E3D27ED098BE11140A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AC515E5B1D1C40137A5A2C7A /* Kyrelo */,
+				69B71B954FAE01068F1E9545 /* KyreloTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0EB2914EF887804B2B566F71 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6A77B94C2DBFB40F0FFD0D94 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B6AC69B69BF0177AD9767302 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BDEF2DDB735F3D02CBABDC28 /* contracts in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A5593B2635EF1D8F534D1A93 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				58ADD9A4B832DD48C46EA4F0 /* ContractTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D413B74ADAC69AFCA6E3C07B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3FF285A433827E3DE3B3CAEE /* AutopilotSheet.swift in Sources */,
+				31376F0C7CCECE209878C13B /* BridgeClient.swift in Sources */,
+				8858F1B26DF619265AC4797A /* FeedModel.swift in Sources */,
+				976525F85F434DDAA9ED6B57 /* FeedView.swift in Sources */,
+				A496F16368C4C30401F6DAFF /* KyreloApp.swift in Sources */,
+				61D4EB61A22D1A325410C66B /* Monitor.swift in Sources */,
+				E80B812F8E38316361A62799 /* PairView.swift in Sources */,
+				4B04E3FBF069A0DC47FF9624 /* Pairing.swift in Sources */,
+				81DC671A78C59A248B5D85FF /* QRScannerView.swift in Sources */,
+				7B234632DC321BEB5F6AD286 /* ReplyRules.swift in Sources */,
+				FEB5F5F40645EB19EFDAC2DC /* ReplySheet.swift in Sources */,
+				66FEF89E6369A3072399BFDE /* Theme.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7C8495E8AE205945C2331962 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AC515E5B1D1C40137A5A2C7A /* Kyrelo */;
+			targetProxy = A6B5AA8D9721BB597B203675 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		44E1E1D40FB2BBFD93F477DD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Kyrelo/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sobytes.kyrelo.mobile;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		64470C6DDD6D5CA7B0094C96 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sobytes.kyrelo.mobile.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kyrelo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kyrelo";
+			};
+			name = Release;
+		};
+		691F55E2E3AA9E3DD21CF173 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = FT97GD7996;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A2CC252CBCBEC1E0B38FEE06 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sobytes.kyrelo.mobile.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kyrelo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kyrelo";
+			};
+			name = Debug;
+		};
+		D00118491A87A11A6D10E580 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = FT97GD7996;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		D13CE9C33BC33DBBB5AED7D5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Kyrelo/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sobytes.kyrelo.mobile;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		15C65C46EA131EEBD1774E39 /* Build configuration list for PBXNativeTarget "Kyrelo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D13CE9C33BC33DBBB5AED7D5 /* Debug */,
+				44E1E1D40FB2BBFD93F477DD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1B94D1A5C2CFCE6D7EADA2FA /* Build configuration list for PBXNativeTarget "KyreloTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A2CC252CBCBEC1E0B38FEE06 /* Debug */,
+				64470C6DDD6D5CA7B0094C96 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5619B9EFD2B8D9ED79BF3F06 /* Build configuration list for PBXProject "Kyrelo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				691F55E2E3AA9E3DD21CF173 /* Debug */,
+				D00118491A87A11A6D10E580 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8F250DD5F646B2BAEF677FFF /* Project object */;
+}

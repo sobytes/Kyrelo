@@ -20,6 +20,8 @@ Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared inf
 | Folder | What it is |
 |---|---|
 | [`desktop/`](./desktop) | The Electron + Next.js + Playwright app. Schedule X posts, watch handles, generate AI replies. Built for macOS first. |
+| [`mobile/ios/`](./mobile/ios) | Native iPhone app (SwiftUI). Your Monitor feed and Autopilot's draft replies, paired with the desktop app, which does the watching. Xcode project generated from `project.yml` by XcodeGen and committed. |
+| [`contracts/`](./contracts) | Rules the desktop and iOS apps must agree on, as test fixtures both apps' tests read. |
 | [`website/`](./website) | The marketing site at [kyrelo.com](https://kyrelo.com). Plain Next.js + Tailwind, deploys to Vercel with **Root Directory = `website`**. |
 
 ## Running it
@@ -52,12 +54,17 @@ Everything goes through `build.sh` at the repo root. Run it with no arguments fo
 | `./build.sh website run` | Website on http://localhost:3000 |
 | `./build.sh desktop` | Production build of the desktop app |
 | `./build.sh website` | Production build of the website |
-| `./build.sh check` | Type-check both apps, run the desktop tests, scan for committed secrets |
+| `./build.sh ios` / `./build.sh ios run` | Build the iPhone app / run it in the simulator |
+| `./build.sh check` | Type-check both apps, run the desktop and iOS tests, scan for committed secrets |
 | `./build.sh desktop pack` | Unsigned `.app` / `.exe` in `desktop/dist/` to try locally |
 | `./build.sh desktop release test` | Dry run of the release build (no notarising, push or upload) |
 | `./build.sh desktop release` | Maintainers only: publish a signed release (below) |
 
 On Windows, run `build.sh` from Git Bash.
+
+### iPhone app
+
+Turn on **Settings → Phone app** in the desktop app, then scan the code in the iPhone app. The phone shows your Monitor feed and Autopilot's drafts; tap a draft, and it copies the reply and opens the tweet in X for you to send. Your computer keeps doing the watching and drafting, so Kyrelo has to be running there. It works on the same Wi-Fi, or anywhere with [Tailscale](https://tailscale.com) on both devices (use Tailscale on public Wi-Fi: the plain-Wi-Fi connection isn't encrypted).
 
 ### Releasing (maintainers)
 

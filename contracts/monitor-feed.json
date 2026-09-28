@@ -1,0 +1,79 @@
+{
+  "state": {
+    "bootstrapped": true,
+    "lastCheckedAt": "2026-09-28T17:30:00.000Z",
+    "tweets": [
+      {
+        "id": "2104624962254348765",
+        "handle": "techcrunch",
+        "text": "As all-in-one AI agents take off, Google is retreating from task-specific ones.",
+        "url": "https://x.com/techcrunch/status/2104624962254348765",
+        "isReply": false,
+        "seenAt": "2026-09-28T17:31:10.000Z",
+        "postedAt": "2026-09-28T17:31:00.000Z",
+        "draft": {
+          "score": 62,
+          "reason": "Question whether specialisation is being abandoned or repositioned.",
+          "options": [
+            "@grok Is Google killing task-specific agents a blunder, or are all-in-one agents really better?",
+            "@grok Does software history say generalists beat specialists at scale?"
+          ],
+          "generatedAt": "2026-09-28T17:31:30.000Z"
+        }
+      },
+      {
+        "id": "2104621409775308985",
+        "handle": "wired",
+        "text": "The best home security cameras we've tested.",
+        "url": "https://x.com/wired/status/2104621409775308985",
+        "isReply": false,
+        "seenAt": "2026-09-28T17:17:10.000Z",
+        "postedAt": "2026-09-28T17:17:00.000Z",
+        "draft": {
+          "score": 20,
+          "reason": "Product round-up, nothing to add.",
+          "options": [],
+          "generatedAt": "2026-09-28T17:18:00.000Z"
+        }
+      },
+      {
+        "id": "2104619919790723518",
+        "handle": "openai",
+        "text": "Replying to a question about the new site.",
+        "url": "https://x.com/openai/status/2104619919790723518",
+        "isReply": true,
+        "seenAt": "2026-09-28T17:11:10.000Z",
+        "postedAt": "2026-09-28T17:11:00.000Z",
+        "repliedAt": "2026-09-28T17:20:00.000Z",
+        "replyText": "@grok What changed?"
+      },
+      {
+        "id": "2104600000000000001",
+        "handle": "sama",
+        "text": "An old tweet seen without a timestamp.",
+        "url": "https://x.com/sama/status/2104600000000000001",
+        "isReply": false,
+        "seenAt": "2026-09-28T16:00:00.000Z",
+        "skipped": "too-old"
+      }
+    ]
+  },
+  "settings": {
+    "enabled": true,
+    "handles": ["sama", "techcrunch", "wired", "openai"],
+    "includeReplies": true,
+    "aiProvider": "claude",
+    "styleHint": "Take a sharp devil's-advocate angle.",
+    "notifyDesktop": true,
+    "headlessPosting": false,
+    "autopilot": {
+      "enabled": true,
+      "tone": "curious",
+      "style": "grok",
+      "minScore": 60,
+      "creativity": 0.7,
+      "topics": "AI agents",
+      "avoid": "politics"
+    }
+  }
+}
