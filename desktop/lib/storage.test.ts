@@ -86,3 +86,31 @@ describe("watcher state storage", () => {
     expect(state.tweets.find((t) => t.id === "t1")?.repliedAt).toBe("now");
   });
 });
+
+describe("reply drafts", () => {
+  it("stores the AI's draft on the tweet", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const { vi } = await import("vitest");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({ choices: [{ message: { content: JSON.stringify({ score: 77, reason: "angle", replies: ["hi"] }) } }] }),
+          { status: 200 },
+        ),
+      ),
+    );
+    await storage.saveGrokSettings({ ...(await storage.getGrokSettings()), aiProvider: "openai" });
+    await storage.modifyGrokState(() => ({
+      bootstrapped: true,
+      tweets: [{ id: "d1", handle: "a", text: "t", url: "https://x.com/a/status/9", isReply: false, seenAt: "2026-01-01" }],
+    }));
+    const { draftForTweet } = await import("./grok-watcher");
+    const r = await draftForTweet("d1", 0);
+    // The default style is "Ask @grok", so the draft is tagged.
+    expect(r.draft?.options).toEqual(["@grok hi"]);
+    const saved = (await storage.getGrokState()).tweets.find((t) => t.id === "d1");
+    expect(saved?.draft).toMatchObject({ score: 77, reason: "angle", options: ["@grok hi"] });
+    vi.unstubAllGlobals();
+  });
+});

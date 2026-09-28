@@ -1,8 +1,8 @@
-import { generateGrokQuestion } from "./ai";
+import { draftReplies } from "./ai";
 import { getGrokSettings, getGrokState, modifyGrokState } from "./storage";
 import { defaultXAccountId } from "./accounts";
 import { connectingPlatform } from "./browser-connect";
-import { SeenTweet } from "./types";
+import { ReplyDraft, SeenTweet } from "./types";
 
 function mergeSeen(existing: SeenTweet[], fresh: SeenTweet[]): SeenTweet[] {
   const byId = new Map(existing.map((t) => [t.id, t]));
@@ -136,6 +136,9 @@ async function runGrokWatcherOnce(): Promise<WatchResult> {
     };
   });
 
+  // The browser is closed by now, so drafting never delays a scheduled post.
+  if (settings.autopilot.enabled) await runAutopilot();
+
   return {
     seen: scraped.length,
     // The worker pops a native notification for each of these, so honour the
@@ -144,29 +147,62 @@ async function runGrokWatcherOnce(): Promise<WatchResult> {
   };
 }
 
-export interface ReplyOutcome {
-  tweetId: string;
-  ok: boolean;
-  reply?: string;
-  error?: string;
+// Drafts per check. Each is one AI call; the rest are picked up next check.
+const AUTOPILOT_MAX_PER_CHECK = 5;
+// Replies to older tweets are rarely seen, so don't spend AI calls on them.
+const AUTOPILOT_MAX_AGE_MS = 60 * 60_000;
+
+/** Drafts replies for recent tweets that don't have a draft yet, newest first. */
+async function runAutopilot(): Promise<void> {
+  const { minScore } = (await getGrokSettings()).autopilot;
+  const now = Date.now();
+  const candidates = (await getGrokState()).tweets
+    .filter((t) => !t.draft && !t.repliedAt && !t.skipped)
+    .filter((t) => now - new Date(t.postedAt ?? t.seenAt).getTime() <= AUTOPILOT_MAX_AGE_MS)
+    .sort((a, b) => (b.postedAt ?? b.seenAt).localeCompare(a.postedAt ?? a.seenAt))
+    .slice(0, AUTOPILOT_MAX_PER_CHECK);
+  for (const t of candidates) {
+    const r = await draftForTweet(t.id, minScore);
+    if (r.error) {
+      // No draft is saved, so it's retried next check. Stop now: the same
+      // problem (no API key, provider down) would fail every tweet.
+      console.warn(`[autopilot] drafting failed for ${t.id}: ${r.error}`);
+      return;
+    }
+  }
+  if (candidates.length) console.log(`[autopilot] drafted replies for ${candidates.length} tweet(s)`);
 }
 
-export async function generateReplyForTweet(tweetId: string): Promise<ReplyOutcome> {
+/**
+ * Asks the AI to judge a tweet and draft replies, and stores the result on the
+ * tweet. `threshold` 0 always drafts (the user asked for replies); autopilot
+ * passes the user's minimum score.
+ */
+export async function draftForTweet(
+  tweetId: string,
+  threshold: number,
+): Promise<{ draft?: ReplyDraft; error?: string }> {
   const settings = await getGrokSettings();
-  const state = await getGrokState();
-  const tweet = state.tweets.find((t) => t.id === tweetId);
-  if (!tweet) return { tweetId, ok: false, error: "tweet not in state" };
+  const tweet = (await getGrokState()).tweets.find((t) => t.id === tweetId);
+  if (!tweet) return { error: "tweet not in state" };
+  let draft: ReplyDraft;
   try {
-    const reply = await generateGrokQuestion({
-      tweetText: tweet.text,
-      styleHint: settings.styleHint,
+    const r = await draftReplies({
+      tweet,
+      autopilot: settings.autopilot,
+      voiceNotes: settings.styleHint,
+      threshold,
       provider: settings.aiProvider,
     });
-    return { tweetId, ok: true, reply };
+    draft = { ...r, generatedAt: new Date().toISOString() };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { tweetId, ok: false, error: message };
+    return { error: err instanceof Error ? err.message : String(err) };
   }
+  await modifyGrokState((state) => ({
+    ...state,
+    tweets: state.tweets.map((t) => (t.id === tweetId ? { ...t, draft } : t)),
+  }));
+  return { draft };
 }
 
 export async function markTweetReplied(

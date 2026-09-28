@@ -4,7 +4,7 @@ import {
   saveGrokSettings,
   modifyGrokState,
 } from "@/lib/storage";
-import { GrokSettings } from "@/lib/types";
+import { AutopilotSettings, GrokSettings, REPLY_STYLES, REPLY_TONES } from "@/lib/types";
 
 function normalize(handles: string[]): string[] {
   return Array.from(
@@ -42,6 +42,7 @@ export async function PUT(req: NextRequest) {
     notifyDesktop: typeof patch.notifyDesktop === "boolean" ? patch.notifyDesktop : current.notifyDesktop,
     headlessPosting:
       typeof patch.headlessPosting === "boolean" ? patch.headlessPosting : current.headlessPosting,
+    autopilot: mergeAutopilot(current.autopilot, patch.autopilot),
   };
   await saveGrokSettings(next);
 
@@ -55,4 +56,22 @@ export async function PUT(req: NextRequest) {
   }
 
   return NextResponse.json({ settings: next });
+}
+
+/** Known Autopilot fields only, with enums checked and numbers clamped. */
+function mergeAutopilot(current: AutopilotSettings, patch: unknown): AutopilotSettings {
+  if (!patch || typeof patch !== "object") return current;
+  const p = patch as Partial<Record<keyof AutopilotSettings, unknown>>;
+  const clamp = (v: unknown, min: number, max: number, fallback: number) =>
+    typeof v === "number" && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback;
+  const text = (v: unknown, fallback: string) => (typeof v === "string" ? v.slice(0, 500) : fallback);
+  return {
+    enabled: typeof p.enabled === "boolean" ? p.enabled : current.enabled,
+    tone: REPLY_TONES.includes(p.tone as never) ? (p.tone as AutopilotSettings["tone"]) : current.tone,
+    style: REPLY_STYLES.includes(p.style as never) ? (p.style as AutopilotSettings["style"]) : current.style,
+    minScore: Math.round(clamp(p.minScore, 0, 100, current.minScore)),
+    creativity: clamp(p.creativity, 0, 1, current.creativity),
+    topics: text(p.topics, current.topics),
+    avoid: text(p.avoid, current.avoid),
+  };
 }

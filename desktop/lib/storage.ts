@@ -79,6 +79,15 @@ const DEFAULT_GROK_SETTINGS: GrokSettings = {
     "Take a sharp devil's-advocate angle. Question an assumption, surface a downside, or argue the opposite is true.",
   notifyDesktop: true,
   headlessPosting: false,
+  autopilot: {
+    enabled: false,
+    tone: "curious",
+    style: "grok",
+    minScore: 60,
+    creativity: 0.7,
+    topics: "",
+    avoid: "",
+  },
 };
 
 export async function getGrokSettings(): Promise<GrokSettings> {
@@ -94,6 +103,12 @@ export async function getGrokSettings(): Promise<GrokSettings> {
     ...DEFAULT_GROK_SETTINGS,
     ...(stored as Partial<GrokSettings>),
     handles,
+    // Nested, so merge field by field: settings saved before a field existed
+    // still get its default.
+    autopilot: {
+      ...DEFAULT_GROK_SETTINGS.autopilot,
+      ...(stored.autopilot as Partial<GrokSettings["autopilot"]> | undefined),
+    },
   };
 }
 

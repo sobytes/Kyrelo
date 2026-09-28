@@ -6,6 +6,9 @@
  */
 export const MAX_TWEET_LENGTH = 280;
 
+/** Replies are kept a little under the limit, leaving room for X's own mention prefix. */
+export const REPLY_MAX_LENGTH = 270;
+
 const URL_RE = /https?:\/\/\S+/g;
 
 /** Length as X counts it: every URL is 23 characters. */

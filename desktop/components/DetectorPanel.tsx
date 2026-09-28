@@ -1,6 +1,16 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { GrokSettings, GrokState, SeenTweet } from "@/lib/types";
+import { REPLY_MAX_LENGTH, tweetLength } from "@/lib/tweet";
+import {
+  AutopilotSettings,
+  GrokSettings,
+  GrokState,
+  REPLY_STYLES,
+  REPLY_TONES,
+  ReplyDraft,
+  ReplyStyle,
+  SeenTweet,
+} from "@/lib/types";
 import { openExternal, useAccounts } from "./useAccounts";
 
 const POLL_MS = 8_000;
@@ -40,7 +50,8 @@ export function DetectorPanel() {
   const [settings, setSettings] = useState<GrokSettings | null>(null);
   const [state, setState] = useState<GrokState | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [replyingTweet, setReplyingTweet] = useState<SeenTweet | null>(null);
+  // The tweet being replied to, and the draft it starts from (if one was picked).
+  const [replying, setReplying] = useState<{ tweet: SeenTweet; text?: string } | null>(null);
   const [handleInput, setHandleInput] = useState("");
   const [showSuggested, setShowSuggested] = useState(false);
   const prevIdsRef = useRef<Set<string>>(new Set());
@@ -161,8 +172,8 @@ export function DetectorPanel() {
     }
   }
 
-  function openReply(t: SeenTweet) {
-    setReplyingTweet(t);
+  function openReply(tweet: SeenTweet, text?: string) {
+    setReplying({ tweet, text });
   }
 
   const tweets = [...state.tweets].sort((a, b) =>
@@ -194,6 +205,10 @@ export function DetectorPanel() {
             onToggleSuggested={toggleSuggested}
             onAddGroup={addGroup}
           />
+          <AutopilotCard
+            autopilot={settings.autopilot}
+            onChange={(autopilot) => save({ ...settings, autopilot })}
+          />
         </aside>
 
         <section className="min-h-[200px]">
@@ -206,15 +221,17 @@ export function DetectorPanel() {
         </section>
       </div>
 
-      {replyingTweet && (
+      {replying && (
         <ReplyModal
-          tweet={replyingTweet}
+          tweet={replying.tweet}
+          initialText={replying.text}
           aiProvider={settings.aiProvider}
-          onClose={() => setReplyingTweet(null)}
+          onClose={() => setReplying(null)}
           onMarked={() => {
-            setReplyingTweet(null);
+            setReplying(null);
             load();
           }}
+          onDrafted={load}
         />
       )}
     </div>
@@ -516,7 +533,7 @@ function Feed({
   connected,
 }: {
   tweets: SeenTweet[];
-  onReply: (t: SeenTweet) => void;
+  onReply: (t: SeenTweet, text?: string) => void;
   settings: GrokSettings;
   connected: boolean;
 }) {
@@ -552,7 +569,7 @@ function Feed({
   return (
     <div className="feed space-y-3">
       {tweets.map((t) => (
-        <TweetCard key={t.id} tweet={t} onReply={() => onReply(t)} />
+        <TweetCard key={t.id} tweet={t} onReply={(text) => onReply(t, text)} />
       ))}
     </div>
   );
@@ -563,7 +580,8 @@ function TweetCard({
   onReply,
 }: {
   tweet: SeenTweet;
-  onReply: () => void;
+  /** Opens the reply window, starting from `text` when a draft was picked. */
+  onReply: (text?: string) => void;
 }) {
   const when = tweet.postedAt ?? tweet.seenAt;
   const { bg, fg } = avatarColors(tweet.handle);
@@ -608,11 +626,13 @@ function TweetCard({
                 replied {new Date(tweet.repliedAt).toLocaleTimeString()}
               </span>
             ) : (
-              <button onClick={onReply} className="btn-primary text-xs">
-                Reply with @grok
+              <button onClick={() => onReply()} className="btn-primary text-xs">
+                Reply
               </button>
             )}
           </div>
+
+          {tweet.draft && !tweet.repliedAt && <DraftSuggestions draft={tweet.draft} onUse={onReply} />}
 
           {tweet.replyText && (
             <div className="mt-3 rounded-md border border-emerald-900/50 bg-emerald-950/30 p-2.5 text-sm leading-snug text-emerald-200">
@@ -630,20 +650,188 @@ function TweetCard({
   );
 }
 
+/** Autopilot's verdict on a tweet and its draft replies. */
+function DraftSuggestions({ draft, onUse }: { draft: ReplyDraft; onUse: (text?: string) => void }) {
+  if (draft.options.length === 0) {
+    return (
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+        <span>
+          Autopilot skipped ({draft.score}/100): {draft.reason}
+        </span>
+        <button onClick={() => onUse()} className="text-zinc-400 underline hover:text-zinc-200">
+          Draft anyway
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3 space-y-2 rounded-md border border-line bg-ink/40 p-2.5">
+      <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+        <span className="rounded-full bg-accent/15 px-2 py-0.5 font-semibold text-accent">{draft.score}/100</span>
+        <span>{draft.reason}</span>
+      </div>
+      {draft.options.map((option, i) => (
+        <div key={i} className="flex items-start justify-between gap-3">
+          <p className="text-sm leading-snug text-zinc-200">{option}</p>
+          <button onClick={() => onUse(option)} className="btn-ghost shrink-0 text-xs">
+            Use
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// --- Autopilot ----------------------------------------------------------------
+
+const STYLE_LABELS: Record<ReplyStyle, string> = {
+  grok: "Ask @grok",
+  direct: "Direct reply",
+  mix: "Mix",
+};
+
+function AutopilotCard({
+  autopilot,
+  onChange,
+}: {
+  autopilot: AutopilotSettings;
+  onChange: (next: AutopilotSettings) => void;
+}) {
+  // Sliders and text fields edit a local copy and save when released / left,
+  // so dragging or typing doesn't send a request per step.
+  const [draft, setDraft] = useState(autopilot);
+  useEffect(() => setDraft(autopilot), [autopilot]);
+  const commit = (patch: Partial<AutopilotSettings> = {}) => onChange({ ...draft, ...patch });
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="label !mb-0">Autopilot</div>
+        <label className="flex items-center gap-2 text-xs text-zinc-300">
+          <input type="checkbox" checked={autopilot.enabled} onChange={(e) => commit({ enabled: e.target.checked })} />
+          {autopilot.enabled ? "On" : "Off"}
+        </label>
+      </div>
+      <p className="text-[11px] leading-relaxed text-zinc-500">
+        Scores each new tweet and drafts replies under it. Nothing is posted automatically: you pick a draft
+        and send it from X.
+      </p>
+
+      <div>
+        <div className="label">Tone</div>
+        <div className="flex flex-wrap gap-1.5">
+          {REPLY_TONES.map((tone) => (
+            <button
+              key={tone}
+              onClick={() => commit({ tone })}
+              className={
+                "rounded-full border px-2.5 py-1 text-[11px] capitalize transition " +
+                (draft.tone === tone ? "border-accent text-zinc-100" : "border-line text-zinc-500 hover:text-zinc-300")
+              }
+            >
+              {tone}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="label">Reply style</div>
+        <div className="flex gap-1.5">
+          {REPLY_STYLES.map((style) => (
+            <button
+              key={style}
+              onClick={() => commit({ style })}
+              className={
+                "flex-1 rounded-md border px-2 py-1.5 text-[11px] transition " +
+                (draft.style === style ? "border-accent text-zinc-100" : "border-line text-zinc-500 hover:text-zinc-300")
+              }
+            >
+              {STYLE_LABELS[style]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="block">
+        <div className="label">Only draft when worth it: {draft.minScore}+</div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={draft.minScore}
+          onChange={(e) => setDraft({ ...draft, minScore: Number(e.target.value) })}
+          onPointerUp={() => commit()}
+          onKeyUp={() => commit()}
+          className="w-full"
+        />
+      </label>
+
+      <label className="block">
+        <div className="label">Creativity: {draft.creativity < 0.4 ? "focused" : draft.creativity > 0.8 ? "adventurous" : "balanced"}</div>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.1}
+          value={draft.creativity}
+          onChange={(e) => setDraft({ ...draft, creativity: Number(e.target.value) })}
+          onPointerUp={() => commit()}
+          onKeyUp={() => commit()}
+          className="w-full"
+        />
+      </label>
+
+      <label className="block">
+        <div className="label">Topics you care about</div>
+        <input
+          className="input text-xs"
+          placeholder="AI agents, dev tools, startups"
+          value={draft.topics}
+          onChange={(e) => setDraft({ ...draft, topics: e.target.value })}
+          onBlur={() => draft.topics !== autopilot.topics && commit()}
+        />
+      </label>
+      <label className="block">
+        <div className="label">Stay away from</div>
+        <input
+          className="input text-xs"
+          placeholder="politics, giveaways"
+          value={draft.avoid}
+          onChange={(e) => setDraft({ ...draft, avoid: e.target.value })}
+          onBlur={() => draft.avoid !== autopilot.avoid && commit()}
+        />
+      </label>
+
+      <p className="text-[10px] leading-relaxed text-zinc-500">
+        Uses your Reply tone from Settings as voice notes. One AI call per drafted tweet, up to 5 per check,
+        only for tweets under an hour old.
+      </p>
+    </div>
+  );
+}
+
 // --- Reply modal ------------------------------------------------------------
 
 function ReplyModal({
   tweet,
+  initialText,
   aiProvider,
   onClose,
   onMarked,
+  onDrafted,
 }: {
   tweet: SeenTweet;
+  initialText?: string;
   aiProvider: "claude" | "openai";
   onClose: () => void;
   onMarked: () => void;
+  /** Called after new drafts are saved on the tweet, so the feed can refresh. */
+  onDrafted: () => void;
 }) {
-  const [replyText, setReplyText] = useState(tweet.replyText ?? "");
+  const [replyText, setReplyText] = useState(initialText ?? tweet.replyText ?? tweet.draft?.options[0] ?? "");
+  const [options, setOptions] = useState<string[]>(tweet.draft?.options ?? []);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -655,12 +843,15 @@ function ReplyModal({
       const r = await fetch("/api/grok-reply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "generate", tweetId: tweet.id }),
+        body: JSON.stringify({ action: "draft", tweetId: tweet.id }),
       }).then((r) => r.json());
-      if (r.ok && r.reply) {
-        setReplyText(r.reply);
+      const drafted: string[] = r.draft?.options ?? [];
+      if (drafted.length > 0) {
+        setOptions(drafted);
+        setReplyText(drafted[0]);
+        onDrafted();
       } else {
-        setError(r.error ?? "Failed to generate");
+        setError(r.error ?? "No draft came back. Try again.");
       }
     } finally {
       setGenerating(false);
@@ -692,7 +883,7 @@ function ReplyModal({
   }
 
   const providerName = aiProvider === "openai" ? "OpenAI" : "Claude";
-  const overLimit = replyText.length > 270;
+  const overLimit = tweetLength(replyText) > REPLY_MAX_LENGTH;
 
   return (
     <div
@@ -707,7 +898,7 @@ function ReplyModal({
           <div>
             <div className="label !mb-0">Reply to @{tweet.handle}</div>
             <p className="mt-1 text-xs text-zinc-500">
-              Generate with {providerName}, edit if you like, then open on X to paste.
+              Pick a draft or ask {providerName} for some, edit if you like, then open on X to paste.
             </p>
           </div>
           <button
@@ -722,16 +913,32 @@ function ReplyModal({
           {tweet.text}
         </div>
 
+        {options.length > 1 && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {options.map((option, i) => (
+              <button
+                key={i}
+                onClick={() => setReplyText(option)}
+                className={
+                  "rounded-full border px-2.5 py-1 text-[11px] transition " +
+                  (replyText === option ? "border-accent text-zinc-100" : "border-line text-zinc-500 hover:text-zinc-300")
+                }
+              >
+                Option {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
         <textarea
           className="textarea h-32 resize-none"
-          placeholder={generating ? "Generating…" : "Click Generate reply, or write one yourself."}
+          placeholder={generating ? "Drafting…" : "Click Draft replies, or write one yourself."}
           value={replyText}
           onChange={(e) => setReplyText(e.target.value)}
           disabled={generating}
         />
         <div className="mt-1 flex items-center justify-between text-[10px]">
           <span className={overLimit ? "text-rose-400" : "text-zinc-500"}>
-            {replyText.length} / 270
+            {tweetLength(replyText)} / {REPLY_MAX_LENGTH}
           </span>
           {error && <span className="text-rose-400">{error}</span>}
         </div>
@@ -743,10 +950,10 @@ function ReplyModal({
             className="btn-ghost text-xs"
           >
             {generating
-              ? "Generating…"
-              : replyText
-                ? `Regenerate with ${providerName}`
-                : `Generate reply with ${providerName}`}
+              ? "Drafting…"
+              : options.length > 0
+                ? `New drafts from ${providerName}`
+                : `Draft replies with ${providerName}`}
           </button>
           <button
             onClick={copy}

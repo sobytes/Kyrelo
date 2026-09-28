@@ -90,6 +90,22 @@ describe("monitor settings route", () => {
     expect((await settings.PUT(json("PUT", { aiProvider: "gemini" }))).status).toBe(400);
   });
 
+  it("validates Autopilot settings", async () => {
+    const res = await settings.PUT(
+      json("PUT", { autopilot: { enabled: true, tone: "rude", style: "direct", minScore: 250, creativity: -1, extra: 1 } }),
+    );
+    const { autopilot } = (await res.json()).settings;
+    expect(autopilot).toEqual({
+      enabled: true,
+      tone: "curious", // unknown tone ignored
+      style: "direct",
+      minScore: 100, // clamped
+      creativity: 0, // clamped
+      topics: "",
+      avoid: "",
+    });
+  });
+
   it("saves known fields and drops unknown ones", async () => {
     const res = await settings.PUT(json("PUT", { handles: ["@Sama"], evil: true }));
     const body = await res.json();

@@ -5,6 +5,31 @@ export interface ApiKeys {
   openai?: string;
 }
 
+export const REPLY_TONES = ["curious", "contrarian", "supportive", "witty", "expert"] as const;
+export type ReplyTone = (typeof REPLY_TONES)[number];
+
+/** "grok": ask @grok a question. "direct": reply in your own voice. "mix": some of each. */
+export const REPLY_STYLES = ["grok", "direct", "mix"] as const;
+export type ReplyStyle = (typeof REPLY_STYLES)[number];
+
+/**
+ * Monitor autopilot: drafts replies for new tweets automatically. It never
+ * sends anything; the user picks a draft and sends it from X.
+ */
+export interface AutopilotSettings {
+  enabled: boolean;
+  tone: ReplyTone;
+  style: ReplyStyle;
+  /** 0–100. Tweets scoring below this are skipped, with the reason shown. */
+  minScore: number;
+  /** 0–1. Higher gives more varied, riskier wording. */
+  creativity: number;
+  /** Topics you want to engage with (free text). */
+  topics: string;
+  /** Topics or kinds of tweet to stay away from (free text). */
+  avoid: string;
+}
+
 export interface GrokSettings {
   enabled: boolean;
   handles: string[];
@@ -14,6 +39,18 @@ export interface GrokSettings {
   notifyDesktop: boolean;
   /** When true, scheduled posts run with the browser hidden. Default: false (visible). */
   headlessPosting?: boolean;
+  autopilot: AutopilotSettings;
+}
+
+/** What the AI decided about replying to a tweet, and its draft replies. */
+export interface ReplyDraft {
+  /** 0–100: how worthwhile a reply is (relevance, something to add, freshness). */
+  score: number;
+  /** One line on why it scored that way / what angle the replies take. */
+  reason: string;
+  /** Reply options, best first. Empty when the tweet was skipped. */
+  options: string[];
+  generatedAt: string;
 }
 
 export interface SeenTweet {
@@ -29,6 +66,8 @@ export interface SeenTweet {
   repliedAt?: string;
   replyText?: string;
   replyError?: string;
+  /** Autopilot's decision and draft replies. Set once, when first drafted. */
+  draft?: ReplyDraft;
   /** Marked when this tweet was already too old when we first saw it. */
   skipped?: "too-old";
 }
