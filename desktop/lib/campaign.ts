@@ -122,7 +122,8 @@ async function resolveDraft(
     angle: w.angle,
     text: w.text.trim(),
     media: { kind: w.media.kind },
-    sources: w.sources ?? [],
+    // Rendered as links in the review screen; only allow web URLs.
+    sources: (w.sources ?? []).filter((u) => /^https?:\/\//i.test(u)),
     scheduledFor,
   };
   try {
@@ -141,8 +142,9 @@ async function resolveDraft(
         break;
       }
       case "screenshot": {
+        if (!c.url) throw new Error("no product URL");
         const target = w.media.screenshotUrl || c.url;
-        draft.media.imagePath = await screenshotPage(target);
+        draft.media.imagePath = await screenshotPage(target, c.url);
         draft.media.note = `Screenshot of ${target}`;
         break;
       }
