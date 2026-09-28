@@ -13,6 +13,8 @@ export interface PlatformSpec {
   maxLength: number;
   /** Post length as this platform counts it. */
   length: (text: string) => number;
+  /** Largest image file the platform accepts on a post. */
+  maxImageBytes: number;
   /** How an account is connected: logging in through Chrome, or an app password. */
   connect: "browser" | "app-password";
   /** Where to log in (browser platforms) or create an app password. */
@@ -29,6 +31,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // time. Auto campaigns write to the standard 280 (lib/tweet.ts).
     maxLength: 4000,
     length: tweetLength,
+    maxImageBytes: 5 * 1024 * 1024,
     connect: "browser",
     loginUrl: "https://x.com/login",
   },
@@ -38,6 +41,8 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Bluesky counts user-perceived characters, and links count in full.
     maxLength: 300,
     length: (text) => Array.from(graphemes.segment(text)).length,
+    // Bluesky rejects image blobs over ~1 MB.
+    maxImageBytes: 1_000_000,
     connect: "app-password",
     loginUrl: "https://bsky.app/settings/app-passwords",
   },
@@ -46,6 +51,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     label: "LinkedIn",
     maxLength: 3000,
     length: (text) => text.length,
+    maxImageBytes: 5 * 1024 * 1024,
     connect: "browser",
     loginUrl: "https://www.linkedin.com/login",
   },

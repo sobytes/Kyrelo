@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { PLATFORMS } from "./platforms";
 import { imageTypeForFilename } from "./uploads";
 
 // Bluesky through its public XRPC API, authenticated with an app password
@@ -9,8 +10,6 @@ import { imageTypeForFilename } from "./uploads";
 // supported yet.
 const SERVICE = "https://bsky.social";
 const TIMEOUT_MS = 30_000;
-// Bluesky rejects image blobs over ~1 MB.
-const MAX_IMAGE_BYTES = 1_000_000;
 
 interface Session {
   did: string;
@@ -76,7 +75,7 @@ export async function postToBluesky(
   let embed: object | undefined;
   if (imagePath) {
     const data = await fs.readFile(imagePath);
-    if (data.length > MAX_IMAGE_BYTES) {
+    if (data.length > PLATFORMS.bluesky.maxImageBytes) {
       throw new Error("Bluesky only accepts images up to 1 MB. Attach a smaller image.");
     }
     const mimeType = imageTypeForFilename(path.basename(imagePath)) ?? "image/png";

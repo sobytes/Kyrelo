@@ -6,6 +6,7 @@ import { PLATFORM_IDS, PLATFORMS } from "./platforms";
 import { getGrokSettings } from "./storage";
 import { MAX_TWEET_LENGTH, REPLY_MAX_LENGTH, tweetLength } from "./tweet";
 import { REPLY_STYLES, REPLY_TONES } from "./types";
+import { MAX_IMAGE_BYTES } from "./uploads";
 
 // The desktop side of contracts/: the iOS app's tests read the same files
 // (mobile/ios/KyreloTests/ContractTests.swift).
@@ -33,9 +34,18 @@ describe("contract: reply rules", () => {
 describe("contract: platform rules", () => {
   const rules = contract("platform-rules.json");
 
+  it("never allows a bigger image than the upload route accepts", () => {
+    for (const id of PLATFORM_IDS) expect(PLATFORMS[id].maxImageBytes).toBeLessThanOrEqual(MAX_IMAGE_BYTES);
+  });
+
   it("lists the same platforms, names and limits", () => {
     expect(rules.platforms).toEqual(
-      PLATFORM_IDS.map((id) => ({ id, label: PLATFORMS[id].label, maxLength: PLATFORMS[id].maxLength })),
+      PLATFORM_IDS.map((id) => ({
+        id,
+        label: PLATFORMS[id].label,
+        maxLength: PLATFORMS[id].maxLength,
+        maxImageBytes: PLATFORMS[id].maxImageBytes,
+      })),
     );
   });
 

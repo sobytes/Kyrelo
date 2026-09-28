@@ -7,6 +7,7 @@ struct ComposeSheet: View {
     let onScheduled: () -> Void
 
     @State private var text = ""
+    @State private var photo: Data?
     @State private var targetKeys: Set<String>
     @State private var date = Date().addingTimeInterval(60)
     @State private var sending = false
@@ -37,6 +38,7 @@ struct ComposeSheet: View {
                         }
                     }
                 }
+                Section("Photo") { PhotoField(photo: $photo) }
                 if accounts.count > 1 {
                     Section("Post to") {
                         ForEach(accounts) { account in
@@ -73,10 +75,20 @@ struct ComposeSheet: View {
         error = nil
         Task {
             defer { sending = false }
+            // One upload, sized for the strictest platform chosen (Bluesky: 1 MB).
+            var imagePath: String?
+            if let photo {
+                do {
+                    imagePath = try await client.uploadPhoto(photo, for: platforms)
+                } catch {
+                    self.error = error.localizedDescription
+                    return
+                }
+            }
             var failures: [String] = []
             for account in targets {
                 do {
-                    try await client.schedulePost(on: account, text: text, at: date)
+                    try await client.schedulePost(on: account, text: text, at: date, imagePath: imagePath)
                 } catch {
                     failures.append("\(account.platform.label) @\(account.handle): \(error.localizedDescription)")
                 }
@@ -95,6 +107,8 @@ struct EditPostSheet: View {
 
     @State private var text: String
     @State private var date: Date
+    @State private var photo: Data?
+    @State private var removeExisting = false
     @State private var saving = false
     @State private var error: String?
     @Environment(\.dismiss) private var dismiss
@@ -117,6 +131,13 @@ struct EditPostSheet: View {
                     Text("\(length) / \(post.platform.maxLength)")
                         .font(.caption).foregroundStyle(length > post.platform.maxLength ? Theme.danger : Theme.faint)
                 }
+                Section("Photo") {
+                    PhotoField(
+                        photo: $photo,
+                        existing: post.imagePath.flatMap { removeExisting ? nil : (client, $0) },
+                        onRemoveExisting: { removeExisting = true }
+                    )
+                }
                 Section { DatePicker("When", selection: $date) }
                 Section {
                     Button("Cancel this post", role: .destructive) { run { try await client.cancelPost(id: post.id) } }
@@ -130,11 +151,23 @@ struct EditPostSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(saving ? "Saving…" : "Save") { run { try await client.updatePost(id: post.id, text: text, at: date) } }
+                    Button(saving ? "Saving…" : "Save") { run { try await save() } }
                         .disabled(saving || length > post.platform.maxLength || text.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }
+    }
+
+    private func save() async throws {
+        let image: BridgeClient.ImageChange
+        if let photo {
+            image = .set(try await client.uploadPhoto(photo, for: [post.platform]))
+        } else if removeExisting {
+            image = .remove
+        } else {
+            image = .keep
+        }
+        try await client.updatePost(id: post.id, text: text, at: date, image: image)
     }
 
     private func run(_ action: @escaping () async throws -> Void) {

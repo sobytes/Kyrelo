@@ -2,6 +2,7 @@ import http from "node:http";
 import os from "node:os";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { getMobileBridgeConfig, saveMobileBridgeConfig } from "./storage";
+import { MAX_IMAGE_BYTES } from "./uploads";
 
 // The phone app's way in. Kyrelo's API only answers this computer
 // (middleware.ts, and the server binds 127.0.0.1), so a paired phone talks to
@@ -37,6 +38,7 @@ const ALLOWED: [method: string, path: RegExp][] = [
   ["PATCH", new RegExp(`^/api/scheduler/posts/${ID}$`)],
   ["DELETE", new RegExp(`^/api/scheduler/posts/${ID}$`)],
   ["GET", new RegExp(`^/api/scheduler/uploads/${ID}$`)], // images on posts and drafts
+  ["POST", /^\/api\/scheduler\/upload$/], // a photo from the phone (see isUpload)
   // Auto campaigns
   ["GET", /^\/api\/campaigns$/],
   ["POST", /^\/api\/campaigns$/],
@@ -49,6 +51,16 @@ const ALLOWED: [method: string, path: RegExp][] = [
 function isAllowed(method: string | undefined, path: string): boolean {
   return ALLOWED.some(([m, re]) => m === method && re.test(path));
 }
+
+/**
+ * The photo upload is the one request that isn't JSON: a multipart form with
+ * the image, so it keeps its own content type and may be as big as an image
+ * the upload route accepts (lib/uploads.ts), plus room for the form wrapping.
+ */
+function isUpload(method: string | undefined, path: string): boolean {
+  return method === "POST" && path === "/api/scheduler/upload";
+}
+const MAX_UPLOAD_BYTES = MAX_IMAGE_BYTES + 64 * 1024;
 
 const MAX_BODY_BYTES = 64 * 1024;
 // Wrong tokens per address before it's locked out for the window.
@@ -97,12 +109,12 @@ function send(res: http.ServerResponse, status: number, body: object) {
   res.end(JSON.stringify(body));
 }
 
-async function readBody(req: http.IncomingMessage): Promise<Buffer | null> {
+async function readBody(req: http.IncomingMessage, maxBytes: number): Promise<Buffer | null> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
     size += (chunk as Buffer).length;
-    if (size > MAX_BODY_BYTES) return null;
+    if (size > maxBytes) return null;
     chunks.push(chunk as Buffer);
   }
   return Buffer.concat(chunks);
@@ -127,13 +139,18 @@ export async function handleBridgeRequest(
   if (req.method === "GET" && url.pathname === "/ping") return send(res, 200, { ok: true, app: "kyrelo" });
   if (!isAllowed(req.method, url.pathname)) return send(res, 404, { error: "not available to the phone app" });
 
-  const body = req.method === "GET" ? undefined : await readBody(req);
+  const upload = isUpload(req.method, url.pathname);
+  const contentType = upload ? req.headers["content-type"] ?? "" : "application/json";
+  if (upload && !contentType.startsWith("multipart/form-data")) {
+    return send(res, 400, { error: "photo uploads must be multipart/form-data" });
+  }
+  const body = req.method === "GET" ? undefined : await readBody(req, upload ? MAX_UPLOAD_BYTES : MAX_BODY_BYTES);
   if (body === null) return send(res, 413, { error: "request too large" });
 
   try {
     const upstream = await fetch(`${localApiUrl()}${url.pathname}`, {
       method: req.method,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": contentType },
       body: body ? new Uint8Array(body) : undefined,
       signal: AbortSignal.timeout(180_000),
     });

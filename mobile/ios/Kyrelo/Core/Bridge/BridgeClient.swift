@@ -83,15 +83,40 @@ final class BridgeClient {
     }
 
     /// One post per account: the desktop sends, tracks and retries each on its own.
-    func schedulePost(on account: Account, text: String, at date: Date) async throws {
+    /// `imagePath` is a filename returned by uploadPhoto.
+    func schedulePost(on account: Account, text: String, at date: Date, imagePath: String?) async throws {
         _ = try await request(Empty.self, "POST", "/api/scheduler/posts", body: NewPost(
-            platform: account.platform.rawValue, accountId: account.id, text: text, scheduledFor: ISODate.string(date)
+            platform: account.platform.rawValue, accountId: account.id, text: text,
+            scheduledFor: ISODate.string(date), imagePath: imagePath
         ))
     }
 
-    func updatePost(id: String, text: String, at date: Date) async throws {
-        _ = try await request(Empty.self, "PATCH", "/api/scheduler/posts/\(id)",
-                              body: ["text": text, "scheduledFor": ISODate.string(date)])
+    enum ImageChange { case keep, remove, set(String) }
+
+    func updatePost(id: String, text: String, at date: Date, image: ImageChange) async throws {
+        var body: [String: String?] = ["text": text, "scheduledFor": ISODate.string(date)]
+        switch image {
+        case .keep: break
+        case .remove: body["imagePath"] = .some(nil) // JSON null: remove the image
+        case let .set(filename): body["imagePath"] = filename
+        }
+        _ = try await request(Empty.self, "PATCH", "/api/scheduler/posts/\(id)", body: body)
+    }
+
+    /// Uploads a prepared JPEG (PhotoPrep) and returns its filename on the computer.
+    func uploadPhoto(_ jpeg: Data) async throws -> String {
+        let boundary = "kyrelo-\(UUID().uuidString)"
+        var form = Data()
+        form.append(Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"file\"; filename=\"photo.jpg\"\r\n".utf8))
+        form.append(Data("Content-Type: image/jpeg\r\n\r\n".utf8))
+        form.append(jpeg)
+        form.append(Data("\r\n--\(boundary)--\r\n".utf8))
+        let data = try await raw("POST", "/api/scheduler/upload", rawBody: form,
+                                 contentType: "multipart/form-data; boundary=\(boundary)", slow: true)
+        guard let filename = try JSONDecoder().decode(UploadResponse.self, from: data).filename else {
+            throw BridgeError.server("The photo didn't upload. Try again.")
+        }
+        return filename
     }
 
     func cancelPost(id: String) async throws {
@@ -159,7 +184,10 @@ final class BridgeClient {
     }
 
     /// Sends one request, trying each of the computer's addresses; returns the body.
-    private func raw(_ method: String, _ path: String, body: (any Encodable)? = nil, slow: Bool = false) async throws -> Data {
+    private func raw(
+        _ method: String, _ path: String, body: (any Encodable)? = nil,
+        rawBody: Data? = nil, contentType: String = "application/json", slow: Bool = false
+    ) async throws -> Data {
         let hosts = lastGoodHost.map { good in [good] + pairing.hosts.filter { $0 != good } } ?? pairing.hosts
         var lastHost = hosts.first ?? "?"
         for host in hosts {
@@ -170,8 +198,8 @@ final class BridgeClient {
             // Drafting and checking call the AI or scrape X, so allow longer.
             req.timeoutInterval = slow ? 120 : 8
             req.setValue("Bearer \(pairing.token)", forHTTPHeaderField: "Authorization")
-            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            if let body { req.httpBody = try JSONEncoder().encode(body) }
+            req.setValue(contentType, forHTTPHeaderField: "Content-Type")
+            if let body { req.httpBody = try JSONEncoder().encode(body) } else if let rawBody { req.httpBody = rawBody }
 
             let data: Data
             let response: URLResponse
@@ -203,5 +231,12 @@ final class BridgeClient {
     private struct PostsResponse: Decodable { let posts: [ScheduledPost] }
     private struct CampaignResponse: Decodable { let campaign: Campaign }
     private struct BrandProfileResponse: Decodable { let profile: BrandProfile }
-    private struct NewPost: Encodable { let platform: String; let accountId: String; let text: String; let scheduledFor: String }
+    private struct NewPost: Encodable {
+        let platform: String
+        let accountId: String
+        let text: String
+        let scheduledFor: String
+        let imagePath: String?
+    }
+    private struct UploadResponse: Decodable { let filename: String? }
 }

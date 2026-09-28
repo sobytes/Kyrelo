@@ -76,7 +76,6 @@ describe("phone bridge", () => {
       ["PUT", "/api/settings/keys"],
       ["POST", "/api/deleter"],
       ["POST", "/api/accounts"], // connecting / disconnecting accounts
-      ["POST", "/api/scheduler/upload"],
       ["DELETE", "/api/grok-state"],
       ["PATCH", "/api/scheduler/posts/a/../../settings/keys"],
       ["GET", "/api/campaigns/abc/secret"],
@@ -90,6 +89,22 @@ describe("phone bridge", () => {
   it("rejects requests without the pairing token or with a wrong one", async () => {
     expect((await call("/api/grok-state", {}, null)).status).toBe(401);
     expect((await call("/api/grok-state", {}, "wrong")).status).toBe(401);
+  });
+
+  it("forwards a photo upload with its multipart type, and only as multipart", async () => {
+    const form = new FormData();
+    form.append("file", new Blob([new Uint8Array(200_000)], { type: "image/jpeg" }), "photo.jpg");
+    const res = await fetch(`${bridgeUrl}/api/scheduler/upload`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${TOKEN}` },
+      body: form,
+    });
+    expect(res.status).toBe(200);
+    expect(apiCalls.at(-1)?.url).toBe("/api/scheduler/upload");
+    expect(apiCalls.at(-1)?.body.length).toBeGreaterThan(200_000); // not cut at the 64 KB JSON limit
+
+    const json = await call("/api/scheduler/upload", { method: "POST", body: "{}" });
+    expect(json.status).toBe(400);
   });
 
   it("rejects oversized requests", async () => {

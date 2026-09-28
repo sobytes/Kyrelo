@@ -29,6 +29,14 @@ extension PlatformId {
         }
     }
 
+    /// Largest image file the platform accepts on a post.
+    var maxImageBytes: Int {
+        switch self {
+        case .twitter, .linkedin: 5 * 1024 * 1024
+        case .bluesky: 1_000_000
+        }
+    }
+
     /// Post length as this platform counts it.
     func length(_ text: String) -> Int {
         switch self {

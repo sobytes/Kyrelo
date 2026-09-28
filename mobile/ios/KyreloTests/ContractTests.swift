@@ -96,7 +96,7 @@ final class ContractTests: XCTestCase {
     // MARK: platform-rules.json
 
     private struct PlatformRulesContract: Decodable {
-        struct Platform: Decodable { let id: String; let label: String; let maxLength: Int }
+        struct Platform: Decodable { let id: String; let label: String; let maxLength: Int; let maxImageBytes: Int }
         struct LengthCase: Decodable { let platform: String; let text: String; let length: Int }
         let platforms: [Platform]
         let lengthCases: [LengthCase]
@@ -109,6 +109,7 @@ final class ContractTests: XCTestCase {
             let platform = try XCTUnwrap(PlatformId(rawValue: p.id))
             XCTAssertEqual(platform.label, p.label)
             XCTAssertEqual(platform.maxLength, p.maxLength)
+            XCTAssertEqual(platform.maxImageBytes, p.maxImageBytes)
         }
     }
 
