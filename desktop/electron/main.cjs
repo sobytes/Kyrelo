@@ -74,7 +74,9 @@ function spawnNext(port) {
     });
   } else {
     const nextBin = path.join(ROOT, "node_modules", "next", "dist", "bin", "next");
-    nextProc = spawn(process.execPath, [nextBin, "start", "-p", String(port)], {
+    // -H: `next start` ignores the HOSTNAME env var and would otherwise listen
+    // on every network interface, exposing the app's API to the local network.
+    nextProc = spawn(process.execPath, [nextBin, "start", "-p", String(port), "-H", "127.0.0.1"], {
       cwd: ROOT,
       env: { ...baseEnv(port), ELECTRON_RUN_AS_NODE: "1" },
       stdio: ["ignore", "pipe", "pipe"],

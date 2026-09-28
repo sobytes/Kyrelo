@@ -41,6 +41,9 @@ if (!process.env.GIT_SSH_COMMAND && process.env.GIT_SSH_KEY) {
 
 const REPO = "sobytes/Kyrelo";
 
+// Apple Silicon and Intel. Each gets its own signed + notarized .dmg.
+const MAC_ARCHES = ["arm64", "x64"];
+
 const TEST_MODE = process.argv.slice(2).some((a) => a === "--test" || a === "test");
 
 const APPLE_ID = process.env.APPLE_ID;
@@ -152,27 +155,37 @@ function build() {
     fs.rmSync(distDir, { recursive: true, force: true });
   }
 
-  console.log("Building Next + downloading Playwright Chromium…");
+  console.log("Building Next…");
   run("npm run build");
-  run("npm run pw:install", { env: { ...process.env, PW_TARGET_ARCH: "arm64" } });
   console.log("");
 
-  if (TEST_MODE) {
-    console.log("Packaging (test — no notarize)…");
-    run("SKIP_NOTARIZE=true npx electron-builder --mac --arm64 --dir");
-  } else {
-    console.log("Packaging + notarizing (this can take 5–15 min)…");
-    const env = {
-      ...process.env,
-      APPLE_ID,
-      APPLE_APP_SPECIFIC_PASSWORD,
-      APPLE_TEAM_ID,
-    };
-    // Optional: pin a specific keychain identity via env. Without it
-    // electron-builder picks the first Developer ID Application cert.
-    const pin = (process.env.MAC_SIGNING_IDENTITY ?? "").trim();
-    const identityFlag = pin ? ` -c.mac.identity=${JSON.stringify(pin)}` : "";
-    run(`npx electron-builder --mac --arm64${identityFlag}`, { env });
+  // One .dmg per Mac chip. The Next build is the same for both, but the
+  // bundled Playwright Chromium is arch-specific, so it's re-downloaded for
+  // each (pw-install wipes the cache when the arch changes) and packaged with
+  // that arch's build. extraResources copies build/pw-browsers at package
+  // time, so the builds must run one after the other.
+  for (const arch of MAC_ARCHES) {
+    console.log(`Downloading Playwright Chromium (${arch})…`);
+    run("npm run pw:install", { env: { ...process.env, PW_TARGET_ARCH: arch } });
+
+    if (TEST_MODE) {
+      console.log(`Packaging ${arch} (test — no notarize)…`);
+      run(`SKIP_NOTARIZE=true npx electron-builder --mac --${arch} --dir`);
+    } else {
+      console.log(`Packaging + notarizing ${arch} (this can take 5–15 min)…`);
+      const env = {
+        ...process.env,
+        APPLE_ID,
+        APPLE_APP_SPECIFIC_PASSWORD,
+        APPLE_TEAM_ID,
+      };
+      // Optional: pin a specific keychain identity via env. Without it
+      // electron-builder picks the first Developer ID Application cert.
+      const pin = (process.env.MAC_SIGNING_IDENTITY ?? "").trim();
+      const identityFlag = pin ? ` -c.mac.identity=${JSON.stringify(pin)}` : "";
+      run(`npx electron-builder --mac --${arch}${identityFlag}`, { env });
+    }
+    console.log("");
   }
 }
 
@@ -222,7 +235,8 @@ function updateReleaseNotes(version) {
       { encoding: "utf8" },
     );
     const names = JSON.parse(assetsJson) || [];
-    const hasMac = names.some((n) => n.endsWith(".dmg"));
+    const hasMacArm = names.some((n) => n.endsWith("-arm64.dmg"));
+    const hasMacIntel = names.some((n) => n.endsWith("-x64.dmg"));
     const hasWin = names.some((n) => n.endsWith(".exe"));
 
     const currentBody = execSync(
@@ -236,7 +250,8 @@ function updateReleaseNotes(version) {
     const banner = [
       "### Platforms",
       "",
-      `- 🍎 **macOS** (Apple Silicon, signed & notarized) ${hasMac ? "✅" : "— not in this release"}`,
+      `- 🍎 **macOS, Apple Silicon** (M1 and later: \`-arm64.dmg\`, signed & notarized) ${hasMacArm ? "✅" : "— not in this release"}`,
+      `- 🍎 **macOS, Intel** (\`-x64.dmg\`, signed & notarized) ${hasMacIntel ? "✅" : "— not in this release"}`,
       `- 🪟 **Windows** (10/11 x64, signed) ${hasWin ? "✅" : "— not in this release"}`,
       "",
       "Pick your installer from **Assets** below.",
@@ -277,7 +292,7 @@ async function main() {
   console.log("========================================");
   console.log(`  Done in ${fmt(Date.now() - start)}`);
   if (TEST_MODE) {
-    console.log("  App: dist/mac-arm64/Kyrelo.app");
+    console.log("  Apps: dist/mac-arm64/Kyrelo.app (Apple Silicon), dist/mac/Kyrelo.app (Intel)");
     console.log("  (Not notarized — Gatekeeper will warn.)");
   } else {
     console.log(`  Release: https://github.com/${REPO}/releases/tag/v${version}`);
