@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { Page } from "playwright";
 import { dataDir } from "../storage";
-import { assertLoggedIn, browserHasWaiters, jitter, openBrowser, warmup } from "./session";
+import { assertLoggedIn, browserHasWaiters, jitter, openBrowser } from "./session";
 
 async function dumpDebug(page: Page, label: string) {
   const dir = path.join(dataDir, "debug");
@@ -49,7 +49,26 @@ async function scrapeOnPage(
   const url = includeReplies
     ? `https://x.com/${handle}/with_replies`
     : `https://x.com/${handle}`;
+  return scrapeUrl(page, url, [handle], limit, `no-articles-${handle}`);
+}
 
+/**
+ * X's "Latest" search for several handles at once: one page load instead of
+ * one per handle. `from:` matches only tweets the handle wrote (not reposts),
+ * the same set the profile scrape keeps.
+ */
+function searchUrl(handles: string[], includeReplies: boolean): string {
+  const query = `(${handles.map((h) => `from:${h}`).join(" OR ")})${includeReplies ? "" : " -filter:replies"}`;
+  return `https://x.com/search?q=${encodeURIComponent(query)}&src=typed_query&f=live`;
+}
+
+async function scrapeUrl(
+  page: Page,
+  url: string,
+  handles: string[],
+  limit: number,
+  debugLabel: string,
+): Promise<ScrapedTweet[]> {
   await page.goto(url, { waitUntil: "domcontentloaded" });
   await jitter(2000, 4000);
   assertLoggedIn(page);
@@ -60,7 +79,7 @@ async function scrapeOnPage(
       timeout: 15_000,
     });
   } catch {
-    await dumpDebug(page, `no-articles-${handle}`);
+    await dumpDebug(page, debugLabel);
     return [];
   }
 
@@ -70,12 +89,13 @@ async function scrapeOnPage(
     await jitter(700, 1400);
   }
 
-  const handleLower = handle.toLowerCase();
+  const handleByLower = Object.fromEntries(handles.map((h) => [h.toLowerCase(), h]));
 
   const tweets = await page.evaluate(
-    ({ handleLower, limit }) => {
+    ({ watched, limit }) => {
         const out: {
           id: string;
+          author: string;
           url: string;
           text: string;
           isReply: boolean;
@@ -96,20 +116,22 @@ async function scrapeOnPage(
           ) as NodeListOf<HTMLAnchorElement>;
           let statusUrl: string | null = null;
           let id: string | null = null;
+          let author: string | null = null;
           let postedAt: string | undefined;
           for (const a of Array.from(anchors)) {
             const m = a.getAttribute("href")?.match(/^\/([^/]+)\/status\/(\d+)/);
             if (!m) continue;
-            // Only count tweets from the watched handle (skip quoted/retweeted others).
-            if (m[1].toLowerCase() !== handleLower) continue;
+            // Only count tweets from a watched handle (skip quoted/retweeted others).
+            if (!watched.includes(m[1].toLowerCase())) continue;
             statusUrl = `https://x.com${a.getAttribute("href")}`;
             id = m[2];
+            author = m[1].toLowerCase();
             const timeEl = a.querySelector("time");
             const dt = timeEl?.getAttribute("datetime");
             if (dt) postedAt = dt;
             break;
           }
-          if (!id || !statusUrl) continue;
+          if (!id || !statusUrl || !author) continue;
           if (seen.has(id)) continue;
           seen.add(id);
 
@@ -122,15 +144,18 @@ async function scrapeOnPage(
             /^Replying to /i.test(d.textContent ?? ""),
           );
 
-          out.push({ id, url: statusUrl, text, isReply: replyingTo, postedAt });
+          out.push({ id, author, url: statusUrl, text, isReply: replyingTo, postedAt });
         }
         return out;
       },
-      { handleLower, limit },
+      { watched: Object.keys(handleByLower), limit },
     );
 
-  return tweets.map((t) => ({ ...t, handle }));
+  return tweets.map(({ author, ...t }) => ({ ...t, handle: handleByLower[author] }));
 }
+
+// Handles per search. Keeps each query well under X's search length limit.
+const HANDLES_PER_SEARCH = 15;
 
 export interface MultiScrapeOptions {
   accountId: string;
@@ -155,14 +180,9 @@ export async function scrapeManyTimelines(
   const { page } = browser;
   const out: ScrapedTweet[] = [];
   try {
-    try {
-      await warmup(page, "https://x.com/home");
-    } catch (err) {
-      console.warn("[twitter-watch] warmup skipped:", err);
-    }
-    assertLoggedIn(page);
-
-    for (const handle of handles) {
+    // No home-feed warmup: going straight to the search keeps a check short,
+    // so the browser is free for scheduled posts most of the time.
+    for (let i = 0; i < handles.length; i += HANDLES_PER_SEARCH) {
       // A scheduled post (or other job) is waiting for this browser. Stop
       // here and let it run; the remaining handles are picked up next tick.
       if (browserHasWaiters("twitter", opts.accountId)) {
@@ -173,18 +193,32 @@ export async function scrapeManyTimelines(
         console.warn("[twitter-watch] page closed — aborting remaining scrapes");
         break;
       }
+      const chunk = handles.slice(i, i + HANDLES_PER_SEARCH);
       try {
-        const tweets = await scrapeOnPage(page, handle, opts.includeReplies, limit);
-        out.push(...tweets);
+        // Newest first across all handles in the chunk, so allow a few per handle.
+        const found = await scrapeUrl(
+          page,
+          searchUrl(chunk, opts.includeReplies),
+          chunk,
+          limit * Math.min(chunk.length, 3),
+          "no-articles-search",
+        );
+        if (found.length > 0) {
+          out.push(...found);
+        } else {
+          // Search showed nothing (X can restrict search). Fall back to the
+          // profile pages so the Monitor still works, just slower.
+          console.warn("[twitter-watch] search returned no tweets — checking profiles one by one");
+          out.push(...(await scrapeProfiles(page, chunk, opts, limit)));
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (/closed|disconnect|crashed/i.test(msg)) {
           console.warn("[twitter-watch] browser closed mid-scrape — aborting");
           break;
         }
-        console.warn(`[twitter-watch] scrape failed for @${handle}: ${msg}`);
+        console.warn(`[twitter-watch] search failed for ${chunk.length} handle(s): ${msg}`);
       }
-      await jitter(800, 1800);
     }
     return out;
   } finally {
@@ -192,3 +226,25 @@ export async function scrapeManyTimelines(
   }
 }
 
+
+/** The slow path: one profile page per handle. */
+async function scrapeProfiles(
+  page: Page,
+  handles: string[],
+  opts: MultiScrapeOptions,
+  limit: number,
+): Promise<ScrapedTweet[]> {
+  const out: ScrapedTweet[] = [];
+  for (const handle of handles) {
+    if (browserHasWaiters("twitter", opts.accountId) || page.isClosed()) break;
+    try {
+      out.push(...(await scrapeOnPage(page, handle, opts.includeReplies, limit)));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/closed|disconnect|crashed/i.test(msg)) break;
+      console.warn(`[twitter-watch] scrape failed for @${handle}: ${msg}`);
+    }
+    await jitter(800, 1800);
+  }
+  return out;
+}

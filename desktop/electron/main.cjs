@@ -63,6 +63,28 @@ function baseEnv(port) {
   };
 }
 
+// The binary that runs the packaged Next server and worker as plain Node
+// (ELECTRON_RUN_AS_NODE). On macOS use the "<App> Helper" binary, not the main
+// one: the main app has a Dock presence, so a Node child started from it
+// showed up as a bouncing generic "exec" icon. Helpers are LSUIElement (never
+// in the Dock) and run as Node the same way.
+function nodeRuntime() {
+  if (process.platform !== "darwin") return process.execPath;
+  // The main executable's own name ("Kyrelo"); app.getName() can be the
+  // lowercase package name, which only matches on case-insensitive disks.
+  const name = path.basename(process.execPath);
+  const helper = path.join(
+    path.dirname(process.execPath),
+    "..",
+    "Frameworks",
+    `${name} Helper.app`,
+    "Contents",
+    "MacOS",
+    `${name} Helper`,
+  );
+  return fs.existsSync(helper) ? helper : process.execPath;
+}
+
 function spawnNext(port) {
   console.log(`[electron] starting next (${isDev ? "dev" : "production"}) on :${port}`);
   if (isDev) {
@@ -76,7 +98,7 @@ function spawnNext(port) {
     const nextBin = path.join(ROOT, "node_modules", "next", "dist", "bin", "next");
     // -H: `next start` ignores the HOSTNAME env var and would otherwise listen
     // on every network interface, exposing the app's API to the local network.
-    nextProc = spawn(process.execPath, [nextBin, "start", "-p", String(port), "-H", "127.0.0.1"], {
+    nextProc = spawn(nodeRuntime(), [nextBin, "start", "-p", String(port), "-H", "127.0.0.1"], {
       cwd: ROOT,
       env: { ...baseEnv(port), ELECTRON_RUN_AS_NODE: "1" },
       stdio: ["ignore", "pipe", "pipe"],
@@ -101,7 +123,7 @@ function spawnWorker(port) {
     });
   } else {
     const workerJs = path.join(ROOT, "worker", "index.mjs");
-    workerProc = spawn(process.execPath, [workerJs], {
+    workerProc = spawn(nodeRuntime(), [workerJs], {
       cwd: ROOT,
       env: { ...baseEnv(port), ELECTRON_RUN_AS_NODE: "1" },
       stdio: ["ignore", "pipe", "pipe"],

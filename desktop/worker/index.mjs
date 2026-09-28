@@ -96,6 +96,33 @@ async function schedulerTick() {
   } finally {
     schedulerInFlight = false;
   }
+  await armNextPost();
+}
+
+// The 30s interval alone lets a post start up to 30s late. After each tick,
+// if the next pending post is due before the next interval tick, set a timer
+// for its exact time. The interval stays as the safety net (and picks up
+// posts scheduled from the UI in the meantime).
+let nextPostTimer = null;
+
+async function armNextPost() {
+  try {
+    const res = await fetch(`${baseUrl}/api/scheduler/posts`);
+    const { posts } = await res.json();
+    const now = Date.now();
+    const next = (posts ?? [])
+      .filter((p) => p.status === "pending")
+      .map((p) => new Date(p.scheduledFor).getTime())
+      .sort((a, b) => a - b)[0];
+    clearTimeout(nextPostTimer);
+    if (next === undefined || next - now >= schedulerIntervalMs) return;
+    // Already due (e.g. it arrived while a tick was running): go again soon,
+    // but not instantly, so a post that can't be sent yet doesn't spin.
+    const delay = next > now ? next - now + 250 : 5_000;
+    nextPostTimer = setTimeout(schedulerTick, delay);
+  } catch (err) {
+    console.error("couldn't read upcoming posts", err);
+  }
 }
 
 console.log(

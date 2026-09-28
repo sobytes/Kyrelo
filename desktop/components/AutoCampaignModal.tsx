@@ -350,19 +350,39 @@ function Progress({ campaign }: { campaign: Campaign }) {
     { key: "media", label: "Picking images, screenshots and links" },
   ];
   const current = steps.findIndex((s) => s.key === campaign.status);
+
+  // A live clock, so a long research step visibly isn't stuck.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1_000);
+    return () => clearInterval(id);
+  }, []);
+  const elapsedSec = Math.max(0, Math.floor((now - new Date(campaign.createdAt).getTime()) / 1000));
+  const elapsed = `${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, "0")}`;
+
   return (
     <div className="space-y-3">
       <ul className="space-y-2 text-sm">
         {steps.map((s, i) => (
           <li key={s.key} className="flex items-center gap-2">
-            <span className={i < current ? "text-emerald-400" : i === current ? "text-amber-300" : "text-zinc-600"}>
-              {i < current ? "✓" : i === current ? "●" : "○"}
-            </span>
+            {i === current ? (
+              <span
+                aria-label="In progress"
+                className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-amber-300 border-t-transparent"
+              />
+            ) : (
+              <span className={i < current ? "w-3.5 text-emerald-400" : "w-3.5 text-zinc-600"}>
+                {i < current ? "✓" : "○"}
+              </span>
+            )}
             <span className={i <= current ? "text-zinc-200" : "text-zinc-500"}>{s.label}</span>
           </li>
         ))}
       </ul>
-      <p className="text-xs text-zinc-500">{campaign.progress} This usually takes 1–3 minutes.</p>
+      <p className="text-xs text-zinc-500">
+        {campaign.progress} <span className="tabular-nums text-zinc-400">{elapsed} elapsed</span> · usually a
+        few minutes.
+      </p>
     </div>
   );
 }
