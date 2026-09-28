@@ -52,7 +52,7 @@ Everything goes through `build.sh` at the repo root. Run it with no arguments fo
 | `./build.sh website run` | Website on http://localhost:3000 |
 | `./build.sh desktop` | Production build of the desktop app |
 | `./build.sh website` | Production build of the website |
-| `./build.sh check` | Type-check both apps and scan for committed secrets |
+| `./build.sh check` | Type-check both apps, run the desktop tests, scan for committed secrets |
 | `./build.sh desktop pack` | Unsigned `.app` / `.exe` in `desktop/dist/` to try locally |
 | `./build.sh desktop release test` | Dry run of the release build (no notarising, push or upload) |
 | `./build.sh desktop release` | Maintainers only: publish a signed release (below) |

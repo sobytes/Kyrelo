@@ -2,8 +2,9 @@ import path from "node:path";
 import {
   deleteScheduledPost,
   getGrokSettings,
+  insertScheduledPost,
   listScheduledPosts,
-  upsertScheduledPost,
+  updateScheduledPost,
 } from "./storage";
 import {
   getDefaultAccountId,
@@ -38,10 +39,16 @@ export async function runDueScheduledPosts(): Promise<DispatchOutcome> {
       p.status === "posting" &&
       now - new Date(p.scheduledFor).getTime() > STALE_POSTING_MS
     ) {
-      p.status = "failed";
-      p.error =
-        "Posting was interrupted — the app closed mid-send. Reschedule if it didn't go out.";
-      await upsertScheduledPost(p);
+      await updateScheduledPost(p.id, (latest) =>
+        latest.status === "posting"
+          ? {
+              ...latest,
+              status: "failed",
+              error:
+                "Posting was interrupted — the app closed mid-send. Reschedule if it didn't go out.",
+            }
+          : null,
+      );
     }
   }
 
@@ -64,37 +71,50 @@ export async function runDueScheduledPosts(): Promise<DispatchOutcome> {
 
   let posted = 0;
   let failed = 0;
-  for (const post of due) {
+  for (const candidate of due) {
+    // Claim the post from its latest stored copy. The user may have edited,
+    // rescheduled or cancelled it since `due` was read; only a post that is
+    // still pending and due gets marked "posting", so it can't be sent twice.
+    const post = await updateScheduledPost(candidate.id, (latest) =>
+      latest.status === "pending" && new Date(latest.scheduledFor).getTime() <= Date.now()
+        ? { ...latest, status: "posting" }
+        : null,
+    );
+    if (!post) continue;
+
     const accountId = post.accountId && accountIds.has(post.accountId)
       ? post.accountId
       : fallback;
     if (!accountId) {
-      post.status = "failed";
-      post.error = "No connected X account for this post.";
-      await upsertScheduledPost(post);
+      await updateScheduledPost(post.id, (latest) => ({
+        ...latest,
+        status: "failed",
+        error: "No connected X account for this post.",
+      }));
       failed++;
       continue;
     }
-    post.status = "posting";
-    await upsertScheduledPost(post);
     console.log(`[scheduler] posting id=${post.id} via account=${accountId}`);
+    // Result updates go through updateScheduledPost, which does nothing if
+    // the user cancelled (deleted) the post mid-send, so it doesn't come back.
     try {
       const imagePath = post.imagePath ? path.join(uploadsDir(), post.imagePath) : undefined;
       const r = await postTweetBrowser(accountId, post.text, { headless, imagePath });
-      post.status = "posted";
-      post.postedAt = new Date().toISOString();
-      post.postedUrl = r.url;
-      post.error = undefined;
+      await updateScheduledPost(post.id, (latest) => ({
+        ...latest,
+        status: "posted",
+        postedAt: new Date().toISOString(),
+        postedUrl: r.url,
+        error: undefined,
+      }));
       posted++;
       console.log(`[scheduler] posted id=${post.id} → ${r.url}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      post.status = "failed";
-      post.error = msg;
+      await updateScheduledPost(post.id, (latest) => ({ ...latest, status: "failed", error: msg }));
       failed++;
       console.error(`[scheduler] failed id=${post.id}: ${msg}`);
     }
-    await upsertScheduledPost(post);
   }
 
   return { ran: due.length, posted, failed };
@@ -119,7 +139,7 @@ export async function createScheduledPost(input: {
     status: "pending",
     campaignId: input.campaignId,
   };
-  await upsertScheduledPost(post);
+  await insertScheduledPost(post);
   return post;
 }
 

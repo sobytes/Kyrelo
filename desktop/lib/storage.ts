@@ -38,6 +38,27 @@ async function write<T>(key: string, value: T): Promise<void> {
   await fs.writeFile(path.join(dataDir, `${key}.json`), JSON.stringify(value, null, 2));
 }
 
+// Per-file queue for read-modify-write, the same promise-chain pattern as the
+// browser lock in lib/browser/session.ts. The worker's dispatch loop, UI
+// edits and campaign jobs all rewrite whole files; without this two of them
+// can interleave between read and write and one change is lost.
+const fileLocks: Record<string, Promise<void>> = {};
+
+async function modify<T>(key: string, fallback: T, change: (value: T) => T): Promise<T> {
+  const prev = fileLocks[key] ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((r) => (release = r));
+  fileLocks[key] = prev.then(() => current);
+  await prev;
+  try {
+    const next = change((await read<T>(key)) ?? fallback);
+    await write(key, next);
+    return next;
+  } finally {
+    release();
+  }
+}
+
 const DEFAULT_GROK_SETTINGS: GrokSettings = {
   enabled: false,
   handles: [],
@@ -100,21 +121,33 @@ export async function listScheduledPosts(): Promise<ScheduledPost[]> {
   return (await read<ScheduledPost[]>(SCHEDULED_POSTS_KEY)) ?? [];
 }
 
-export async function saveScheduledPosts(posts: ScheduledPost[]): Promise<void> {
-  await write(SCHEDULED_POSTS_KEY, posts);
+export async function insertScheduledPost(post: ScheduledPost): Promise<void> {
+  await modify<ScheduledPost[]>(SCHEDULED_POSTS_KEY, [], (all) => [...all, post]);
 }
 
-export async function upsertScheduledPost(post: ScheduledPost): Promise<void> {
-  const all = await listScheduledPosts();
-  const idx = all.findIndex((p) => p.id === post.id);
-  if (idx >= 0) all[idx] = post;
-  else all.push(post);
-  await saveScheduledPosts(all);
+/**
+ * Applies `change` to the latest stored copy of a post. `change` returns the
+ * updated post, or null to leave it untouched (e.g. its status moved on since
+ * the caller last looked). Returns the saved post, or null if the post no
+ * longer exists (cancelled) or `change` declined.
+ */
+export async function updateScheduledPost(
+  id: string,
+  change: (post: ScheduledPost) => ScheduledPost | null,
+): Promise<ScheduledPost | null> {
+  let saved: ScheduledPost | null = null;
+  await modify<ScheduledPost[]>(SCHEDULED_POSTS_KEY, [], (all) =>
+    all.map((p) => {
+      if (p.id !== id) return p;
+      saved = change({ ...p });
+      return saved ?? p;
+    }),
+  );
+  return saved;
 }
 
 export async function deleteScheduledPost(id: string): Promise<void> {
-  const all = await listScheduledPosts();
-  await saveScheduledPosts(all.filter((p) => p.id !== id));
+  await modify<ScheduledPost[]>(SCHEDULED_POSTS_KEY, [], (all) => all.filter((p) => p.id !== id));
 }
 
 export async function listXAccounts(): Promise<XAccount[]> {
@@ -134,11 +167,11 @@ export async function getCampaign(id: string): Promise<Campaign | null> {
 }
 
 export async function upsertCampaign(campaign: Campaign): Promise<void> {
-  const all = await listCampaigns();
-  const idx = all.findIndex((c) => c.id === campaign.id);
-  if (idx >= 0) all[idx] = campaign;
-  else all.push(campaign);
-  await write(CAMPAIGNS_KEY, all.slice(-50));
+  await modify<Campaign[]>(CAMPAIGNS_KEY, [], (all) =>
+    all.some((c) => c.id === campaign.id)
+      ? all.map((c) => (c.id === campaign.id ? campaign : c))
+      : [...all, campaign].slice(-50),
+  );
 }
 
 export async function getBrandProfile(): Promise<BrandProfile> {
@@ -153,6 +186,6 @@ export async function listMediaItems(): Promise<MediaItem[]> {
   return (await read<MediaItem[]>(MEDIA_LIBRARY_KEY)) ?? [];
 }
 
-export async function saveMediaItems(items: MediaItem[]): Promise<void> {
-  await write(MEDIA_LIBRARY_KEY, items);
+export async function modifyMediaItems(change: (items: MediaItem[]) => MediaItem[]): Promise<MediaItem[]> {
+  return modify<MediaItem[]>(MEDIA_LIBRARY_KEY, [], change);
 }

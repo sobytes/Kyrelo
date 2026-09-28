@@ -4,7 +4,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { describeImage } from "@/lib/campaign-ai";
 import { IMAGE_EXT_BY_TYPE, MAX_IMAGE_BYTES, uploadsDir } from "@/lib/uploads";
-import { getGrokSettings, listMediaItems, saveMediaItems } from "@/lib/storage";
+import { getGrokSettings, listMediaItems, modifyMediaItems } from "@/lib/storage";
 import { MediaItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +55,6 @@ export async function POST(req: NextRequest) {
     description,
     addedAt: new Date().toISOString(),
   };
-  await saveMediaItems([...(await listMediaItems()), item]);
+  await modifyMediaItems((items) => [...items, item]);
   return NextResponse.json({ item });
 }

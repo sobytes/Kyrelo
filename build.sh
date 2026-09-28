@@ -20,7 +20,8 @@ usage() {
     echo "Targets (pipe-separate for multiple):"
     echo "  desktop         Electron app (Next.js UI + worker + Playwright)"
     echo "  website         Marketing site (kyrelo.com)"
-    echo "  check           Type-check both apps and scan tracked files for secrets."
+    echo "  check           Type-check both apps, run the desktop tests and scan tracked"
+    echo "                  files for secrets."
     echo "                  No build, no server."
     echo ""
     echo "Options:"
@@ -265,6 +266,7 @@ run_checks() {
     (cd "$BASE_DIR/website" && ensure_deps) || return 1
 
     step "desktop type-check" bash -c "cd '$BASE_DIR/desktop' && npm run typecheck --silent"
+    step "desktop tests"      bash -c "cd '$BASE_DIR/desktop' && npm test --silent"
     step "website type-check" bash -c "cd '$BASE_DIR/website' && npm run typecheck --silent"
     step "secret scan"        scan_secrets
 
