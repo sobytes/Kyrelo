@@ -24,6 +24,19 @@ Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared inf
 
 ## Quick start
 
+`build.sh` at the repo root wraps the common tasks:
+
+```bash
+./build.sh desktop run          # launch the desktop app in dev mode
+./build.sh website run          # website on http://localhost:3000
+./build.sh check                # type-check both apps + secret scan
+./build.sh desktop pack         # unsigned local build in desktop/dist/
+./build.sh desktop release test # dry run of the release build
+./build.sh desktop release      # checks, then sign, notarise and publish
+```
+
+Run `./build.sh` with no arguments for the full list. Or do it by hand:
+
 ### Desktop app
 
 ```bash
