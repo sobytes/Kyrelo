@@ -9,7 +9,7 @@ import { MAX_IMAGE_BYTES } from "./uploads";
 // this small separate server instead. It:
 //   - runs only while phone access is turned on,
 //   - requires the pairing token on every request,
-//   - forwards ONLY the Monitor endpoints below to the local API, so the phone
+//   - forwards ONLY the endpoints listed below to the local API, so the phone
 //     gets exactly the same behaviour and validation as the desktop.
 // Traffic is plain HTTP: private on Tailscale (encrypted), readable by others
 // on a shared Wi-Fi network. The Settings page says so.
@@ -21,8 +21,8 @@ const ID = "[A-Za-z0-9_.-]+";
 
 /**
  * What the phone may call: method + an exact path pattern. Everything else
- * gets 404: connecting or disconnecting accounts, API keys, the Deleter,
- * phone access itself, and uploads from the phone.
+ * gets 404: connecting or disconnecting accounts, API keys, the Deleter
+ * and phone access itself.
  */
 const ALLOWED: [method: string, path: RegExp][] = [
   // Monitor + Autopilot

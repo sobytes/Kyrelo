@@ -19,7 +19,7 @@ enum BridgeError: LocalizedError {
 }
 
 /// Talks to Kyrelo's phone bridge (desktop/lib/mobile-bridge.ts). Each method
-/// is one of the Monitor endpoints the bridge allows; the desktop's own routes
+/// is one of the endpoints the bridge allows; the desktop's own routes
 /// do the work, so the phone follows the same rules as the desktop.
 final class BridgeClient {
     let pairing: Pairing
