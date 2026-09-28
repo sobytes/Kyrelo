@@ -39,13 +39,14 @@ export interface GrokState {
   tweets: SeenTweet[];
 }
 
-export type ScheduledPlatform = "twitter";
+/** Every social network Kyrelo can post to. Rules per platform: lib/platforms.ts. */
+export type PlatformId = "twitter" | "bluesky" | "linkedin";
 export type ScheduledStatus = "pending" | "posting" | "posted" | "failed";
 
 export interface ScheduledPost {
   id: string;
-  platform: ScheduledPlatform;
-  /** Account ID this post is sent from (XAccount.id). Optional for legacy posts. */
+  platform: PlatformId;
+  /** Account ID this post is sent from (Account.id on `platform`). Optional for legacy X posts. */
   accountId?: string;
   text: string;
   /** Filename inside .data/uploads/ — set when the user attached an image. */
@@ -65,10 +66,17 @@ export interface ScheduledPost {
   campaignId?: string;
 }
 
-export interface XAccount {
-  /** Lowercased handle. Also the name of the Chrome profile dir on disk. */
+/**
+ * A connected social account. Identified by (platform, id): the same handle
+ * can be connected on several platforms. Credentials never live here (this
+ * list is sent to the UI); browser platforms keep their session in a Chrome
+ * profile, Bluesky keeps its app password in account-secrets (storage.ts).
+ */
+export interface Account {
+  platform: PlatformId;
+  /** Lowercased handle. For browser platforms, also the Chrome profile dir name. */
   id: string;
-  /** Handle as captured from X, preserving case. */
+  /** Handle as shown by the platform, preserving case. */
   handle: string;
   addedAt: string;
 }

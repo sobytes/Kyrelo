@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { MAX_TWEET_LENGTH, tweetLength } from "@/lib/tweet";
-import { Campaign, CampaignDraft, MediaItem, XAccount } from "@/lib/types";
+import { Account, Campaign, CampaignDraft, MediaItem } from "@/lib/types";
 
 interface CampaignsInfo {
   provider: "claude" | "openai";
@@ -24,7 +24,7 @@ export function AutoCampaignModal({
   onClose,
   onScheduled,
 }: {
-  account: XAccount;
+  account: Account;
   onClose: () => void;
   onScheduled: () => void;
 }) {

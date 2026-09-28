@@ -4,22 +4,13 @@ import { spreadTimes } from "./campaign-timing";
 import { fetchOgImage, generateAiImage, screenshotPage } from "./media";
 import { cancelScheduledPost, createScheduledPost } from "./scheduler";
 import { getCampaign, getGrokSettings, listMediaItems, upsertCampaign } from "./storage";
+import { fitText } from "./platforms";
 import { MAX_TWEET_LENGTH, tweetLength } from "./tweet";
 import { Campaign, CampaignDraft, MediaItem } from "./types";
 
 // Auto Campaign pipeline: research → write → media → (review) → schedule.
 // Runs in the background inside the Next server; the UI polls the stored
 // campaign record for progress.
-
-/** Drops trailing words (never URLs) until the post fits. */
-function fitTweet(text: string): string {
-  if (tweetLength(text) <= MAX_TWEET_LENGTH) return text;
-  const words = text.split(/(\s+)/);
-  for (let i = words.length - 1; i >= 0 && tweetLength(words.join("") + "…") > MAX_TWEET_LENGTH; i--) {
-    if (!/^https?:\/\//.test(words[i])) words.splice(i, 1);
-  }
-  return words.join("").trimEnd() + "…";
-}
 
 // Campaign ids with a pipeline running in this process. Stored on globalThis so
 // Next's dev-mode module reloads don't forget in-flight jobs.
@@ -166,7 +157,7 @@ async function resolveDraft(
     console.warn(`[campaign] media ${w.media.kind} skipped: ${msg}`);
     draft.media = { kind: "none", note: `Wanted ${w.media.kind} media but skipped it: ${msg}` };
   }
-  draft.text = fitTweet(draft.text);
+  draft.text = fitText(draft.text, MAX_TWEET_LENGTH, tweetLength);
   return draft;
 }
 

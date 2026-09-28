@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { XAccount } from "@/lib/types";
+import { Account } from "@/lib/types";
 
 interface DeleterJob {
   id: string;
@@ -20,11 +20,11 @@ interface DeleterJob {
 }
 
 interface ConnectStatus {
-  accounts: XAccount[];
+  accounts: Account[];
 }
 
 export function DeleterPanel() {
-  const [accounts, setAccounts] = useState<XAccount[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   // Until the first load, show "Loading" rather than the "connect an account" prompt.
   const [accountsLoaded, setAccountsLoaded] = useState(false);
   const [accountId, setAccountId] = useState<string>("");
@@ -38,8 +38,9 @@ export function DeleterPanel() {
   const dismissedJobId = useRef<string | null>(null);
 
   async function loadAccounts() {
-    const r = (await fetch("/api/twitter-connect").then((r) => r.json())) as ConnectStatus;
-    const list = r.accounts ?? [];
+    const r = (await fetch("/api/accounts").then((r) => r.json())) as ConnectStatus;
+    // The Deleter works on X only.
+    const list = (r.accounts ?? []).filter((a) => a.platform === "twitter");
     setAccounts(list);
     setAccountsLoaded(true);
     setAccountId((curr) => {

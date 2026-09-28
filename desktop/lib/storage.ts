@@ -8,15 +8,19 @@ import {
   GrokSettings,
   GrokState,
   MediaItem,
+  Account,
+  PlatformId,
   ScheduledPost,
-  XAccount,
 } from "./types";
 
 const GROK_SETTINGS_KEY = "grok-settings";
 const GROK_STATE_KEY = "grok-state";
 const API_KEYS_KEY = "api-keys";
 const SCHEDULED_POSTS_KEY = "scheduled-posts";
-const X_ACCOUNTS_KEY = "x-accounts";
+const ACCOUNTS_KEY = "accounts";
+// Before other platforms existed, accounts were X-only and had no `platform`.
+const LEGACY_X_ACCOUNTS_KEY = "x-accounts";
+const ACCOUNT_SECRETS_KEY = "account-secrets";
 const CAMPAIGNS_KEY = "campaigns";
 const BRAND_PROFILE_KEY = "brand-profile";
 const MEDIA_LIBRARY_KEY = "media-library";
@@ -167,12 +171,47 @@ export async function deleteScheduledPost(id: string): Promise<void> {
   await modify<ScheduledPost[]>(SCHEDULED_POSTS_KEY, [], (all) => all.filter((p) => p.id !== id));
 }
 
-export async function listXAccounts(): Promise<XAccount[]> {
-  return (await read<XAccount[]>(X_ACCOUNTS_KEY)) ?? [];
+/** All connected accounts, or only those on `platform`. */
+export async function listAccounts(platform?: PlatformId): Promise<Account[]> {
+  const all = (await read<Account[]>(ACCOUNTS_KEY)) ?? (await legacyXAccounts());
+  return platform ? all.filter((a) => a.platform === platform) : all;
 }
 
-export async function modifyXAccounts(change: (accounts: XAccount[]) => XAccount[]): Promise<XAccount[]> {
-  return modify<XAccount[]>(X_ACCOUNTS_KEY, [], change);
+export async function modifyAccounts(change: (accounts: Account[]) => Account[]): Promise<Account[]> {
+  // The first write migrates legacy X accounts into accounts.json.
+  const legacy = await legacyXAccounts();
+  return modify<Account[]>(ACCOUNTS_KEY, legacy, change);
+}
+
+async function legacyXAccounts(): Promise<Account[]> {
+  const old = (await read<Omit<Account, "platform">[]>(LEGACY_X_ACCOUNTS_KEY)) ?? [];
+  return old.map((a) => ({ ...a, platform: "twitter" }));
+}
+
+/**
+ * Credentials for API-based accounts (Bluesky app passwords), keyed
+ * "platform:id". Kept out of the accounts list so they never reach the UI.
+ */
+export interface AccountSecret {
+  appPassword: string;
+}
+
+function secretKey(platform: PlatformId, id: string): string {
+  return `${platform}:${id}`;
+}
+
+export async function getAccountSecret(platform: PlatformId, id: string): Promise<AccountSecret | null> {
+  const all = (await read<Record<string, AccountSecret>>(ACCOUNT_SECRETS_KEY)) ?? {};
+  return all[secretKey(platform, id)] ?? null;
+}
+
+export async function setAccountSecret(platform: PlatformId, id: string, secret: AccountSecret | null): Promise<void> {
+  await modify<Record<string, AccountSecret>>(ACCOUNT_SECRETS_KEY, {}, (all) => {
+    const next = { ...all };
+    if (secret) next[secretKey(platform, id)] = secret;
+    else delete next[secretKey(platform, id)];
+    return next;
+  });
 }
 
 export async function listCampaigns(): Promise<Campaign[]> {

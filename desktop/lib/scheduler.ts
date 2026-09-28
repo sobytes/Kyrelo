@@ -4,10 +4,12 @@ import {
   getGrokSettings,
   insertScheduledPost,
   listScheduledPosts,
-  listXAccounts,
+  listAccounts,
   updateScheduledPost,
 } from "./storage";
-import { getDefaultAccountId, isConnectActive } from "./twitter-connect";
+import { connectingPlatform } from "./browser-connect";
+import { PLATFORMS } from "./platforms";
+import { publish } from "./publish";
 import { ScheduledPost } from "./types";
 import { uploadsDir } from "./uploads";
 
@@ -36,7 +38,7 @@ export async function runDueScheduledPosts(): Promise<DispatchOutcome> {
 }
 
 async function dispatchDuePosts(): Promise<DispatchOutcome> {
-  if (isConnectActive()) return { ran: 0, posted: 0, failed: 0, skipped: "connecting" };
+  if (connectingPlatform()) return { ran: 0, posted: 0, failed: 0, skipped: "connecting" };
 
   const all = await listScheduledPosts();
   const now = Date.now();
@@ -72,14 +74,11 @@ async function dispatchDuePosts(): Promise<DispatchOutcome> {
   if (due.length === 0) return { ran: 0, posted: 0, failed: 0 };
   console.log(`[scheduler] dispatching ${due.length} due post(s)`);
 
-  const accounts = await listXAccounts();
-  const accountIds = new Set(accounts.map((a) => a.id));
-  if (accountIds.size === 0) {
+  const accounts = await listAccounts();
+  if (accounts.length === 0) {
     return { ran: 0, posted: 0, failed: 0, skipped: "no-account" };
   }
 
-  const { postTweetBrowser } = await import("./browser/twitter-post");
-  const fallback = await getDefaultAccountId();
   const settings = await getGrokSettings();
   const headless = settings.headlessPosting ?? false;
 
@@ -96,27 +95,29 @@ async function dispatchDuePosts(): Promise<DispatchOutcome> {
     );
     if (!post) continue;
 
-    const accountId = post.accountId && accountIds.has(post.accountId)
-      ? post.accountId
-      : fallback;
-    if (!accountId) {
+    // Posts from before multi-account support have no accountId: they go
+    // from the first account on their platform.
+    const account = post.accountId
+      ? accounts.find((a) => a.platform === post.platform && a.id === post.accountId)
+      : accounts.find((a) => a.platform === post.platform);
+    if (!account) {
       await updateScheduledPost(post.id, (latest) => ({
         ...latest,
         status: "failed",
-        error: "No connected X account for this post.",
+        error: `The ${PLATFORMS[post.platform].label} account for this post isn't connected any more.`,
       }));
       failed++;
       continue;
     }
-    console.log(`[scheduler] posting id=${post.id} via account=${accountId}`);
+    console.log(`[scheduler] posting id=${post.id} to ${post.platform}:${account.id}`);
     // Result updates go through updateScheduledPost, which does nothing if
     // the user cancelled (deleted) the post mid-send, so it doesn't come back.
     try {
       const imagePath = post.imagePath ? path.join(uploadsDir(), post.imagePath) : undefined;
-      const r = await postTweetBrowser(accountId, post.text, {
+      const r = await publish(account, post.text, {
         headless,
         imagePath,
-        onBrowserReady: () =>
+        onSendingStarted: () =>
           updateScheduledPost(post.id, (latest) => ({ ...latest, sendingStartedAt: new Date().toISOString() })),
       });
       await updateScheduledPost(post.id, (latest) => ({

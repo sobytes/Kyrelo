@@ -2,19 +2,53 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AutoCampaignModal } from "@/components/AutoCampaignModal";
-import { MAX_POST_LENGTH } from "@/lib/tweet";
-import { GrokSettings, ScheduledPost, XAccount } from "@/lib/types";
+import { PlatformBadge } from "@/components/PlatformBadge";
+import { PLATFORMS } from "@/lib/platforms";
+import { Account, GrokSettings, PlatformId, ScheduledPost } from "@/lib/types";
 
 interface ConnectStatus {
-  accounts: XAccount[];
+  accounts: Account[];
+}
+
+/** Accounts are identified by platform + id: the same handle can exist on several platforms. */
+function accountKey(a: { platform: PlatformId; id: string }): string {
+  return `${a.platform}:${a.id}`;
+}
+
+function postAccountKey(p: ScheduledPost): string {
+  return `${p.platform}:${p.accountId ?? ""}`;
+}
+
+/** "X 12/4000 · Bluesky 12/300" for the platforms being posted to. */
+function LengthCounter({ text, platforms }: { text: string; platforms: PlatformId[] }) {
+  return (
+    <div className="mt-1 flex flex-wrap gap-x-3 text-[10px]">
+      {Array.from(new Set(platforms)).map((platform) => {
+        const spec = PLATFORMS[platform];
+        const length = spec.length(text);
+        return (
+          <span key={platform} className={length > spec.maxLength ? "text-rose-400" : "text-zinc-500"}>
+            {platforms.length > 1 || platform !== "twitter" ? `${spec.label} ` : ""}
+            {length} / {spec.maxLength}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function isOverLimit(text: string, platforms: PlatformId[]): boolean {
+  return platforms.some((p) => PLATFORMS[p].length(text) > PLATFORMS[p].maxLength);
 }
 
 export function SchedulerPanel() {
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
-  const [accounts, setAccounts] = useState<XAccount[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   // Until the first load, show "Loading" rather than the "connect an account" prompt.
   const [accountsLoaded, setAccountsLoaded] = useState(false);
-  const [accountId, setAccountId] = useState<string>("");
+  // The account tab being viewed, and the accounts a new post goes to.
+  const [selectedKey, setSelectedKey] = useState<string>("");
+  const [targetKeys, setTargetKeys] = useState<string[]>([]);
   const [text, setText] = useState("");
   const [scheduledFor, setScheduledFor] = useState(defaultDateTime());
   const [submitting, setSubmitting] = useState(false);
@@ -36,13 +70,13 @@ export function SchedulerPanel() {
   }
 
   async function loadConnect() {
-    const r = (await fetch("/api/twitter-connect").then((r) => r.json())) as ConnectStatus;
+    const r = (await fetch("/api/accounts").then((r) => r.json())) as ConnectStatus;
     const list = r.accounts ?? [];
     setAccounts(list);
     setAccountsLoaded(true);
-    setAccountId((curr) => {
-      if (curr && list.some((a) => a.id === curr)) return curr;
-      return list[0]?.id ?? "";
+    setSelectedKey((curr) => {
+      if (curr && list.some((a) => accountKey(a) === curr)) return curr;
+      return list[0] ? accountKey(list[0]) : "";
     });
   }
 
@@ -50,6 +84,11 @@ export function SchedulerPanel() {
     const r = await fetch("/api/grok-settings").then((r) => r.json());
     if (r.settings?.aiProvider) setAiProvider(r.settings.aiProvider);
   }
+
+  // A new post defaults to the account being viewed.
+  useEffect(() => {
+    setTargetKeys(selectedKey ? [selectedKey] : []);
+  }, [selectedKey]);
 
   useEffect(() => {
     loadPosts();
@@ -62,30 +101,35 @@ export function SchedulerPanel() {
     return () => clearInterval(id);
   }, []);
 
+  // One post per chosen account, so each is sent, tracked and retried on its own.
   async function schedule(e: React.FormEvent) {
     e.preventDefault();
-    if (!text.trim() || !scheduledFor || !accountId) return;
+    if (!text.trim() || !scheduledFor || targets.length === 0) return;
     setSubmitting(true);
     try {
-      const r = await fetch("/api/scheduler/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          platform: "twitter",
-          accountId,
-          text,
-          imagePath: imagePath || undefined,
-          scheduledFor: new Date(scheduledFor).toISOString(),
-        }),
-      }).then((r) => r.json());
-      if (r.error) {
-        alert(r.error);
+      const errors: string[] = [];
+      for (const account of targets) {
+        const r = await fetch("/api/scheduler/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            platform: account.platform,
+            accountId: account.id,
+            text,
+            imagePath: imagePath || undefined,
+            scheduledFor: new Date(scheduledFor).toISOString(),
+          }),
+        }).then((r) => r.json());
+        if (r.error) errors.push(`${PLATFORMS[account.platform].label} @${account.handle}: ${r.error}`);
+      }
+      if (errors.length > 0) {
+        alert(`Some posts weren't scheduled:\n${errors.join("\n")}`);
       } else {
         setText("");
         setScheduledFor(defaultDateTime());
         clearImage();
-        await loadPosts();
       }
+      await loadPosts();
     } finally {
       setSubmitting(false);
     }
@@ -102,16 +146,19 @@ export function SchedulerPanel() {
     setReschedulingPost(post);
   }
 
-  const forAccount = accountId
-    ? posts.filter((p) => p.accountId === accountId)
-    : [];
+  const selected = accounts.find((a) => accountKey(a) === selectedKey);
+  const targets = accounts.filter((a) => targetKeys.includes(accountKey(a)));
+  const forAccount = selected ? posts.filter((p) => postAccountKey(p) === selectedKey) : [];
   const sorted = [...forAccount].sort((a, b) =>
     a.scheduledFor.localeCompare(b.scheduledFor),
   );
   const upcoming = sorted.filter((p) => p.status === "pending" || p.status === "posting");
   const history = sorted.filter((p) => p.status === "posted" || p.status === "failed").reverse();
 
-  const overLimit = text.length > MAX_POST_LENGTH;
+  const overLimit = isOverLimit(
+    text,
+    targets.map((a) => a.platform),
+  );
 
   if (!accountsLoaded) {
     return <div className="card text-sm text-zinc-500">Loading…</div>;
@@ -120,7 +167,7 @@ export function SchedulerPanel() {
   if (accounts.length === 0) {
     return (
       <div className="card flex flex-col items-center justify-center gap-2 py-10 text-center">
-        <div className="text-sm text-zinc-300">No X accounts connected yet.</div>
+        <div className="text-sm text-zinc-300">No accounts connected yet.</div>
         <div className="text-xs text-zinc-500">
           Connect one to start scheduling posts.
         </div>
@@ -133,14 +180,17 @@ export function SchedulerPanel() {
 
   return (
     <div className="space-y-5">
-      <AccountTabs accounts={accounts} accountId={accountId} setAccountId={setAccountId} />
+      <AccountTabs accounts={accounts} selectedKey={selectedKey} onSelect={setSelectedKey} />
 
       <section className="card space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="label !mb-0">Schedule a post</div>
-          <button type="button" onClick={() => setCampaignOpen(true)} className="btn-ghost text-xs">
-            ✨ Auto-generate campaign
-          </button>
+          {/* Auto campaigns write X posts (280 characters). */}
+          {selected?.platform === "twitter" && (
+            <button type="button" onClick={() => setCampaignOpen(true)} className="btn-ghost text-xs">
+              ✨ Auto-generate campaign
+            </button>
+          )}
         </div>
 
         <form onSubmit={schedule} className="space-y-3">
@@ -152,10 +202,35 @@ export function SchedulerPanel() {
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
-            <div className={"mt-1 text-[10px] " + (overLimit ? "text-rose-400" : "text-zinc-500")}>
-              {text.length} / {MAX_POST_LENGTH}
-            </div>
+            <LengthCounter text={text} platforms={targets.map((a) => a.platform)} />
           </div>
+
+          {accounts.length > 1 && (
+            <div>
+              <div className="label">Post to</div>
+              <div className="flex flex-wrap gap-2">
+                {accounts.map((a) => {
+                  const key = accountKey(a);
+                  const on = targetKeys.includes(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() =>
+                        setTargetKeys((keys) => (on ? keys.filter((k) => k !== key) : [...keys, key]))
+                      }
+                      className={
+                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition " +
+                        (on ? "border-accent bg-accent/10 text-zinc-100" : "border-line text-zinc-500 hover:text-zinc-300")
+                      }
+                    >
+                      <PlatformBadge platform={a.platform} />@{a.handle}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div>
             <div className="label">Image (optional)</div>
@@ -206,10 +281,10 @@ export function SchedulerPanel() {
 
           <button
             type="submit"
-            disabled={submitting || !text.trim() || overLimit || !scheduledFor || !accountId}
+            disabled={submitting || !text.trim() || overLimit || !scheduledFor || targets.length === 0}
             className="btn-primary text-sm"
           >
-            {submitting ? "Scheduling…" : "Schedule post"}
+            {submitting ? "Scheduling…" : targets.length > 1 ? `Schedule ${targets.length} posts` : "Schedule post"}
           </button>
         </form>
       </section>
@@ -246,7 +321,7 @@ export function SchedulerPanel() {
       {reschedulingPost && (
         <RescheduleModal
           post={reschedulingPost}
-          accounts={accounts}
+          accounts={accounts.filter((a) => a.platform === reschedulingPost.platform)}
           aiProvider={aiProvider}
           onClose={() => setReschedulingPost(null)}
           onScheduled={() => {
@@ -256,9 +331,9 @@ export function SchedulerPanel() {
         />
       )}
 
-      {campaignOpen && accounts.find((a) => a.id === accountId) && (
+      {campaignOpen && selected?.platform === "twitter" && (
         <AutoCampaignModal
-          account={accounts.find((a) => a.id === accountId)!}
+          account={selected}
           onClose={() => setCampaignOpen(false)}
           onScheduled={loadPosts}
         />
@@ -267,7 +342,7 @@ export function SchedulerPanel() {
       {editingPost && (
         <EditPostModal
           post={editingPost}
-          accounts={accounts}
+          accounts={accounts.filter((a) => a.platform === editingPost.platform)}
           onClose={() => setEditingPost(null)}
           onSaved={() => {
             setEditingPost(null);
@@ -563,7 +638,8 @@ function EditPostModal({
   onSaved,
 }: {
   post: ScheduledPost;
-  accounts: XAccount[];
+  /** Accounts on the post's platform (a post can't move platforms). */
+  accounts: Account[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -578,7 +654,7 @@ function EditPostModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const overLimit = text.length > MAX_POST_LENGTH;
+  const overLimit = isOverLimit(text, [post.platform]);
 
   async function save() {
     if (!text.trim() || !accountId || !scheduledFor) return;
@@ -640,9 +716,7 @@ function EditPostModal({
           onChange={(e) => setText(e.target.value)}
         />
         <div className="mt-1 flex items-center justify-between text-[10px]">
-          <span className={overLimit ? "text-rose-400" : "text-zinc-500"}>
-            {text.length} / {MAX_POST_LENGTH}
-          </span>
+          <LengthCounter text={text} platforms={[post.platform]} />
           {error && <span className="text-rose-400">{error}</span>}
         </div>
 
@@ -725,21 +799,22 @@ function EditPostModal({
 
 function AccountTabs({
   accounts,
-  accountId,
-  setAccountId,
+  selectedKey,
+  onSelect,
 }: {
-  accounts: XAccount[];
-  accountId: string;
-  setAccountId: (id: string) => void;
+  accounts: Account[];
+  selectedKey: string;
+  onSelect: (key: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-0 border-b border-line">
+    <div className="flex flex-wrap items-center gap-0 border-b border-line">
       {accounts.map((a) => {
-        const active = a.id === accountId;
+        const key = accountKey(a);
+        const active = key === selectedKey;
         return (
           <button
-            key={a.id}
-            onClick={() => setAccountId(a.id)}
+            key={key}
+            onClick={() => onSelect(key)}
             className={
               "relative -mb-px flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm transition " +
               (active
@@ -747,16 +822,7 @@ function AccountTabs({
                 : "border-transparent text-zinc-500 hover:text-zinc-200")
             }
           >
-            <span
-              className={
-                "h-5 w-5 flex items-center justify-center rounded-md text-[10px] font-bold " +
-                (active
-                  ? "bg-gradient-to-br from-accent to-live text-white"
-                  : "bg-panel2 text-zinc-400")
-              }
-            >
-              {a.handle[0]?.toUpperCase() ?? "?"}
-            </span>
+            <PlatformBadge platform={a.platform} />
             @{a.handle}
           </button>
         );
@@ -779,7 +845,8 @@ function RescheduleModal({
   onScheduled,
 }: {
   post: ScheduledPost;
-  accounts: XAccount[];
+  /** Accounts on the post's platform (a post can't move platforms). */
+  accounts: Account[];
   aiProvider: GrokSettings["aiProvider"];
   onClose: () => void;
   onScheduled: () => void;
@@ -795,7 +862,7 @@ function RescheduleModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const overLimit = text.length > MAX_POST_LENGTH;
+  const overLimit = isOverLimit(text, [post.platform]);
   const providerName = aiProvider === "openai" ? "OpenAI" : "Claude";
 
   async function rewrite() {
@@ -805,7 +872,7 @@ function RescheduleModal({
       const r = await fetch("/api/scheduler/rewrite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, platform: post.platform }),
       }).then((r) => r.json());
       if (r.ok && r.text) {
         setText(r.text);
@@ -826,7 +893,7 @@ function RescheduleModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          platform: "twitter",
+          platform: post.platform,
           accountId,
           text,
           imagePath: post.imagePath,
@@ -874,9 +941,7 @@ function RescheduleModal({
           disabled={rewriting}
         />
         <div className="mt-1 flex items-center justify-between text-[10px]">
-          <span className={overLimit ? "text-rose-400" : "text-zinc-500"}>
-            {text.length} / {MAX_POST_LENGTH}
-          </span>
+          <LengthCounter text={text} platforms={[post.platform]} />
           {error && <span className="text-rose-400">{error}</span>}
         </div>
 

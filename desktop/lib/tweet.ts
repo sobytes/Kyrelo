@@ -6,12 +6,6 @@
  */
 export const MAX_TWEET_LENGTH = 280;
 
-/**
- * Limit for posts written in the Scheduler. Higher than MAX_TWEET_LENGTH on
- * purpose: X Premium accounts can post long posts, and X rejects over-long
- * posts from other accounts at send time.
- */
-export const MAX_POST_LENGTH = 4000;
 const URL_RE = /https?:\/\/\S+/g;
 
 /** Length as X counts it: every URL is 23 characters. */

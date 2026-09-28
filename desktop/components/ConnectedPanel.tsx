@@ -1,126 +1,205 @@
 "use client";
-import { XAccount } from "@/lib/types";
-import { useXConnect } from "./useXConnect";
+import { useState } from "react";
+import { PLATFORM_IDS, PLATFORMS } from "@/lib/platforms";
+import { Account, PlatformId } from "@/lib/types";
+import { PlatformBadge } from "./PlatformBadge";
+import { openExternal, useAccounts } from "./useAccounts";
 
 export function ConnectedPanel() {
-  const { status: state, phase, start, done, cancel, refresh } = useXConnect();
+  const accounts = useAccounts();
+  const { status } = accounts;
 
-  async function disconnect(account: XAccount) {
-    if (
-      !confirm(
-        `Disconnect @${account.handle}? This wipes the saved Chrome session — you'll need to log in again to re-add it.`,
-      )
-    )
-      return;
-    const r = await fetch("/api/twitter-connect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "disconnect", accountId: account.id }),
-    }).then((r) => r.json());
-    if (r.error) alert(r.error);
-    refresh();
-  }
-
-  if (!state) {
+  if (!status) {
     return <div className="card text-sm text-zinc-500">Loading…</div>;
   }
 
-  const isConnecting = phase !== "idle" || state.connecting;
-
   return (
-    <div className="space-y-4">
-      {state.accounts.length > 0 ? (
-        <div className="space-y-2">
-          {state.accounts.map((a) => (
-            <AccountRow key={a.id} account={a} onDisconnect={() => disconnect(a)} />
-          ))}
-        </div>
-      ) : (
-        <div className="card text-sm text-zinc-500">
-          No X accounts connected yet.
-        </div>
-      )}
-
-      <div className="card space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-zinc-100">Add an X account</div>
-            <div className="mt-0.5 text-xs text-zinc-500">
-              {phase === "starting"
-                ? "Opening Chrome…"
-                : phase === "connecting"
-                  ? "Log in to X in the Chrome window that opened. Any sign-in method works, including Google or Apple."
-                  : phase === "saving"
-                    ? "Saving session…"
-                    : "Connect opens Chrome to x.com/login. Sign in once and the session is saved to its own profile directory."}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {phase === "idle" && !state.connecting && (
-            <button onClick={start} className="btn-primary text-sm">
-              Connect with X
-            </button>
-          )}
-          {phase === "connecting" && (
-            <>
-              <button onClick={done} className="btn-primary text-sm">
-                I&apos;m logged in
-              </button>
-              <button onClick={cancel} className="btn-ghost text-sm">
-                Cancel
-              </button>
-            </>
-          )}
-          {phase === "starting" && (
-            <button disabled className="btn-ghost text-sm">
-              Starting…
-            </button>
-          )}
-          {phase === "saving" && (
-            <button disabled className="btn-ghost text-sm">
-              Saving…
-            </button>
-          )}
-        </div>
-
-        {isConnecting && (
-          <p className="text-[10px] text-zinc-500">
-            Connecting in progress — scrapes and scheduled posts pause until it finishes.
-          </p>
-        )}
-      </div>
+    <div className="space-y-6">
+      {PLATFORM_IDS.map((platform) => (
+        <PlatformSection
+          key={platform}
+          platform={platform}
+          accounts={status.accounts.filter((a) => a.platform === platform)}
+          connect={accounts}
+        />
+      ))}
 
       <div className="card text-xs leading-relaxed text-zinc-500">
-        <strong className="text-zinc-300">How this works.</strong> Each account gets its own
-        Chrome profile under <code className="text-zinc-300">.data/userdata/twitter/&lt;handle&gt;/</code>.
-        The detector reads timelines through the first connected account; scheduled posts go
-        through whichever account you pick on the Scheduler page. No credentials are sent
-        anywhere except X.com itself.
+        <strong className="text-zinc-300">How this works.</strong> X and LinkedIn accounts each get
+        their own Chrome profile on this computer; you sign in once and Kyrelo posts through that
+        session. Bluesky uses an app password, stored only on this computer. Nothing is sent
+        anywhere except the platform itself. The Monitor, Deleter and auto campaigns work with X
+        accounts.
       </div>
     </div>
   );
 }
 
-function AccountRow({
-  account,
-  onDisconnect,
+function PlatformSection({
+  platform,
+  accounts,
+  connect,
 }: {
-  account: XAccount;
-  onDisconnect: () => void;
+  platform: PlatformId;
+  accounts: Account[];
+  connect: ReturnType<typeof useAccounts>;
 }) {
+  const spec = PLATFORMS[platform];
+  return (
+    <section className="space-y-2">
+      <div className="label flex items-center gap-2">
+        <PlatformBadge platform={platform} /> {spec.label}
+      </div>
+      {accounts.map((a) => (
+        <AccountRow key={a.id} account={a} onDisconnect={() => connect.disconnect(a)} />
+      ))}
+      {spec.connect === "browser" ? (
+        <BrowserConnectCard platform={platform} connect={connect} />
+      ) : (
+        <BlueskyConnectCard connect={connect} />
+      )}
+    </section>
+  );
+}
+
+function BrowserConnectCard({
+  platform,
+  connect,
+}: {
+  platform: PlatformId;
+  connect: ReturnType<typeof useAccounts>;
+}) {
+  const spec = PLATFORMS[platform];
+  const busyHere = connect.phase !== "idle" && connect.phasePlatform === platform;
+  const busyElsewhere = connect.phase !== "idle" && connect.phasePlatform !== platform;
+  const phase = busyHere ? connect.phase : "idle";
+  const host = new URL(spec.loginUrl).host;
+
+  return (
+    <div className="card space-y-3">
+      <div>
+        <div className="text-sm font-semibold text-zinc-100">Add a {spec.label} account</div>
+        <div className="mt-0.5 text-xs text-zinc-500">
+          {phase === "starting"
+            ? "Opening Chrome…"
+            : phase === "connecting"
+              ? `Log in to ${spec.label} in the Chrome window that opened. Any sign-in method works, including Google or Apple.`
+              : phase === "saving"
+                ? "Saving session…"
+                : `Connect opens Chrome to ${host}. Sign in once and the session is saved to its own profile.`}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {phase === "idle" && (
+          <button onClick={() => connect.start(platform)} disabled={busyElsewhere} className="btn-primary text-sm">
+            Connect with {spec.label}
+          </button>
+        )}
+        {phase === "connecting" && (
+          <>
+            <button onClick={connect.done} className="btn-primary text-sm">
+              I&apos;m logged in
+            </button>
+            <button onClick={connect.cancel} className="btn-ghost text-sm">
+              Cancel
+            </button>
+          </>
+        )}
+        {(phase === "starting" || phase === "saving") && (
+          <button disabled className="btn-ghost text-sm">
+            {phase === "starting" ? "Starting…" : "Saving…"}
+          </button>
+        )}
+      </div>
+
+      {busyHere && (
+        <p className="text-[10px] text-zinc-500">
+          Connecting in progress — the Monitor and scheduled posts pause until it finishes.
+        </p>
+      )}
+      {platform === "linkedin" && (
+        <p className="text-[10px] leading-relaxed text-zinc-500">
+          LinkedIn is strict about automation. Kyrelo posts at a human pace, but keep LinkedIn posts
+          to a few a day.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function BlueskyConnectCard({ connect }: { connect: ReturnType<typeof useAccounts> }) {
+  const [handle, setHandle] = useState("");
+  const [appPassword, setAppPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const err = await connect.connectBluesky(handle, appPassword);
+      if (err) {
+        setError(err);
+      } else {
+        setHandle("");
+        setAppPassword("");
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="card space-y-3">
+      <div>
+        <div className="text-sm font-semibold text-zinc-100">Add a Bluesky account</div>
+        <div className="mt-0.5 text-xs text-zinc-500">
+          Use an <strong>app password</strong>, not your main password. Create one in Bluesky under{" "}
+          <button
+            type="button"
+            onClick={() => openExternal(PLATFORMS.bluesky.loginUrl)}
+            className="text-accent underline hover:text-zinc-200"
+          >
+            Settings → Privacy and security → App passwords
+          </button>
+          .
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input
+          className="input text-sm"
+          placeholder="yourname.bsky.social"
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
+          autoComplete="off"
+        />
+        <input
+          className="input text-sm"
+          type="password"
+          placeholder="xxxx-xxxx-xxxx-xxxx"
+          value={appPassword}
+          onChange={(e) => setAppPassword(e.target.value)}
+          autoComplete="off"
+        />
+      </div>
+      {error && <div className="text-xs text-rose-400">{error}</div>}
+      <button type="submit" disabled={saving || !handle.trim() || !appPassword.trim()} className="btn-primary text-sm">
+        {saving ? "Checking…" : "Connect Bluesky"}
+      </button>
+    </form>
+  );
+}
+
+function AccountRow({ account, onDisconnect }: { account: Account; onDisconnect: () => void }) {
   return (
     <div className="card flex items-center justify-between gap-3">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-black/40 text-lg font-bold text-zinc-100">
-          𝕏
-        </div>
+        <PlatformBadge platform={account.platform} size="lg" />
         <div>
           <div className="text-sm font-semibold text-zinc-100">@{account.handle}</div>
-          <div className="text-[11px] text-zinc-500">
-            Added {new Date(account.addedAt).toLocaleDateString()}
-          </div>
+          <div className="text-[11px] text-zinc-500">Added {new Date(account.addedAt).toLocaleDateString()}</div>
         </div>
       </div>
       <button onClick={onDisconnect} className="btn-danger text-xs">

@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getApiKeys } from "./storage";
-import { MAX_POST_LENGTH } from "./tweet";
-import { AiProvider, ApiKeys } from "./types";
+import { fitText, PLATFORMS } from "./platforms";
+import { AiProvider, ApiKeys, PlatformId } from "./types";
 
 const MODEL = "claude-sonnet-4-6";
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
@@ -148,16 +148,11 @@ Hard rules:
 - No em dashes. No emojis the original doesn't already use.
 - Output ONLY the rewritten post — no preamble, no quotes, no labels.`;
 
-function clampPostLength(text: string, max = MAX_POST_LENGTH): string {
-  let out = text.trim().replace(/^["']|["']$/g, "").trim();
-  out = out.replace(/[ \t]+/g, " ");
-  if (out.length > max) out = out.slice(0, max - 1).trimEnd() + "…";
-  return out;
-}
-
 export interface RewriteInput {
   text: string;
   provider: AiProvider;
+  /** The rewrite must still fit this platform's limit. */
+  platform: PlatformId;
 }
 
 async function rewriteViaClaude(text: string): Promise<string> {
@@ -203,5 +198,7 @@ export async function rewritePost(input: RewriteInput): Promise<string> {
     input.provider === "openai"
       ? await rewriteViaOpenAI(input.text)
       : await rewriteViaClaude(input.text);
-  return clampPostLength(raw);
+  const spec = PLATFORMS[input.platform];
+  const cleaned = raw.trim().replace(/^["']|["']$/g, "").trim().replace(/[ \t]+/g, " ");
+  return fitText(cleaned, spec.maxLength, spec.length);
 }

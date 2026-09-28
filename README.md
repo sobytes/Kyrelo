@@ -24,7 +24,7 @@ Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared inf
 
 ## Running it
 
-You need **Node.js 20+**, **npm** and **Google Chrome**. You log in to X through Chrome, and Kyrelo drives it to post and scrape.
+You need **Node.js 20+**, **npm** and **Google Chrome**. You log in to X and LinkedIn through Chrome, and Kyrelo drives it to post and scrape. Bluesky connects with an app password.
 
 ```bash
 git clone https://github.com/sobytes/Kyrelo.git
@@ -36,7 +36,7 @@ The first run installs dependencies and downloads Playwright's Chromium, so give
 
 Then, in the app:
 
-1. **Connected** → connect your X account (you log in to X in a normal Chrome window).
+1. **Connected** → connect your X and LinkedIn accounts (you log in through a normal Chrome window) and Bluesky (with an app password).
 2. **Settings → API keys** → add a Claude or OpenAI key for AI replies, rewrites and auto campaigns. The page has step-by-step instructions for getting one.
 3. **Scheduler** → write and schedule posts, or use **✨ Auto-generate campaign**.
 

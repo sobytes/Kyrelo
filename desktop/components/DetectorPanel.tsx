@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { GrokSettings, GrokState, SeenTweet } from "@/lib/types";
-import { openExternal, useXConnect } from "./useXConnect";
+import { openExternal, useAccounts } from "./useAccounts";
 
 const POLL_MS = 8_000;
 
@@ -29,6 +29,11 @@ const SUGGESTED_HANDLES: { group: string; handles: string[] }[] = [
   { group: "Workforce / business", handles: ["LinkedInNews", "WSJ", "business"] },
 ];
 
+/** The Monitor reads timelines through an X account. */
+function hasXAccount(connect: ReturnType<typeof useAccounts>): boolean {
+  return connect.status?.accounts.some((a) => a.platform === "twitter") ?? false;
+}
+
 // --- Main panel -------------------------------------------------------------
 
 export function DetectorPanel() {
@@ -39,8 +44,8 @@ export function DetectorPanel() {
   const [handleInput, setHandleInput] = useState("");
   const [showSuggested, setShowSuggested] = useState(false);
   const prevIdsRef = useRef<Set<string>>(new Set());
-  const connect = useXConnect();
-  const connected = (connect.status?.accounts.length ?? 0) > 0;
+  const connect = useAccounts();
+  const connected = hasXAccount(connect);
 
   async function load() {
     const [s, st] = await Promise.all([
@@ -228,15 +233,16 @@ function Hero({
 }: {
   settings: GrokSettings;
   state: GrokState;
-  connect: ReturnType<typeof useXConnect>;
+  connect: ReturnType<typeof useAccounts>;
   refreshing: boolean;
   onToggleWatching: () => void;
   onRefreshNow: () => void;
 }) {
   // Decide phase
-  const connected = (connect.status?.accounts.length ?? 0) > 0;
+  const connected = hasXAccount(connect);
   const needsConnect = !connected && connect.phase === "idle";
-  const inLogin = connect.phase === "starting" || connect.phase === "connecting" || connect.phase === "saving";
+  // Only an X login matters here; a LinkedIn login elsewhere isn't this page's.
+  const inLogin = connect.phase !== "idle" && connect.phasePlatform === "twitter";
   const needsHandles = settings.handles.length === 0;
   const watching = settings.enabled && !needsConnect && !needsHandles && !inLogin;
 
@@ -299,7 +305,7 @@ function Hero({
 
         <div className="flex flex-wrap items-center gap-2">
           {needsConnect && (
-            <button onClick={connect.start} className="btn-primary">
+            <button onClick={() => connect.start("twitter")} className="btn-primary">
               Connect with X
             </button>
           )}

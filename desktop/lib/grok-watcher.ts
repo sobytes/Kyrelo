@@ -1,6 +1,7 @@
 import { generateGrokQuestion } from "./ai";
 import { getGrokSettings, getGrokState, modifyGrokState } from "./storage";
-import { getDefaultAccountId, isConnectActive } from "./twitter-connect";
+import { defaultXAccountId } from "./accounts";
+import { connectingPlatform } from "./browser-connect";
 import { SeenTweet } from "./types";
 
 function mergeSeen(existing: SeenTweet[], fresh: SeenTweet[]): SeenTweet[] {
@@ -51,8 +52,8 @@ export async function runGrokWatcher(): Promise<WatchResult> {
 async function runGrokWatcherOnce(): Promise<WatchResult> {
   const settings = await getGrokSettings();
   if (!settings.enabled) return { skipped: "disabled" };
-  if (isConnectActive()) return { skipped: "connecting" };
-  const accountId = await getDefaultAccountId();
+  if (connectingPlatform()) return { skipped: "connecting" };
+  const accountId = await defaultXAccountId();
   if (!accountId) return { skipped: "no-account" };
   const all = settings.handles.filter(Boolean);
   if (all.length === 0) return { skipped: "no-handles" };

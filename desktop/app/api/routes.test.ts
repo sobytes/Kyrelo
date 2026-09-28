@@ -13,6 +13,11 @@ beforeAll(async () => {
   posts = await import("./scheduler/posts/route");
   postById = await import("./scheduler/posts/[id]/route");
   settings = await import("./grok-settings/route");
+  // Posts must belong to a connected account.
+  const { saveAccount } = await import("@/lib/browser-connect");
+  const addedAt = new Date().toISOString();
+  await saveAccount({ platform: "twitter", id: "acct", handle: "acct", addedAt });
+  await saveAccount({ platform: "bluesky", id: "me.bsky.social", handle: "me.bsky.social", addedAt });
 });
 
 function json(method: string, body: unknown) {
@@ -46,6 +51,30 @@ describe("scheduled post routes", () => {
     expect((await postById.PATCH(json("PATCH", { text: "  " }), ctx)).status).toBe(400);
     expect((await postById.PATCH(json("PATCH", { scheduledFor: "nope" }), ctx)).status).toBe(400);
     expect((await postById.PATCH(json("PATCH", { text: "edited" }), ctx)).status).toBe(200);
+  });
+
+  it("applies each platform's own length limit", async () => {
+    const bsky = { ...valid, platform: "bluesky", accountId: "me.bsky.social" };
+    expect((await posts.POST(json("POST", { ...bsky, text: "x".repeat(300) }))).status).toBe(200);
+    const tooLong = await posts.POST(json("POST", { ...bsky, text: "x".repeat(301) }));
+    expect(tooLong.status).toBe(400);
+    expect((await tooLong.json()).error).toMatch(/Bluesky/);
+    // 301 characters is fine on X.
+    expect((await posts.POST(json("POST", { ...valid, text: "x".repeat(301) }))).status).toBe(200);
+  });
+
+  it("rejects an account that isn't connected on that platform", async () => {
+    // "acct" is connected on X, not Bluesky.
+    expect((await posts.POST(json("POST", { ...valid, platform: "bluesky" }))).status).toBe(400);
+    expect((await posts.POST(json("POST", { ...valid, accountId: "nobody" }))).status).toBe(400);
+  });
+
+  it("validates an edit against the post's platform", async () => {
+    const bsky = { ...valid, platform: "bluesky", accountId: "me.bsky.social" };
+    const created = await (await posts.POST(json("POST", bsky))).json();
+    const ctx = { params: Promise.resolve({ id: created.post.id }) };
+    expect((await postById.PATCH(json("PATCH", { text: "x".repeat(301) }), ctx)).status).toBe(400);
+    expect((await postById.PATCH(json("PATCH", { accountId: "acct" }), ctx)).status).toBe(400);
   });
 
   it("returns 404 when editing a post that doesn't exist", async () => {

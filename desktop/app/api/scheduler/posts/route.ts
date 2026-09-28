@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createScheduledPost } from "@/lib/scheduler";
-import { listScheduledPosts } from "@/lib/storage";
-import { MAX_POST_LENGTH } from "@/lib/tweet";
+import { isPlatformId, postTextError } from "@/lib/platforms";
+import { listAccounts, listScheduledPosts } from "@/lib/storage";
 import { SAFE_IMAGE_FILENAME } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -13,21 +13,24 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
-    platform?: "twitter";
+    platform?: string;
     accountId?: string;
     text?: string;
     imagePath?: string;
     scheduledFor?: string;
   };
   const text = body.text?.trim() ?? "";
-  if (!text || !body.scheduledFor || body.platform !== "twitter" || !body.accountId) {
+  const platform = body.platform;
+  if (!isPlatformId(platform) || !body.accountId || !body.scheduledFor) {
     return NextResponse.json(
       { error: "platform, accountId, text, and scheduledFor are required" },
       { status: 400 },
     );
   }
-  if (text.length > MAX_POST_LENGTH) {
-    return NextResponse.json({ error: `post is over ${MAX_POST_LENGTH} characters` }, { status: 400 });
+  const textError = postTextError(platform, text);
+  if (textError) return NextResponse.json({ error: textError }, { status: 400 });
+  if (!(await listAccounts(platform)).some((a) => a.id === body.accountId)) {
+    return NextResponse.json({ error: "that account isn't connected" }, { status: 400 });
   }
   if (body.imagePath && !SAFE_IMAGE_FILENAME.test(body.imagePath)) {
     return NextResponse.json({ error: "invalid imagePath" }, { status: 400 });
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid scheduledFor date" }, { status: 400 });
   }
   const post = await createScheduledPost({
-    platform: body.platform,
+    platform,
     accountId: body.accountId,
     text,
     imagePath: body.imagePath || undefined,

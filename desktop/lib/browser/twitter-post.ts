@@ -21,7 +21,7 @@ async function dismissTypeahead(page: Page): Promise<void> {
 }
 
 export interface PostResult {
-  url?: string;
+  url: string;
 }
 
 const COMPOSER_SELECTORS = [

@@ -1,5 +1,5 @@
 import { deleteTweets, DeleteEvent } from "./browser/twitter-delete";
-import { listXAccounts } from "./storage";
+import { listAccounts } from "./storage";
 
 export interface DeleterJob {
   id: string;
@@ -40,7 +40,7 @@ export interface StartOptions {
 export async function startJob(opts: StartOptions): Promise<{ job: DeleterJob } | { error: string }> {
   if (getJob()?.running) return { error: "Another delete job is already running." };
 
-  const accounts = await listXAccounts();
+  const accounts = await listAccounts("twitter");
   const account = accounts.find((a) => a.id === opts.accountId);
   if (!account) return { error: "Account not found." };
 
@@ -65,7 +65,7 @@ export async function startJob(opts: StartOptions): Promise<{ job: DeleterJob } 
     log: [],
   };
   // Re-check with no await since the check above: a second request that
-  // arrived during listXAccounts() would otherwise start a parallel job.
+  // arrived during listAccounts() would otherwise start a parallel job.
   if (getJob()?.running) return { error: "Another delete job is already running." };
   setCurrent(job);
 

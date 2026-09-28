@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cancelScheduledPost } from "@/lib/scheduler";
-import { updateScheduledPost } from "@/lib/storage";
-import { MAX_POST_LENGTH } from "@/lib/tweet";
+import { listAccounts, listScheduledPosts, updateScheduledPost } from "@/lib/storage";
+import { postTextError } from "@/lib/platforms";
 import { SAFE_IMAGE_FILENAME } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -27,13 +27,20 @@ export async function PATCH(
     scheduledFor?: string;
   };
 
+  // A post's platform never changes, so its rules can be checked up front.
+  const existing = (await listScheduledPosts()).find((p) => p.id === id);
+  if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
+
   // Same rules as creating a post (../route.ts).
   const text = typeof body.text === "string" ? body.text.trim() : undefined;
-  if (text !== undefined && !text) {
-    return NextResponse.json({ error: "text can't be empty" }, { status: 400 });
-  }
-  if (text !== undefined && text.length > MAX_POST_LENGTH) {
-    return NextResponse.json({ error: `post is over ${MAX_POST_LENGTH} characters` }, { status: 400 });
+  const textError = text !== undefined ? postTextError(existing.platform, text) : null;
+  if (textError) return NextResponse.json({ error: textError }, { status: 400 });
+  if (
+    typeof body.accountId === "string" &&
+    body.accountId &&
+    !(await listAccounts(existing.platform)).some((a) => a.id === body.accountId)
+  ) {
+    return NextResponse.json({ error: "that account isn't connected on this post's platform" }, { status: 400 });
   }
   const when = typeof body.scheduledFor === "string" ? new Date(body.scheduledFor) : undefined;
   if (when && Number.isNaN(when.getTime())) {
