@@ -177,7 +177,7 @@ export async function endTwitterConnect(): Promise<
   const finalDir = profileDir(id);
   // Reconnecting an existing account replaces its profile dir. Hold that
   // account's browser lock so no post, scrape or delete job is using it.
-  const release = await acquireBrowserLock(`twitter:${id}`);
+  const release = await acquireBrowserLock(`twitter:${id}`, "connect");
   try {
     console.log(`[twitter-connect] end: renaming ${pendingId} → ${id} at ${finalDir}`);
     await fs.rm(finalDir, { recursive: true, force: true }).catch(() => {});
@@ -235,7 +235,7 @@ export async function disconnectXAccount(
 ): Promise<{ ok: true } | { error: string }> {
   if (isConnectActive()) return { error: "Cancel the connect flow first." };
   // Wait for any job using this account's browser before deleting its profile.
-  const release = await acquireBrowserLock(`twitter:${id}`);
+  const release = await acquireBrowserLock(`twitter:${id}`, "disconnect");
   try {
     await fs.rm(profileDir(id), { recursive: true, force: true }).catch(() => {});
   } finally {

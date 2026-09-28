@@ -344,7 +344,9 @@ function PostRow({
             </span>
           )}
           {post.status === "posting" && (
-            <span className="text-amber-300">Posting now…</span>
+            <span className="text-amber-300">
+              {post.sendingStartedAt ? "Posting now…" : "Waiting for the browser…"}
+            </span>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -490,7 +492,9 @@ function TimelineRow({
             <span className="font-semibold tabular-nums text-zinc-100">{time}</span>
             <span className={isPosting ? "text-amber-300" : "text-accent"}>
               {isPosting
-                ? "Posting now…"
+                ? post.sendingStartedAt
+                  ? "Posting now…"
+                  : "Waiting for the browser…"
                 : dueMs > 0
                   ? `in ${formatCountdown(dueMs)}`
                   : "any moment…"}

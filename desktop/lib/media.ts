@@ -80,7 +80,11 @@ export async function screenshotPage(pageUrl: string, productUrl: string): Promi
   if (host !== site && !host.endsWith(`.${site}`)) throw new Error(`${url.hostname} isn't on ${site}`);
 
   const { openBrowser } = await import("./browser/session");
-  const handle = await openBrowser("web", { accountId: "screenshots", headless: true });
+  const handle = await openBrowser("web", {
+    accountId: "screenshots",
+    headless: true,
+    purpose: "screenshot",
+  });
   try {
     // Block any request (redirects, iframes, scripts) that targets a local address.
     await handle.page.route("**/*", async (route) => {

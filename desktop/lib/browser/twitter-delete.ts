@@ -233,6 +233,7 @@ export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
   });
 
   const browser = await openBrowser("twitter", {
+    purpose: "delete",
     headless: opts.headless ?? false,
     accountId,
   });

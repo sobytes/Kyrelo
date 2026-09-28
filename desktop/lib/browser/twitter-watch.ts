@@ -148,6 +148,7 @@ export async function scrapeManyTimelines(
 
   // Scrapes run headless so the polling browser doesn't pop up every tick.
   const browser = await openBrowser("twitter", {
+    purpose: "scrape",
     headless: true,
     accountId: opts.accountId,
   });

@@ -18,6 +18,8 @@ export interface BrowserHandle {
 
 export interface OpenOptions {
   headless?: boolean;
+  /** What the browser is for ("post", "scrape", …). Only used in logs. */
+  purpose: string;
   /** Selects the profile directory: <dataDir>/userdata/<platform>/<accountId>/. */
   accountId: string;
 }
@@ -91,19 +93,31 @@ const STEALTH_INIT = `
 const browserLocks: Record<string, Promise<void>> = {};
 // How many callers are queued behind the current holder, per lock key.
 const lockWaiters: Record<string, number> = {};
+// What currently holds each lock, for the "waited for the browser" log.
+const lockHolders: Record<string, string> = {};
 
-export async function acquireBrowserLock(platform: string): Promise<() => void> {
+export async function acquireBrowserLock(platform: string, purpose = "unknown"): Promise<() => void> {
   const prev = browserLocks[platform] ?? Promise.resolve();
   let release!: () => void;
   const current = new Promise<void>((r) => (release = r));
   browserLocks[platform] = prev.then(() => current);
   lockWaiters[platform] = (lockWaiters[platform] ?? 0) + 1;
+  const heldBy = lockHolders[platform];
+  const waitStart = Date.now();
   try {
     await prev;
   } finally {
     lockWaiters[platform]--;
   }
-  return release;
+  const waitedSec = Math.round((Date.now() - waitStart) / 1000);
+  if (waitedSec >= 5) {
+    console.log(`[session] ${purpose} waited ${waitedSec}s for the ${platform} browser (held by: ${heldBy ?? "unknown"})`);
+  }
+  lockHolders[platform] = purpose;
+  return () => {
+    delete lockHolders[platform];
+    release();
+  };
 }
 
 /**
@@ -180,7 +194,7 @@ export async function openBrowser(
   const dir = userDataDir(platform, opts.accountId);
   const lockKey = `${platform}:${opts.accountId}`;
 
-  const release = await acquireBrowserLock(lockKey);
+  const release = await acquireBrowserLock(lockKey, opts.purpose);
   let context: BrowserContext | undefined;
   try {
     await fs.mkdir(dir, { recursive: true });

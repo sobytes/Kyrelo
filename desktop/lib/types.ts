@@ -53,6 +53,11 @@ export interface ScheduledPost {
   scheduledFor: string;
   createdAt: string;
   status: ScheduledStatus;
+  /**
+   * Set when the browser is open and the post is actually being sent. A
+   * "posting" post without it is still waiting for the account's browser.
+   */
+  sendingStartedAt?: string;
   postedAt?: string;
   postedUrl?: string;
   error?: string;

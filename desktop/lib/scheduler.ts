@@ -113,7 +113,12 @@ async function dispatchDuePosts(): Promise<DispatchOutcome> {
     // the user cancelled (deleted) the post mid-send, so it doesn't come back.
     try {
       const imagePath = post.imagePath ? path.join(uploadsDir(), post.imagePath) : undefined;
-      const r = await postTweetBrowser(accountId, post.text, { headless, imagePath });
+      const r = await postTweetBrowser(accountId, post.text, {
+        headless,
+        imagePath,
+        onBrowserReady: () =>
+          updateScheduledPost(post.id, (latest) => ({ ...latest, sendingStartedAt: new Date().toISOString() })),
+      });
       await updateScheduledPost(post.id, (latest) => ({
         ...latest,
         status: "posted",

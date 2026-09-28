@@ -40,14 +40,21 @@ const SUBMIT_SELECTORS = [
 export async function postTweetBrowser(
   accountId: string,
   text: string,
-  options: { headless?: boolean; imagePath?: string } = {},
+  options: {
+    headless?: boolean;
+    imagePath?: string;
+    /** Called once the browser is open, i.e. after any wait for another job. */
+    onBrowserReady?: () => Promise<unknown>;
+  } = {},
 ): Promise<PostResult> {
   // Default visible so the user can watch the post happen live; flip via the
   // Settings toggle for fully background operation.
   const browser = await openBrowser("twitter", {
+    purpose: "post",
     headless: options.headless ?? false,
     accountId,
   });
+  await options.onBrowserReady?.().catch((err) => console.warn("[twitter-post] onBrowserReady failed:", err));
   const { page } = browser;
 
   // X submits via /i/api/graphql/.../CreateTweet; the response includes the
