@@ -3,8 +3,7 @@
 Marketing site for [Kyrelo](https://kyrelo.com) — the local Buffer alternative for X.
 
 ```bash
-npm install
-npm run dev    # http://localhost:3001
+./build.sh website run   # from the repo root: http://localhost:3000
 ```
 
 ## Deploy to Vercel

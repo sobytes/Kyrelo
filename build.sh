@@ -143,8 +143,11 @@ build_desktop() {
 
     # Unpackaged Electron spawns `next dev` and the worker itself
     # (electron/main.cjs), so clear anything left on the dev port first.
+    # Dev Electron points Playwright at build/pw-browsers (electron/main.cjs),
+    # so fetch Chromium there on first run.
     if [ ! -d "$BASE_DIR/desktop/build/pw-browsers" ] && [ -z "$PLAYWRIGHT_BROWSERS_PATH" ]; then
-        echo -e "${YELLOW}If posting fails with a missing browser, run: npx playwright install chromium${NC}"
+        echo -e "${YELLOW}First run: downloading Playwright Chromium...${NC}"
+        npm run pw:install || return 1
     fi
     echo -e "${GREEN}Launching Kyrelo in dev mode...${NC}"
     kill_port 3000
@@ -261,8 +264,8 @@ run_checks() {
     (cd "$BASE_DIR/desktop" && ensure_deps) || return 1
     (cd "$BASE_DIR/website" && ensure_deps) || return 1
 
-    step "desktop type-check" bash -c "cd '$BASE_DIR/desktop' && npx tsc --noEmit"
-    step "website type-check" bash -c "cd '$BASE_DIR/website' && npx tsc --noEmit"
+    step "desktop type-check" bash -c "cd '$BASE_DIR/desktop' && npm run typecheck --silent"
+    step "website type-check" bash -c "cd '$BASE_DIR/website' && npm run typecheck --silent"
     step "secret scan"        scan_secrets
 
     echo ""
