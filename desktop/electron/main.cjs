@@ -178,7 +178,24 @@ ipcMain.handle("shell:openExternal", async (_event, url) => {
   return true;
 });
 
+// One Kyrelo at a time. Two copies (e.g. the installed app and a dev build,
+// which share this userData folder) would each run a worker and open the same
+// X account's Chrome profile at once: posts collide, and Chrome reports
+// "Something went wrong when opening your profile". The browser lock in
+// lib/browser/session.ts only works within one process, so guard here.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  });
+}
+
 app.whenReady().then(async () => {
+  // Lost the single-instance lock above: we're quitting, start nothing.
+  if (!app.hasSingleInstanceLock()) return;
   const port = isDev ? 3000 : await findFreePort();
   appUrl = `http://127.0.0.1:${port}`;
 
