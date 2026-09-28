@@ -2,8 +2,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { pairingLink } from "./mobile-bridge";
+import { PLATFORM_IDS, PLATFORMS } from "./platforms";
 import { getGrokSettings } from "./storage";
-import { REPLY_MAX_LENGTH, tweetLength } from "./tweet";
+import { MAX_TWEET_LENGTH, REPLY_MAX_LENGTH, tweetLength } from "./tweet";
 import { REPLY_STYLES, REPLY_TONES } from "./types";
 
 // The desktop side of contracts/: the iOS app's tests read the same files
@@ -16,6 +17,7 @@ describe("contract: reply rules", () => {
 
   it("uses the same reply limit, tones and styles", () => {
     expect(REPLY_MAX_LENGTH).toBe(rules.replyMaxLength);
+    expect(MAX_TWEET_LENGTH).toBe(rules.campaignMaxLength);
     expect([...REPLY_TONES]).toEqual(rules.tones);
     expect([...REPLY_STYLES]).toEqual(rules.styles);
   });
@@ -24,6 +26,23 @@ describe("contract: reply rules", () => {
     "counts %j the same way",
     ({ text, length }) => {
       expect(tweetLength(text)).toBe(length);
+    },
+  );
+});
+
+describe("contract: platform rules", () => {
+  const rules = contract("platform-rules.json");
+
+  it("lists the same platforms, names and limits", () => {
+    expect(rules.platforms).toEqual(
+      PLATFORM_IDS.map((id) => ({ id, label: PLATFORMS[id].label, maxLength: PLATFORMS[id].maxLength })),
+    );
+  });
+
+  it.each(rules.lengthCases as { platform: keyof typeof PLATFORMS; text: string; length: number }[])(
+    "counts $platform %j the same way",
+    ({ platform, text, length }) => {
+      expect(PLATFORMS[platform].length(text)).toBe(length);
     },
   );
 });
@@ -62,5 +81,38 @@ describe("contract: monitor feed sample", () => {
       "replyError", "skipped", "draft", "draft.score", "draft.reason", "draft.options", "draft.generatedAt",
     ];
     for (const key of keyPaths(sample.state.tweets)) expect(known).toContain(key);
+  });
+});
+
+describe("contract: scheduler sample", () => {
+  const sample = contract("scheduler.json");
+  // Every field the desktop types define (lib/types.ts). The sample may leave
+  // optional ones out, but must not invent any.
+  const allowed = (fields: string) => fields.split(/\s+/).filter(Boolean);
+
+  it("uses only fields Account defines", () => {
+    for (const key of keyPaths(sample.accounts)) expect(allowed("platform id handle addedAt")).toContain(key);
+  });
+
+  it("uses only fields ScheduledPost defines", () => {
+    const fields = allowed(`id platform accountId text imagePath scheduledFor createdAt status
+      sendingStartedAt postedAt postedUrl error campaignId`);
+    for (const key of keyPaths(sample.posts)) expect(fields).toContain(key);
+  });
+
+  it("uses only fields Campaign and CampaignDraft define", () => {
+    const fields = allowed(`id accountId brief url competitors count windowMinutes useAiImages autoSchedule
+      provider status progress research drafts postIds error createdAt
+      drafts.id drafts.angle drafts.text drafts.media drafts.media.kind drafts.media.imagePath drafts.media.note
+      drafts.sources drafts.scheduledFor`);
+    for (const key of keyPaths(sample.campaignsInfo.campaigns)) expect(fields).toContain(key);
+  });
+
+  it("has the fields GET /api/campaigns and /api/brand-profile return", async () => {
+    const campaigns = await import("@/app/api/campaigns/route");
+    const real = await (await campaigns.GET()).json();
+    expect(Object.keys(sample.campaignsInfo).sort()).toEqual(Object.keys(real).sort());
+    const { getBrandProfile } = await import("./storage");
+    expect(Object.keys(sample.brandProfile).sort()).toEqual(Object.keys(await getBrandProfile()).sort());
   });
 });

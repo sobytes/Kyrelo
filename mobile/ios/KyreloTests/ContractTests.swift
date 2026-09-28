@@ -16,6 +16,7 @@ final class ContractTests: XCTestCase {
     private struct ReplyRulesContract: Decodable {
         struct LengthCase: Decodable { let text: String; let length: Int }
         let replyMaxLength: Int
+        let campaignMaxLength: Int
         let tones: [String]
         let styles: [String]
         let lengthCases: [LengthCase]
@@ -24,6 +25,7 @@ final class ContractTests: XCTestCase {
     func testReplyLimitTonesAndStylesMatch() throws {
         let rules = try JSONDecoder().decode(ReplyRulesContract.self, from: contract("reply-rules"))
         XCTAssertEqual(ReplyRules.maxLength, rules.replyMaxLength)
+        XCTAssertEqual(ReplyRules.campaignMaxLength, rules.campaignMaxLength)
         XCTAssertEqual(ReplyTone.allCases.map(\.rawValue), rules.tones)
         XCTAssertEqual(ReplyStyle.allCases.map(\.rawValue), rules.styles)
     }
@@ -89,5 +91,57 @@ final class ContractTests: XCTestCase {
         let feed = try JSONDecoder().decode(FeedContract.self, from: contract("monitor-feed"))
         let encoded = try JSONSerialization.jsonObject(with: JSONEncoder().encode(feed.settings.autopilot)) as? [String: Any]
         XCTAssertEqual(Set(encoded?.keys ?? [:].keys), ["enabled", "tone", "style", "minScore", "creativity", "topics", "avoid"])
+    }
+
+    // MARK: platform-rules.json
+
+    private struct PlatformRulesContract: Decodable {
+        struct Platform: Decodable { let id: String; let label: String; let maxLength: Int }
+        struct LengthCase: Decodable { let platform: String; let text: String; let length: Int }
+        let platforms: [Platform]
+        let lengthCases: [LengthCase]
+    }
+
+    func testPlatformsNamesAndLimitsMatch() throws {
+        let rules = try JSONDecoder().decode(PlatformRulesContract.self, from: contract("platform-rules"))
+        XCTAssertEqual(PlatformId.allCases.map(\.rawValue), rules.platforms.map(\.id))
+        for p in rules.platforms {
+            let platform = try XCTUnwrap(PlatformId(rawValue: p.id))
+            XCTAssertEqual(platform.label, p.label)
+            XCTAssertEqual(platform.maxLength, p.maxLength)
+        }
+    }
+
+    func testEachPlatformCountsLengthLikeTheDesktop() throws {
+        let rules = try JSONDecoder().decode(PlatformRulesContract.self, from: contract("platform-rules"))
+        for c in rules.lengthCases {
+            let platform = try XCTUnwrap(PlatformId(rawValue: c.platform))
+            XCTAssertEqual(platform.length(c.text), c.length, "\(c.platform): \(c.text.debugDescription)")
+        }
+    }
+
+    // MARK: scheduler.json
+
+    private struct SchedulerContract: Decodable {
+        let accounts: [Account]
+        let posts: [ScheduledPost]
+        let campaignsInfo: CampaignsInfo
+        let brandProfile: BrandProfile
+    }
+
+    func testDecodesTheDesktopsSchedulerAndCampaigns() throws {
+        let s = try JSONDecoder().decode(SchedulerContract.self, from: contract("scheduler"))
+        XCTAssertEqual(s.accounts.map(\.platform), [.twitter, .bluesky, .linkedin])
+        XCTAssertEqual(s.posts.map(\.status), [.pending, .posting, .posted, .failed, .posted])
+        XCTAssertNil(s.posts[4].accountId) // legacy post
+        XCTAssertNotNil(s.posts[1].sendingStartedAt)
+
+        let campaign = try XCTUnwrap(s.campaignsInfo.campaigns.first)
+        XCTAssertEqual(campaign.status, .review)
+        XCTAssertEqual(campaign.drafts.first?.media.imagePath, "0f8e7d6c-5b4a-4938-8271-605f4e3d2c1c.jpg")
+        XCTAssertNil(campaign.drafts.last?.media.imagePath)
+        XCTAssertTrue(s.campaignsInfo.aiReady)
+        XCTAssertEqual(s.brandProfile.url, "https://kyrelo.com")
+        XCTAssertNotNil(ISODate.parse(campaign.createdAt))
     }
 }

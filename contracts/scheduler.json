@@ -1,0 +1,102 @@
+{
+  "accounts": [
+    { "platform": "twitter", "id": "kyreloapp", "handle": "KyreloApp", "addedAt": "2026-09-20T10:00:00.000Z" },
+    { "platform": "bluesky", "id": "kyrelo.bsky.social", "handle": "kyrelo.bsky.social", "addedAt": "2026-09-28T10:00:00.000Z" },
+    { "platform": "linkedin", "id": "samuel-east", "handle": "samuel-east", "addedAt": "2026-09-28T11:00:00.000Z" }
+  ],
+  "posts": [
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "platform": "twitter",
+      "accountId": "kyreloapp",
+      "text": "Shipping today.",
+      "scheduledFor": "2026-09-29T09:00:00.000Z",
+      "createdAt": "2026-09-28T18:00:00.000Z",
+      "status": "pending"
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "platform": "bluesky",
+      "accountId": "kyrelo.bsky.social",
+      "text": "Now on Bluesky too.",
+      "imagePath": "0f8e7d6c-5b4a-4938-8271-605f4e3d2c1b.png",
+      "scheduledFor": "2026-09-28T19:00:00.000Z",
+      "createdAt": "2026-09-28T18:00:00.000Z",
+      "status": "posting",
+      "sendingStartedAt": "2026-09-28T19:00:01.000Z"
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333333",
+      "platform": "twitter",
+      "accountId": "kyreloapp",
+      "text": "Hello world",
+      "scheduledFor": "2026-09-28T13:36:00.000Z",
+      "createdAt": "2026-09-28T13:30:00.000Z",
+      "status": "posted",
+      "postedAt": "2026-09-28T14:25:40.000Z",
+      "postedUrl": "https://x.com/kyreloapp/status/2104578236327833683",
+      "campaignId": "c0ffee00-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "platform": "linkedin",
+      "accountId": "samuel-east",
+      "text": "A post that didn't make it.",
+      "scheduledFor": "2026-09-28T12:00:00.000Z",
+      "createdAt": "2026-09-28T11:30:00.000Z",
+      "status": "failed",
+      "error": "Couldn't find LinkedIn's Post button"
+    },
+    {
+      "id": "55555555-5555-4555-8555-555555555555",
+      "platform": "twitter",
+      "text": "A post from before accounts were per post.",
+      "scheduledFor": "2026-09-01T09:00:00.000Z",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "status": "posted"
+    }
+  ],
+  "campaignsInfo": {
+    "campaigns": [
+      {
+        "id": "c0ffee00-0000-4000-8000-000000000002",
+        "accountId": "kyreloapp",
+        "brief": "Kyrelo is a free, open-source Buffer alternative.",
+        "url": "https://kyrelo.com",
+        "competitors": "Buffer",
+        "count": 2,
+        "windowMinutes": 60,
+        "useAiImages": false,
+        "autoSchedule": false,
+        "provider": "claude",
+        "status": "review",
+        "progress": "Ready for review.",
+        "research": "## Product\\n…",
+        "drafts": [
+          {
+            "id": "d1",
+            "angle": "pain point",
+            "text": "Every scheduler I used eventually had a bad morning.",
+            "media": { "kind": "screenshot", "imagePath": "0f8e7d6c-5b4a-4938-8271-605f4e3d2c1c.jpg", "note": "Screenshot of https://kyrelo.com" },
+            "sources": ["https://status.buffer.com"],
+            "scheduledFor": "2026-09-28T19:07:22.000Z"
+          },
+          {
+            "id": "d2",
+            "angle": "question",
+            "text": "How far back does your X history go?",
+            "media": { "kind": "none" },
+            "sources": [],
+            "scheduledFor": "2026-09-28T19:38:10.000Z"
+          }
+        ],
+        "postIds": [],
+        "createdAt": "2026-09-28T19:00:00.000Z"
+      }
+    ],
+    "provider": "claude",
+    "aiReady": true,
+    "openaiKey": false
+  },
+  "brandProfile": { "brief": "Kyrelo is a free, open-source Buffer alternative.", "url": "https://kyrelo.com", "competitors": "Buffer" }
+}

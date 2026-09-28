@@ -1,0 +1,98 @@
+import Foundation
+
+// The desktop's Scheduler and campaign data (desktop/lib/types.ts).
+// contracts/scheduler.json is a sample both apps are tested against.
+
+enum PlatformId: String, Codable, CaseIterable {
+    case twitter, bluesky, linkedin
+}
+
+struct Account: Decodable, Hashable, Identifiable {
+    let platform: PlatformId
+    let id: String
+    let handle: String
+
+    /// Accounts are identified by platform + id: the same handle can exist on several platforms.
+    var key: String { "\(platform.rawValue):\(id)" }
+}
+
+enum PostStatus: String, Decodable {
+    case pending, posting, posted, failed
+}
+
+struct ScheduledPost: Decodable, Identifiable, Hashable {
+    let id: String
+    let platform: PlatformId
+    /// Missing on posts made before accounts were chosen per post.
+    let accountId: String?
+    let text: String
+    let imagePath: String?
+    let scheduledFor: String
+    let status: PostStatus
+    /// Set once the browser is open and the post is really being sent.
+    let sendingStartedAt: String?
+    let postedAt: String?
+    let postedUrl: String?
+    let error: String?
+    let campaignId: String?
+}
+
+enum CampaignStatus: String, Decodable {
+    case researching, writing, media, review, scheduled, discarded, failed
+
+    var isRunning: Bool { self == .researching || self == .writing || self == .media }
+}
+
+struct Campaign: Decodable, Identifiable {
+    let id: String
+    let accountId: String
+    let count: Int
+    let autoSchedule: Bool
+    let status: CampaignStatus
+    let progress: String
+    let drafts: [CampaignDraft]
+    let error: String?
+    let createdAt: String
+}
+
+struct CampaignDraft: Decodable, Identifiable, Hashable {
+    struct Media: Decodable, Hashable {
+        let kind: String
+        let imagePath: String?
+        let note: String?
+    }
+
+    let id: String
+    let angle: String
+    let text: String
+    let media: Media
+    let sources: [String]
+    let scheduledFor: String
+}
+
+/// GET /api/campaigns: recent campaigns and whether AI is set up.
+struct CampaignsInfo: Decodable {
+    let campaigns: [Campaign]
+    let provider: String
+    let aiReady: Bool
+    let openaiKey: Bool
+}
+
+struct BrandProfile: Decodable {
+    let brief: String
+    let url: String
+    let competitors: String
+}
+
+/// Dates as the desktop reads and writes them.
+enum ISODate {
+    private static let withFraction: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+    private static let plain = ISO8601DateFormatter()
+
+    static func parse(_ s: String) -> Date? { withFraction.date(from: s) ?? plain.date(from: s) }
+    static func string(_ date: Date) -> String { withFraction.string(from: date) }
+}

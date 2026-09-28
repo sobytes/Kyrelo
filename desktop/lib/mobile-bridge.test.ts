@@ -52,16 +52,37 @@ describe("phone bridge", () => {
     expect(apiCalls.at(-1)).toEqual({ method: "POST", url: "/api/grok-reply", body: '{"action":"draft","tweetId":"1"}' });
   });
 
-  it("refuses everything outside the Monitor", async () => {
+  it("forwards Scheduler and campaign calls, including ones with ids", async () => {
+    for (const [method, path] of [
+      ["GET", "/api/accounts"],
+      ["POST", "/api/scheduler/posts"],
+      ["PATCH", "/api/scheduler/posts/5f1c9e2a-1111-4a4a-9b9b-123456789abc"],
+      ["DELETE", "/api/scheduler/posts/5f1c9e2a-1111-4a4a-9b9b-123456789abc"],
+      ["GET", "/api/campaigns/abc-123"],
+      ["POST", "/api/campaigns/abc-123/schedule"],
+      ["DELETE", "/api/campaigns/abc-123"],
+      ["GET", "/api/brand-profile"],
+    ]) {
+      const res = await call(path, { method, body: method === "GET" ? undefined : "{}" });
+      expect(res.status, `${method} ${path}`).toBe(200);
+      expect(apiCalls.at(-1)?.url).toBe(path);
+    }
+  });
+
+  it("refuses everything the phone doesn't need", async () => {
     const before = apiCalls.length;
     for (const [method, path] of [
       ["POST", "/api/mobile"], // phone access settings: never from the phone
       ["PUT", "/api/settings/keys"],
       ["POST", "/api/deleter"],
-      ["POST", "/api/scheduler/posts"],
+      ["POST", "/api/accounts"], // connecting / disconnecting accounts
+      ["POST", "/api/scheduler/upload"],
       ["DELETE", "/api/grok-state"],
+      ["PATCH", "/api/scheduler/posts/a/../../settings/keys"],
+      ["GET", "/api/campaigns/abc/secret"],
     ]) {
-      expect((await call(path, { method, body: "{}" })).status).toBe(404);
+      const res = await call(path, { method, body: method === "GET" ? undefined : "{}" });
+      expect(res.status, `${method} ${path}`).toBe(404);
     }
     expect(apiCalls.length).toBe(before);
   });

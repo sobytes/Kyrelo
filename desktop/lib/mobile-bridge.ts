@@ -15,14 +15,40 @@ import { getMobileBridgeConfig, saveMobileBridgeConfig } from "./storage";
 
 export const BRIDGE_PORT = Number(process.env.MOBILE_BRIDGE_PORT ?? 47771);
 
-/** method + path the phone may call. Everything else gets 404. */
-const ALLOWED = new Set([
-  "GET /api/grok-state", // the feed, with drafts
-  "GET /api/grok-settings",
-  "PUT /api/grok-settings", // watching on/off, Autopilot settings
-  "POST /api/grok-reply", // draft replies, mark as replied
-  "POST /api/grok-run", // check now
-]);
+// Path segments that are ids: uuids, handles, upload filenames.
+const ID = "[A-Za-z0-9_.-]+";
+
+/**
+ * What the phone may call: method + an exact path pattern. Everything else
+ * gets 404: connecting or disconnecting accounts, API keys, the Deleter,
+ * phone access itself, and uploads from the phone.
+ */
+const ALLOWED: [method: string, path: RegExp][] = [
+  // Monitor + Autopilot
+  ["GET", /^\/api\/grok-state$/], // the feed, with drafts
+  ["GET", /^\/api\/grok-settings$/],
+  ["PUT", /^\/api\/grok-settings$/], // watching on/off, Autopilot settings
+  ["POST", /^\/api\/grok-reply$/], // draft replies, mark as replied
+  ["POST", /^\/api\/grok-run$/], // check now
+  // Scheduler
+  ["GET", /^\/api\/accounts$/], // the list only: it never contains credentials
+  ["GET", /^\/api\/scheduler\/posts$/],
+  ["POST", /^\/api\/scheduler\/posts$/],
+  ["PATCH", new RegExp(`^/api/scheduler/posts/${ID}$`)],
+  ["DELETE", new RegExp(`^/api/scheduler/posts/${ID}$`)],
+  ["GET", new RegExp(`^/api/scheduler/uploads/${ID}$`)], // images on posts and drafts
+  // Auto campaigns
+  ["GET", /^\/api\/campaigns$/],
+  ["POST", /^\/api\/campaigns$/],
+  ["GET", new RegExp(`^/api/campaigns/${ID}$`)],
+  ["DELETE", new RegExp(`^/api/campaigns/${ID}$`)], // discard
+  ["POST", new RegExp(`^/api/campaigns/${ID}/schedule$`)],
+  ["GET", /^\/api\/brand-profile$/],
+];
+
+function isAllowed(method: string | undefined, path: string): boolean {
+  return ALLOWED.some(([m, re]) => m === method && re.test(path));
+}
 
 const MAX_BODY_BYTES = 64 * 1024;
 // Wrong tokens per address before it's locked out for the window.
@@ -98,9 +124,8 @@ export async function handleBridgeRequest(
   }
 
   const url = new URL(req.url ?? "/", "http://bridge");
-  const route = `${req.method} ${url.pathname}`;
-  if (route === "GET /ping") return send(res, 200, { ok: true, app: "kyrelo" });
-  if (!ALLOWED.has(route)) return send(res, 404, { error: "not available to the phone app" });
+  if (req.method === "GET" && url.pathname === "/ping") return send(res, 200, { ok: true, app: "kyrelo" });
+  if (!isAllowed(req.method, url.pathname)) return send(res, 404, { error: "not available to the phone app" });
 
   const body = req.method === "GET" ? undefined : await readBody(req);
   if (body === null) return send(res, 413, { error: "request too large" });
@@ -112,7 +137,10 @@ export async function handleBridgeRequest(
       body: body ? new Uint8Array(body) : undefined,
       signal: AbortSignal.timeout(180_000),
     });
-    res.writeHead(upstream.status, { "Content-Type": "application/json" });
+    // Pass the type through: most answers are JSON, uploads are images.
+    res.writeHead(upstream.status, {
+      "Content-Type": upstream.headers.get("content-type") ?? "application/json",
+    });
     res.end(Buffer.from(await upstream.arrayBuffer()));
   } catch (err) {
     send(res, 502, { error: `Kyrelo didn't answer: ${err instanceof Error ? err.message : String(err)}` });

@@ -72,11 +72,94 @@ final class BridgeClient {
                               body: ["action": "mark", "tweetId": tweetId, "replyText": text])
     }
 
+    // MARK: - Scheduler
+
+    func accounts() async throws -> [Account] {
+        try await request(AccountsResponse.self, "GET", "/api/accounts").accounts
+    }
+
+    func posts() async throws -> [ScheduledPost] {
+        try await request(PostsResponse.self, "GET", "/api/scheduler/posts").posts
+    }
+
+    /// One post per account: the desktop sends, tracks and retries each on its own.
+    func schedulePost(on account: Account, text: String, at date: Date) async throws {
+        _ = try await request(Empty.self, "POST", "/api/scheduler/posts", body: NewPost(
+            platform: account.platform.rawValue, accountId: account.id, text: text, scheduledFor: ISODate.string(date)
+        ))
+    }
+
+    func updatePost(id: String, text: String, at date: Date) async throws {
+        _ = try await request(Empty.self, "PATCH", "/api/scheduler/posts/\(id)",
+                              body: ["text": text, "scheduledFor": ISODate.string(date)])
+    }
+
+    func cancelPost(id: String) async throws {
+        _ = try await request(Empty.self, "DELETE", "/api/scheduler/posts/\(id)")
+    }
+
+    /// An image attached to a post or campaign draft.
+    func image(_ filename: String) async throws -> Data {
+        try await raw("GET", "/api/scheduler/uploads/\(filename)")
+    }
+
+    // MARK: - Auto campaigns
+
+    func campaignsInfo() async throws -> CampaignsInfo {
+        try await request(CampaignsInfo.self, "GET", "/api/campaigns")
+    }
+
+    func brandProfile() async throws -> BrandProfile {
+        try await request(BrandProfileResponse.self, "GET", "/api/brand-profile").profile
+    }
+
+    func startCampaign(_ start: CampaignStart) async throws -> Campaign {
+        try await request(CampaignResponse.self, "POST", "/api/campaigns", body: start).campaign
+    }
+
+    func campaign(id: String) async throws -> Campaign {
+        try await request(CampaignResponse.self, "GET", "/api/campaigns/\(id)").campaign
+    }
+
+    func scheduleCampaign(id: String, drafts: [DraftEdit]) async throws -> Campaign {
+        try await request(CampaignResponse.self, "POST", "/api/campaigns/\(id)/schedule", body: ["drafts": drafts]).campaign
+    }
+
+    func discardCampaign(id: String) async throws {
+        _ = try await request(Empty.self, "DELETE", "/api/campaigns/\(id)")
+    }
+
+    /// What the campaign form sends (desktop: POST /api/campaigns).
+    struct CampaignStart: Encodable {
+        let accountId: String
+        let brief: String
+        let url: String
+        let competitors: String
+        let count: Int
+        let windowMinutes: Int
+        let useAiImages: Bool
+        let autoSchedule: Bool
+    }
+
+    /// A reviewed draft (desktop: DraftEdit in lib/campaign.ts). Drafts left out are dropped.
+    struct DraftEdit: Encodable {
+        let id: String
+        let text: String
+        let scheduledFor: String
+        let removeImage: Bool
+    }
+
     // MARK: - Transport
 
     private func request<T: Decodable>(
         _ type: T.Type, _ method: String, _ path: String, body: (any Encodable)? = nil, slow: Bool = false
     ) async throws -> T {
+        let data = try await raw(method, path, body: body, slow: slow)
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// Sends one request, trying each of the computer's addresses; returns the body.
+    private func raw(_ method: String, _ path: String, body: (any Encodable)? = nil, slow: Bool = false) async throws -> Data {
         let hosts = lastGoodHost.map { good in [good] + pairing.hosts.filter { $0 != good } } ?? pairing.hosts
         var lastHost = hosts.first ?? "?"
         for host in hosts {
@@ -104,7 +187,7 @@ final class BridgeClient {
                 let message = (try? JSONDecoder().decode(ErrorResponse.self, from: data))?.error
                 throw BridgeError.server(message ?? "Kyrelo answered \(status).")
             }
-            return try JSONDecoder().decode(T.self, from: data)
+            return data
         }
         throw BridgeError.unreachable(host: lastHost)
     }
@@ -116,4 +199,9 @@ final class BridgeClient {
     private struct CheckResponse: Decodable { let error: String? }
     private struct DraftResponse: Decodable { let draft: ReplyDraft?; let error: String? }
     private struct AutopilotPatch: Encodable { let autopilot: AutopilotSettings }
+    private struct AccountsResponse: Decodable { let accounts: [Account] }
+    private struct PostsResponse: Decodable { let posts: [ScheduledPost] }
+    private struct CampaignResponse: Decodable { let campaign: Campaign }
+    private struct BrandProfileResponse: Decodable { let profile: BrandProfile }
+    private struct NewPost: Encodable { let platform: String; let accountId: String; let text: String; let scheduledFor: String }
 }

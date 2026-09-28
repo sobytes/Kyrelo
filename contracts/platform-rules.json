@@ -1,0 +1,16 @@
+{
+  "platforms": [
+    { "id": "twitter", "label": "X", "maxLength": 4000 },
+    { "id": "bluesky", "label": "Bluesky", "maxLength": 300 },
+    { "id": "linkedin", "label": "LinkedIn", "maxLength": 3000 }
+  ],
+  "lengthCases": [
+    { "platform": "twitter", "text": "hi https://example.com/a/very/long/path/that/goes/on", "length": 26 },
+    { "platform": "bluesky", "text": "hi https://example.com/a/very/long/path/that/goes/on", "length": 52 },
+    { "platform": "linkedin", "text": "hi https://example.com/a/very/long/path/that/goes/on", "length": 52 },
+    { "platform": "twitter", "text": "👨‍👩‍👧 family", "length": 15 },
+    { "platform": "bluesky", "text": "👨‍👩‍👧 family", "length": 8 },
+    { "platform": "linkedin", "text": "👨‍👩‍👧 family", "length": 15 },
+    { "platform": "bluesky", "text": "café 🦋", "length": 6 }
+  ]
+}

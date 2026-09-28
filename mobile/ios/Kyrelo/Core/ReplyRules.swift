@@ -4,6 +4,8 @@ import Foundation
 /// contracts/reply-rules.json by ContractTests, as the desktop's are.
 enum ReplyRules {
     static let maxLength = 270
+    /// Auto-campaign posts: the standard X limit, so they work on any account.
+    static let campaignMaxLength = 280
 
     private static let url = try! NSRegularExpression(pattern: #"https?://\S+"#)
 

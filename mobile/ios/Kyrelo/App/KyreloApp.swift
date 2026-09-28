@@ -8,8 +8,14 @@ struct KyreloApp: App {
         WindowGroup {
             Group {
                 if let pairing {
-                    FeedView(client: BridgeClient(pairing: pairing), onUnpair: { setPairing(nil) })
-                        .id(pairing.token) // a new pairing starts a fresh feed
+                    let client = BridgeClient(pairing: pairing)
+                    TabView {
+                        FeedView(client: client, onUnpair: { setPairing(nil) })
+                            .tabItem { Label("Monitor", systemImage: "dot.radiowaves.left.and.right") }
+                        SchedulerView(client: client)
+                            .tabItem { Label("Scheduler", systemImage: "calendar") }
+                    }
+                    .id(pairing.token) // a new pairing starts fresh
                 } else {
                     PairView(onPaired: setPairing)
                 }
