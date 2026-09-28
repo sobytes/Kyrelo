@@ -33,14 +33,34 @@ export interface WatchResult {
   newTweets?: NotifyTweet[];
 }
 
+// One scrape at a time in this process. The worker already avoids overlap,
+// but the Monitor page's manual run hits the same code path.
+const watcherState = ((globalThis as { __kyreloWatcher?: { running: boolean; offset: number } })
+  .__kyreloWatcher ??= { running: false, offset: 0 });
+
 export async function runGrokWatcher(): Promise<WatchResult> {
+  if (watcherState.running) return { skipped: "busy" };
+  watcherState.running = true;
+  try {
+    return await runGrokWatcherOnce();
+  } finally {
+    watcherState.running = false;
+  }
+}
+
+async function runGrokWatcherOnce(): Promise<WatchResult> {
   const settings = await getGrokSettings();
   if (!settings.enabled) return { skipped: "disabled" };
   if (isConnectActive()) return { skipped: "connecting" };
   const accountId = await getDefaultAccountId();
   if (!accountId) return { skipped: "no-account" };
-  const handles = settings.handles.filter(Boolean);
-  if (handles.length === 0) return { skipped: "no-handles" };
+  const all = settings.handles.filter(Boolean);
+  if (all.length === 0) return { skipped: "no-handles" };
+  // Start from a different handle each tick. A scrape can stop early to let a
+  // scheduled post through, and rotating keeps the later handles from being
+  // skipped every time.
+  const start = watcherState.offset++ % all.length;
+  const handles = [...all.slice(start), ...all.slice(0, start)];
 
   const { scrapeManyTimelines } = await import("./browser/twitter-watch");
 

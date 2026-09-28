@@ -50,7 +50,17 @@ function macNotify(title, body) {
   child.on("error", () => {});
 }
 
+// A watch scrape can take minutes (several handles, one shared browser per
+// account), longer than the interval. Without these guards setInterval starts
+// new requests while the last is still running, they queue on the browser
+// lock, each takes longer than the last, and fetch gives up at undici's 300s
+// headers timeout (UND_ERR_HEADERS_TIMEOUT) and drops that tick's results.
+let watchInFlight = false;
+let schedulerInFlight = false;
+
 async function tick() {
+  if (watchInFlight) return;
+  watchInFlight = true;
   try {
     const { body } = await hit("/api/cron/watch-grok");
     const json = JSON.parse(body);
@@ -63,10 +73,14 @@ async function tick() {
     }
   } catch (err) {
     console.error("watch-grok tick failed", err);
+  } finally {
+    watchInFlight = false;
   }
 }
 
 async function schedulerTick() {
+  if (schedulerInFlight) return;
+  schedulerInFlight = true;
   try {
     const { body } = await hit("/api/cron/scheduler");
     const json = JSON.parse(body);
@@ -78,6 +92,8 @@ async function schedulerTick() {
     }
   } catch (err) {
     console.error("scheduler tick failed", err);
+  } finally {
+    schedulerInFlight = false;
   }
 }
 

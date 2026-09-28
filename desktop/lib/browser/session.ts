@@ -90,14 +90,30 @@ const STEALTH_INIT = `
 // SingletonLock. This chain queues all consumers (worker crons + UI-triggered
 // API routes) inside a single Node process.
 const browserLocks: Record<string, Promise<void>> = {};
+// How many callers are queued behind the current holder, per lock key.
+const lockWaiters: Record<string, number> = {};
 
 async function acquireBrowserLock(platform: string): Promise<() => void> {
   const prev = browserLocks[platform] ?? Promise.resolve();
   let release!: () => void;
   const current = new Promise<void>((r) => (release = r));
   browserLocks[platform] = prev.then(() => current);
-  await prev;
+  lockWaiters[platform] = (lockWaiters[platform] ?? 0) + 1;
+  try {
+    await prev;
+  } finally {
+    lockWaiters[platform]--;
+  }
   return release;
+}
+
+/**
+ * True when someone (e.g. a scheduled post) is queued for this account's
+ * browser. Long-running holders like the timeline scraper check this and
+ * hand the browser over early so posts go out on time.
+ */
+export function browserHasWaiters(platform: string, accountId: string): boolean {
+  return (lockWaiters[`${platform}:${accountId}`] ?? 0) > 0;
 }
 
 // Strip files that make Chrome refuse to start cleanly on a profile dir:

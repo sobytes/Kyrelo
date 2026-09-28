@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { Page } from "playwright";
-import { jitter, openBrowser, warmup } from "./session";
+import { browserHasWaiters, jitter, openBrowser, warmup } from "./session";
 
 async function dumpDebug(page: Page, label: string) {
   const dir = path.join(
@@ -11,8 +11,19 @@ async function dumpDebug(page: Page, label: string) {
   await fs.mkdir(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const png = path.join(dir, `twitter-watch-${label}-${stamp}.png`);
-  await page.screenshot({ path: png, fullPage: true }).catch(() => {});
+  await page.screenshot({ path: png }).catch(() => {});
   console.log(`[twitter-watch] saved debug → ${png}`);
+  // Every failed handle on every tick writes one, so cap the folder.
+  const names = (await fs.readdir(dir).catch(() => [] as string[])).filter(
+    (f) => f.startsWith("twitter-watch-") && f.endsWith(".png"),
+  );
+  const aged = await Promise.all(
+    names.map(async (f) => ({ f, t: (await fs.stat(path.join(dir, f)).catch(() => null))?.mtimeMs ?? 0 })),
+  );
+  aged.sort((a, b) => b.t - a.t);
+  for (const { f } of aged.slice(30)) {
+    await fs.rm(path.join(dir, f), { force: true }).catch(() => {});
+  }
 }
 
 export interface ScrapedTweet {
@@ -160,6 +171,12 @@ export async function scrapeManyTimelines(
     assertLoggedIn(page);
 
     for (const handle of handles) {
+      // A scheduled post (or other job) is waiting for this browser. Stop
+      // here and let it run; the remaining handles are picked up next tick.
+      if (browserHasWaiters("twitter", opts.accountId)) {
+        console.log("[twitter-watch] another job is waiting for the browser — yielding early");
+        break;
+      }
       if (page.isClosed()) {
         console.warn("[twitter-watch] page closed — aborting remaining scrapes");
         break;
