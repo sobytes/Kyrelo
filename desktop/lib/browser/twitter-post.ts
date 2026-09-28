@@ -1,12 +1,5 @@
 import { Page } from "playwright";
-import { humanType, jitter, openBrowser, warmup } from "./session";
-
-function assertLoggedIn(page: Page) {
-  const url = page.url();
-  if (url.includes("/login") || url.includes("/i/flow/login")) {
-    throw new Error("X session expired. Reconnect under Connected accounts.");
-  }
-}
+import { assertLoggedIn, humanType, jitter, openBrowser, warmup } from "./session";
 
 // X's @mention / #hashtag typeahead floats over the composer's action bar and
 // can intercept the submit click. Escape clears it — but the /compose/post
@@ -200,6 +193,14 @@ export async function postTweetBrowser(
     console.log(`[twitter-post] CreateTweet response: status=${resp.status()}`);
 
     await jitter(1500, 2500);
+
+    // X answers some rejections (duplicate post, rate limit) with HTTP 200 and
+    // an `errors` array instead of a tweet, so a 2xx alone doesn't mean posted.
+    if (!capturedStatusId) {
+      const body = (await resp.json().catch(() => null)) as { errors?: { message?: string }[] } | null;
+      const xError = body?.errors?.[0]?.message;
+      if (xError) throw new Error(`X rejected the post: ${xError}`);
+    }
 
     if (capturedStatusId) {
       const url = `https://x.com/${accountId}/status/${capturedStatusId}`;

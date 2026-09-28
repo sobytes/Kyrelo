@@ -58,3 +58,31 @@ describe("scheduled post storage", () => {
     expect(stored?.text).toBe("original");
   });
 });
+
+describe("watcher state storage", () => {
+  it("keeps a reply marked while another change is being saved", async () => {
+    await storage.modifyGrokState(() => ({
+      bootstrapped: true,
+      tweets: [
+        { id: "t1", handle: "a", text: "x", url: "https://x.com/a/status/1", isReply: false, seenAt: "2026-01-01" },
+      ],
+    }));
+    // A scrape merge and a "mark replied" land at the same time.
+    await Promise.all([
+      storage.modifyGrokState((s) => ({
+        ...s,
+        tweets: [
+          ...s.tweets,
+          { id: "t2", handle: "a", text: "y", url: "https://x.com/a/status/2", isReply: false, seenAt: "2026-01-02" },
+        ],
+      })),
+      storage.modifyGrokState((s) => ({
+        ...s,
+        tweets: s.tweets.map((t) => (t.id === "t1" ? { ...t, repliedAt: "now" } : t)),
+      })),
+    ]);
+    const state = await storage.getGrokState();
+    expect(state.tweets.map((t) => t.id).sort()).toEqual(["t1", "t2"]);
+    expect(state.tweets.find((t) => t.id === "t1")?.repliedAt).toBe("now");
+  });
+});

@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import {
   ApiKeys,
   BrandProfile,
@@ -33,9 +34,15 @@ async function read<T>(key: string): Promise<T | null> {
   }
 }
 
+// Write to a temp file, then rename over the real one. A rename replaces the
+// file in one step, so quitting mid-write can't leave truncated JSON behind
+// (which would make every later read throw).
 async function write<T>(key: string, value: T): Promise<void> {
   await fs.mkdir(dataDir, { recursive: true });
-  await fs.writeFile(path.join(dataDir, `${key}.json`), JSON.stringify(value, null, 2));
+  const file = path.join(dataDir, `${key}.json`);
+  const tmp = `${file}.${randomUUID()}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(value, null, 2));
+  await fs.rename(tmp, file);
 }
 
 // Per-file queue for read-modify-write, the same promise-chain pattern as the
@@ -92,9 +99,8 @@ export async function saveGrokSettings(settings: GrokSettings): Promise<void> {
 
 const DEFAULT_GROK_STATE: GrokState = { bootstrapped: false, tweets: [] };
 
-export async function getGrokState(): Promise<GrokState> {
-  const stored = await read<GrokState>(GROK_STATE_KEY);
-  if (!stored) return DEFAULT_GROK_STATE;
+function normalizeGrokState(stored: GrokState | null): GrokState {
+  if (!stored) return { ...DEFAULT_GROK_STATE, tweets: [] };
   for (const t of stored.tweets) {
     if (!t.handle) {
       const m = t.url?.match(/^https?:\/\/[^/]+\/([^/]+)\/status\//);
@@ -104,9 +110,20 @@ export async function getGrokState(): Promise<GrokState> {
   return stored;
 }
 
-export async function saveGrokState(state: GrokState): Promise<void> {
-  const trimmed: GrokState = { ...state, tweets: state.tweets.slice(-200) };
-  await write(GROK_STATE_KEY, trimmed);
+export async function getGrokState(): Promise<GrokState> {
+  return normalizeGrokState(await read<GrokState>(GROK_STATE_KEY));
+}
+
+/**
+ * Changes the watcher state through the write queue. The watcher, "mark
+ * replied" and "clear seen tweets" all rewrite this file, and a scrape takes
+ * minutes, so each change must apply to the latest copy.
+ */
+export async function modifyGrokState(change: (state: GrokState) => GrokState): Promise<GrokState> {
+  return modify<GrokState | null>(GROK_STATE_KEY, null, (stored) => {
+    const next = change(normalizeGrokState(stored));
+    return { ...next, tweets: next.tweets.slice(-200) };
+  }) as Promise<GrokState>;
 }
 
 export async function getApiKeys(): Promise<ApiKeys> {
@@ -154,8 +171,8 @@ export async function listXAccounts(): Promise<XAccount[]> {
   return (await read<XAccount[]>(X_ACCOUNTS_KEY)) ?? [];
 }
 
-export async function saveXAccounts(accounts: XAccount[]): Promise<void> {
-  await write(X_ACCOUNTS_KEY, accounts);
+export async function modifyXAccounts(change: (accounts: XAccount[]) => XAccount[]): Promise<XAccount[]> {
+  return modify<XAccount[]>(X_ACCOUNTS_KEY, [], change);
 }
 
 export async function listCampaigns(): Promise<Campaign[]> {

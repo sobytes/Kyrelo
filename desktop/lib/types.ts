@@ -108,6 +108,7 @@ export type CampaignStatus =
   | "media"
   | "review"
   | "scheduled"
+  | "discarded"
   | "failed";
 
 export interface Campaign {

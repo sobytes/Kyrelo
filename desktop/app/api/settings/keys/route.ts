@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hasApiKey } from "@/lib/ai";
 import { getApiKeys, saveApiKeys } from "@/lib/storage";
 import { ApiKeys } from "@/lib/types";
 
@@ -6,10 +7,9 @@ export const dynamic = "force-dynamic";
 
 // Returns flags only — never the raw secrets, so a compromised tab can't read them back.
 export async function GET() {
-  const stored = await getApiKeys();
   return NextResponse.json({
-    anthropic: Boolean(process.env.ANTHROPIC_API_KEY || stored.anthropic),
-    openai: Boolean(process.env.OPENAI_API_KEY || stored.openai),
+    anthropic: await hasApiKey("anthropic"),
+    openai: await hasApiKey("openai"),
     anthropicFromEnv: Boolean(process.env.ANTHROPIC_API_KEY),
     openaiFromEnv: Boolean(process.env.OPENAI_API_KEY),
   });

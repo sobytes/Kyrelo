@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { resolveAnthropicKey, resolveOpenAiKey } from "./ai";
+import { OpenAiChatResponse, openAiPost, resolveAnthropicKey } from "./ai";
 import { AiProvider, CampaignMediaKind, MediaItem } from "./types";
 
 // Research + writing for Auto Campaigns. Two stages, each with a Claude and an
@@ -130,27 +130,22 @@ async function researchViaClaude(input: ResearchInput): Promise<ResearchResult> 
 }
 
 async function researchViaOpenAI(input: ResearchInput): Promise<ResearchResult> {
-  const apiKey = await resolveOpenAiKey();
-  const res = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      instructions: RESEARCH_SYSTEM,
-      input: researchPrompt(input),
-      tools: [{ type: "web_search" }],
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`OpenAI ${res.status}: ${body.slice(0, 300)}`);
-  }
-  const json = (await res.json()) as {
+  // Web search runs several searches server-side, so allow longer than usual.
+  const json = await openAiPost<{
     output?: {
       type: string;
       content?: { type: string; text?: string; annotations?: { type: string; url?: string }[] }[];
     }[];
-  };
+  }>(
+    "responses",
+    {
+      model: OPENAI_MODEL,
+      instructions: RESEARCH_SYSTEM,
+      input: researchPrompt(input),
+      tools: [{ type: "web_search" }],
+    },
+    5 * 60_000,
+  );
   let notes = "";
   const sources = new Set<string>();
   for (const item of json.output ?? []) {
@@ -272,28 +267,18 @@ async function writeViaClaude(input: WriteInput): Promise<string> {
 }
 
 async function writeViaOpenAI(input: WriteInput): Promise<string> {
-  const apiKey = await resolveOpenAiKey();
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      temperature: 0.9,
-      messages: [
-        { role: "system", content: WRITE_SYSTEM },
-        { role: "user", content: writePrompt(input) },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: { name: "campaign_drafts", strict: true, schema: DRAFTS_SCHEMA },
-      },
-    }),
+  const json = await openAiPost<OpenAiChatResponse>("chat/completions", {
+    model: OPENAI_MODEL,
+    temperature: 0.9,
+    messages: [
+      { role: "system", content: WRITE_SYSTEM },
+      { role: "user", content: writePrompt(input) },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: { name: "campaign_drafts", strict: true, schema: DRAFTS_SCHEMA },
+    },
   });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`OpenAI ${res.status}: ${body.slice(0, 300)}`);
-  }
-  const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   return json.choices?.[0]?.message?.content ?? "";
 }
 
@@ -322,26 +307,19 @@ export async function describeImage(
 ): Promise<string> {
   const b64 = data.toString("base64");
   if (provider === "openai") {
-    const apiKey = await resolveOpenAiKey();
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        max_tokens: 150,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "image_url", image_url: { url: `data:${mediaType};base64,${b64}` } },
-              { type: "text", text: DESCRIBE_PROMPT },
-            ],
-          },
-        ],
-      }),
+    const json = await openAiPost<OpenAiChatResponse>("chat/completions", {
+      model: OPENAI_MODEL,
+      max_tokens: 150,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: `data:${mediaType};base64,${b64}` } },
+            { type: "text", text: DESCRIBE_PROMPT },
+          ],
+        },
+      ],
     });
-    if (!res.ok) throw new Error(`OpenAI ${res.status}`);
-    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     return (json.choices?.[0]?.message?.content ?? "").trim();
   }
   const client = new Anthropic({ apiKey: await resolveAnthropicKey() });

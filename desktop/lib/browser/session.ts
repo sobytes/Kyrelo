@@ -18,7 +18,7 @@ export interface BrowserHandle {
 
 export interface OpenOptions {
   headless?: boolean;
-  /** Per-account profile directory under .data/userdata/<platform>/<accountId>/. */
+  /** Selects the profile directory: <dataDir>/userdata/<platform>/<accountId>/. */
   accountId: string;
 }
 
@@ -83,15 +83,16 @@ const STEALTH_INIT = `
   };
 `;
 
-// Per-platform mutex. launchPersistentContext locks the profile dir, so two
-// concurrent open calls against the same platform will collide on Chrome's
-// SingletonLock. This chain queues all consumers (worker crons + UI-triggered
-// API routes) inside a single Node process.
+// Per-profile mutex, keyed `platform:accountId`. launchPersistentContext locks
+// the profile dir, so two concurrent opens of the same profile collide on
+// Chrome's SingletonLock. This chain queues all consumers (worker crons,
+// UI-triggered routes, and the connect flow when it replaces a profile dir)
+// inside a single Node process.
 const browserLocks: Record<string, Promise<void>> = {};
 // How many callers are queued behind the current holder, per lock key.
 const lockWaiters: Record<string, number> = {};
 
-async function acquireBrowserLock(platform: string): Promise<() => void> {
+export async function acquireBrowserLock(platform: string): Promise<() => void> {
   const prev = browserLocks[platform] ?? Promise.resolve();
   let release!: () => void;
   const current = new Promise<void>((r) => (release = r));
@@ -143,6 +144,12 @@ async function clearStaleProfileLocks(dir: string) {
 // headless shell before launching so a leak can never block us. Safe: that
 // process name is exclusively Playwright's headless browser — it is never the
 // user's own Chrome (chrome.exe). Always resolves; never throws into caller.
+//
+// Only when none of our own browsers are open: the lock is per account, so a
+// screenshot or a second account can launch while another browser is mid-job,
+// and the sweep would kill it.
+let openBrowserCount = 0;
+
 function killStrayHeadlessShells(): Promise<void> {
   return new Promise((resolve) => {
     const [cmd, args]: [string, string[]] =
@@ -151,6 +158,7 @@ function killStrayHeadlessShells(): Promise<void> {
         : ["pkill", ["-f", "chrome-headless-shell"]];
     try {
       execFile(cmd, args, (_err, stdout) => {
+        // taskkill reports each kill; pkill prints nothing.
         const killed = (String(stdout).match(/SUCCESS/g) ?? []).length;
         if (killed > 0) {
           console.log(`[session] swept ${killed} stray headless browser(s) before launch`);
@@ -173,16 +181,16 @@ export async function openBrowser(
   const lockKey = `${platform}:${opts.accountId}`;
 
   const release = await acquireBrowserLock(lockKey);
+  let context: BrowserContext | undefined;
   try {
     await fs.mkdir(dir, { recursive: true });
-    await killStrayHeadlessShells();
+    if (openBrowserCount === 0) await killStrayHeadlessShells();
     await clearStaleProfileLocks(dir);
 
     // launchPersistentContext = the browser thinks it's "your normal Chrome with
     // the same profile dir each time." History, GPU caches, fonts, even cookies
     // all persist exactly as a real user accumulates them. Strongest free win
     // against fingerprint-based detection.
-    let context: BrowserContext;
     try {
       context = await chromium.launchPersistentContext(dir, {
         headless,
@@ -218,7 +226,10 @@ export async function openBrowser(
       }
     }
 
-    await context.addInitScript({ content: STEALTH_INIT });
+    openBrowserCount++;
+    // Non-optional alias: close() below runs later, where `context` isn't narrowed.
+    const launched = context;
+    await launched.addInitScript({ content: STEALTH_INIT });
 
     // Inject cookies saved by the Connect flow.
     const sidecar = path.join(dir, "kyrelo-cookies.json");
@@ -226,7 +237,7 @@ export async function openBrowser(
       const raw = await fs.readFile(sidecar, "utf8");
       const parsed = JSON.parse(raw) as { cookies?: unknown };
       if (Array.isArray(parsed.cookies) && parsed.cookies.length > 0) {
-        await context.addCookies(parsed.cookies as Parameters<typeof context.addCookies>[0]);
+        await launched.addCookies(parsed.cookies as Parameters<typeof launched.addCookies>[0]);
         const hasAuth = (parsed.cookies as { name?: string }[]).some((c) => c.name === "auth_token");
         console.log(
           `[session] openBrowser(${platform}/${opts.accountId}): injected ${parsed.cookies.length} cookies, auth_token=${hasAuth}`,
@@ -245,25 +256,40 @@ export async function openBrowser(
       }
     }
 
-    const page = context.pages()[0] ?? (await context.newPage());
+    const page = launched.pages()[0] ?? (await launched.newPage());
     console.log(
       `[session] openBrowser(${platform}/${opts.accountId}): ready, headless=${headless}`,
     );
 
     return {
-      context,
+      context: launched,
       page,
       async close() {
         try {
-          await context.close();
+          await launched.close();
         } finally {
+          openBrowserCount--;
           release();
         }
       },
     };
   } catch (err) {
+    // Launched but failed during setup: close it, or the browser outlives the
+    // lock and keeps the profile dir busy.
+    if (context) {
+      await context.close().catch(() => {});
+      openBrowserCount--;
+    }
     release();
     throw err;
+  }
+}
+
+/** Throws if X bounced the page to its login screen (the saved session expired). */
+export function assertLoggedIn(page: Page) {
+  const url = page.url();
+  if (url.includes("/login") || url.includes("/i/flow/login")) {
+    throw new Error("X session expired. Reconnect under Connected accounts.");
   }
 }
 

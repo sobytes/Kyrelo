@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Background poller for the X reply detector. Hits /api/cron/watch-grok on a
-// timer and pops a native macOS notification for each new tweet.
+// Background poller started by electron/main.cjs. Hits /api/cron/watch-grok
+// (the Monitor) and /api/cron/scheduler (due posts) on timers, and pops native
+// macOS notifications for new tweets and for posts sent or failed.
 
 import { readFileSync } from "node:fs";
 import { spawn } from "node:child_process";

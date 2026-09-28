@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { Page } from "playwright";
 import { dataDir } from "../storage";
-import { browserHasWaiters, jitter, openBrowser, warmup } from "./session";
+import { assertLoggedIn, browserHasWaiters, jitter, openBrowser, warmup } from "./session";
 
 async function dumpDebug(page: Page, label: string) {
   const dir = path.join(dataDir, "debug");
@@ -38,13 +38,6 @@ export interface ScrapeOptions {
   includeReplies: boolean;
   /** Max tweets to return. The page may render more; we slice. */
   limit?: number;
-}
-
-function assertLoggedIn(page: Page) {
-  const url = page.url();
-  if (url.includes("/login") || url.includes("/i/flow/login")) {
-    throw new Error("X session expired. Reconnect under Connected accounts.");
-  }
 }
 
 async function scrapeOnPage(

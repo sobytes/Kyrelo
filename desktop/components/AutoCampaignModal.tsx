@@ -46,7 +46,18 @@ export function AutoCampaignModal({
   useEffect(() => {
     fetch("/api/campaigns")
       .then((r) => r.json())
-      .then(setInfo);
+      .then((r: CampaignsInfo & { campaigns?: Campaign[] }) => {
+        setInfo(r);
+        // Pick up this account's campaign that is still running or waiting
+        // for review, e.g. after the modal was closed mid-way.
+        const open = r.campaigns?.find(
+          (c) => c.accountId === account.id && (isInFlight(c) || c.status === "review"),
+        );
+        if (open) {
+          setCampaign(open);
+          if (open.status === "review") setDrafts(open.drafts.map(toDraftState));
+        }
+      });
     fetch("/api/brand-profile")
       .then((r) => r.json())
       .then((r) => {
@@ -54,6 +65,8 @@ export function AutoCampaignModal({
         setUrl(r.profile?.url ?? "");
         setCompetitors(r.profile?.competitors ?? "");
       });
+    // Runs once on open; the account can't change while the modal is up.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // The parent re-renders every second; keep the latest callback in a ref so
@@ -62,9 +75,10 @@ export function AutoCampaignModal({
   onScheduledRef.current = onScheduled;
 
   // Poll the running campaign until it needs the user (review) or is finished.
+  // With auto-schedule on, "review" is only a step on the way to "scheduled".
   const campaignId = campaign?.id;
   const inFlight =
-    campaign?.status === "researching" || campaign?.status === "writing" || campaign?.status === "media";
+    !!campaign && (isInFlight(campaign) || (campaign.status === "review" && campaign.autoSchedule));
   useEffect(() => {
     if (!campaignId || !inFlight) return;
     const id = setInterval(async () => {
@@ -133,6 +147,17 @@ export function AutoCampaignModal({
     }
   }
 
+  async function discard() {
+    if (campaign) {
+      const r = await fetch(`/api/campaigns/${campaign.id}`, { method: "DELETE" }).then((r) => r.json());
+      if (r.error) {
+        setError(r.error);
+        return;
+      }
+    }
+    onClose();
+  }
+
   function updateDraft(id: string, patch: Partial<DraftState>) {
     setDrafts((ds) => ds.map((d) => (d.id === id ? { ...d, ...patch } : d)));
   }
@@ -144,7 +169,9 @@ export function AutoCampaignModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-fade-in"
-      onClick={onClose}
+      // A stray click outside shouldn't close a campaign that's running or
+      // waiting for review; the ✕ still does (and reopening resumes it).
+      onClick={campaign && campaign.status !== "scheduled" && campaign.status !== "failed" ? undefined : onClose}
     >
       <div
         className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-panel p-5 shadow-2xl"
@@ -296,7 +323,7 @@ export function AutoCampaignModal({
             ))}
             {error && <div className="text-xs text-rose-400">{error}</div>}
             <div className="flex items-center justify-end gap-2">
-              <button onClick={onClose} className="btn-ghost text-xs">
+              <button onClick={discard} className="btn-ghost text-xs">
                 Discard
               </button>
               <button
@@ -446,15 +473,20 @@ function MediaLibrary() {
   }
 
   async function saveDescription(id: string, description: string) {
-    await fetch(`/api/media-library/${id}`, {
+    const r = await fetch(`/api/media-library/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description }),
-    });
+    }).then((r) => r.json());
+    if (r.error) setError(r.error);
   }
 
   async function remove(id: string) {
-    await fetch(`/api/media-library/${id}`, { method: "DELETE" });
+    const r = await fetch(`/api/media-library/${id}`, { method: "DELETE" }).then((r) => r.json());
+    if (r.error) {
+      setError(r.error);
+      return;
+    }
     setItems((xs) => xs.filter((x) => x.id !== id));
   }
 
@@ -503,6 +535,10 @@ function MediaLibrary() {
       {error && <div className="mt-1 text-[11px] text-rose-400">{error}</div>}
     </div>
   );
+}
+
+function isInFlight(c: Campaign): boolean {
+  return c.status === "researching" || c.status === "writing" || c.status === "media";
 }
 
 function toLocalInput(iso: string): string {

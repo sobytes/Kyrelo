@@ -33,24 +33,33 @@ export function SettingsPanel() {
 
   async function save(next: GrokSettings) {
     setSettings(next);
-    await fetch("/api/grok-settings", {
+    const r = await fetch("/api/grok-settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next),
-    });
+    }).then((r) => r.json());
+    if (r.error) {
+      alert(r.error);
+      loadSettings();
+    }
   }
 
   async function saveKeys() {
     setSavingKeys(true);
     try {
-      await fetch("/api/settings/keys", {
+      const r = await fetch("/api/settings/keys", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           anthropic: anthropicKey || undefined,
           openai: openaiKey || undefined,
         }),
-      });
+      }).then((r) => r.json());
+      // Keep what the user pasted if saving failed, so they can retry.
+      if (r.error) {
+        alert(r.error);
+        return;
+      }
       setAnthropicKey("");
       setOpenaiKey("");
       await loadKeys();
@@ -61,7 +70,8 @@ export function SettingsPanel() {
 
   async function resetState() {
     if (!confirm("Clear all seen tweets?")) return;
-    await fetch("/api/grok-state", { method: "DELETE" });
+    const r = await fetch("/api/grok-state", { method: "DELETE" }).then((r) => r.json());
+    if (r.error) alert(r.error);
   }
 
   if (!settings) {
@@ -190,7 +200,7 @@ export function SettingsPanel() {
           </button>
         )}
         <p className="text-[10px] leading-relaxed text-zinc-500">
-          Keys are stored locally and only ever sent to the provider you pick above.
+          Keys are stored locally, and each key is only ever sent to its own provider.
         </p>
       </section>
 

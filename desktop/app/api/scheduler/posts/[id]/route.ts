@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cancelScheduledPost } from "@/lib/scheduler";
 import { updateScheduledPost } from "@/lib/storage";
+import { MAX_POST_LENGTH } from "@/lib/tweet";
 import { SAFE_IMAGE_FILENAME } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,18 @@ export async function PATCH(
     scheduledFor?: string;
   };
 
+  // Same rules as creating a post (../route.ts).
+  const text = typeof body.text === "string" ? body.text.trim() : undefined;
+  if (text !== undefined && !text) {
+    return NextResponse.json({ error: "text can't be empty" }, { status: 400 });
+  }
+  if (text !== undefined && text.length > MAX_POST_LENGTH) {
+    return NextResponse.json({ error: `post is over ${MAX_POST_LENGTH} characters` }, { status: 400 });
+  }
+  const when = typeof body.scheduledFor === "string" ? new Date(body.scheduledFor) : undefined;
+  if (when && Number.isNaN(when.getTime())) {
+    return NextResponse.json({ error: "invalid scheduledFor date" }, { status: 400 });
+  }
   if (body.imagePath && !SAFE_IMAGE_FILENAME.test(body.imagePath)) {
     return NextResponse.json({ error: "invalid imagePath" }, { status: 400 });
   }
@@ -37,15 +50,14 @@ export async function PATCH(
     found = true;
     if (latest.status !== "pending") return null;
     const next = { ...latest };
-    if (typeof body.text === "string") {
-      next.text = body.text.trim();
+    if (text !== undefined) {
+      next.text = text;
     }
     if (typeof body.accountId === "string" && body.accountId) {
       next.accountId = body.accountId;
     }
-    if (typeof body.scheduledFor === "string") {
-      const d = new Date(body.scheduledFor);
-      if (!Number.isNaN(d.getTime())) next.scheduledFor = d.toISOString();
+    if (when) {
+      next.scheduledFor = when.toISOString();
     }
     if ("imagePath" in body) {
       next.imagePath = body.imagePath ? body.imagePath : undefined;

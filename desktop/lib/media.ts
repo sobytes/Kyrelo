@@ -1,22 +1,12 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import { randomUUID } from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
-import { resolveOpenAiKey } from "./ai";
-import { IMAGE_EXT_BY_TYPE, MAX_IMAGE_BYTES, uploadsDir } from "./uploads";
+import { openAiPost } from "./ai";
+import { IMAGE_EXT_BY_TYPE, MAX_IMAGE_BYTES, saveImage } from "./uploads";
 
 // Produces image files in .data/uploads/ for Auto Campaign posts. Every
 // function returns a bare filename (what ScheduledPost.imagePath expects), so
 // the existing scheduler attaches them with no changes.
 
-
-async function saveImage(data: Buffer, ext: string): Promise<string> {
-  const filename = `${randomUUID()}${ext}`;
-  await fs.mkdir(uploadsDir(), { recursive: true });
-  await fs.writeFile(path.join(uploadsDir(), filename), data);
-  return filename;
-}
 
 // URLs here come from AI output that read arbitrary web pages, so refuse
 // anything that resolves to this machine or the local network (e.g. this
@@ -114,22 +104,17 @@ export async function screenshotPage(pageUrl: string, productUrl: string): Promi
 
 /** Generates an illustration with OpenAI's image model. Needs an OpenAI key. */
 export async function generateAiImage(prompt: string): Promise<string> {
-  const apiKey = await resolveOpenAiKey();
-  const res = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
+  // Image generation is slow; allow longer than the default.
+  const json = await openAiPost<{ data?: { b64_json?: string }[] }>(
+    "images/generations",
+    {
       model: process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1",
       prompt: `${prompt}\n\nNo text, words or logos in the image.`,
       size: "1536x1024",
       n: 1,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`OpenAI image ${res.status}: ${body.slice(0, 200)}`);
-  }
-  const json = (await res.json()) as { data?: { b64_json?: string }[] };
+    },
+    3 * 60_000,
+  );
   const b64 = json.data?.[0]?.b64_json;
   if (!b64) throw new Error("OpenAI returned no image");
   return saveImage(Buffer.from(b64, "base64"), ".png");

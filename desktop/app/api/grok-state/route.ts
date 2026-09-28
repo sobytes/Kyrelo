@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getGrokState, saveGrokState } from "@/lib/storage";
+import { getGrokState, modifyGrokState } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +8,6 @@ export async function GET() {
 }
 
 export async function DELETE() {
-  await saveGrokState({ bootstrapped: false, tweets: [] });
+  await modifyGrokState(() => ({ bootstrapped: false, tweets: [] }));
   return NextResponse.json({ ok: true });
 }

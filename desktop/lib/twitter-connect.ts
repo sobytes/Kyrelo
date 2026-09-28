@@ -3,10 +3,12 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import {
   ChromeNotFoundError,
+  killChromeTree,
   launchSystemChrome,
   SystemChromeHandle,
 } from "./browser/system-chrome";
-import { dataDir, listXAccounts, saveXAccounts } from "./storage";
+import { acquireBrowserLock, userDataDir } from "./browser/session";
+import { listXAccounts, modifyXAccounts } from "./storage";
 import { XAccount } from "./types";
 
 interface ActiveConnect {
@@ -29,13 +31,27 @@ function setActive(v: ActiveConnect | null): void {
   globalThis.__kyreloConnectActive = v;
 }
 
-function userdataRoot(): string {
-  return path.join(dataDir, "userdata", "twitter");
+// The connect flow's Chrome is spawned by us and only attached over CDP, so
+// nothing else closes it. If the app quits mid-connect (Electron stops this
+// server), kill it rather than leave a Chrome with an open debugging port.
+// "exit" handlers must be synchronous; killChromeTree only starts a kill.
+// Registered once per process (dev hot-reload re-runs this module).
+const G = globalThis as { __kyreloConnectExitHook?: boolean };
+if (!G.__kyreloConnectExitHook) {
+  G.__kyreloConnectExitHook = true;
+  process.once("exit", () => {
+    const active = getActive();
+    if (active) killChromeTree(active.handle.proc);
+  });
 }
 
 function profileDir(accountId: string): string {
-  return path.join(userdataRoot(), accountId);
+  return userDataDir("twitter", accountId);
 }
+
+// Set synchronously before the first await in startTwitterConnect, so a
+// double-click can't launch two Chromes while the first is still starting.
+let starting = false;
 
 // Windows keeps file handles on a Chrome profile dir open briefly after the
 // browser exits, so renaming the dir can fail with EPERM/EBUSY for a short
@@ -58,21 +74,25 @@ async function renameWithRetry(from: string, to: string): Promise<void> {
 }
 
 export function isConnectActive(): boolean {
-  return getActive() !== null;
-}
-
-export async function listXConnectedAccounts(): Promise<XAccount[]> {
-  return listXAccounts();
+  return starting || getActive() !== null;
 }
 
 export async function startTwitterConnect(): Promise<
   { ok: true } | { error: string; chromeMissing?: boolean }
 > {
-  if (getActive()) {
+  if (starting || getActive()) {
     console.log("[twitter-connect] start: already connecting");
     return { error: "Already connecting an account." };
   }
+  starting = true;
+  try {
+    return await launchConnect();
+  } finally {
+    starting = false;
+  }
+}
 
+async function launchConnect(): Promise<{ ok: true } | { error: string; chromeMissing?: boolean }> {
   const pendingId = `_pending_${randomUUID()}`;
   const dir = profileDir(pendingId);
   console.log(`[twitter-connect] start: pendingId=${pendingId}`);
@@ -155,38 +175,43 @@ export async function endTwitterConnect(): Promise<
 
   const id = capturedHandle.toLowerCase();
   const finalDir = profileDir(id);
-  console.log(`[twitter-connect] end: renaming ${pendingId} → ${id} at ${finalDir}`);
-  await fs.rm(finalDir, { recursive: true, force: true }).catch(() => {});
+  // Reconnecting an existing account replaces its profile dir. Hold that
+  // account's browser lock so no post, scrape or delete job is using it.
+  const release = await acquireBrowserLock(`twitter:${id}`);
   try {
-    await renameWithRetry(profileDir(pendingId), finalDir);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[twitter-connect] end: profile rename failed:", message);
-    await fs.rm(profileDir(pendingId), { recursive: true, force: true }).catch(() => {});
-    return {
-      error:
-        "Signed in to X, but couldn't save the session — Chrome still had the " +
-        "profile files locked. Close any open Chrome windows, then click Connect again.",
-    };
+    console.log(`[twitter-connect] end: renaming ${pendingId} → ${id} at ${finalDir}`);
+    await fs.rm(finalDir, { recursive: true, force: true }).catch(() => {});
+    try {
+      await renameWithRetry(profileDir(pendingId), finalDir);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[twitter-connect] end: profile rename failed:", message);
+      await fs.rm(profileDir(pendingId), { recursive: true, force: true }).catch(() => {});
+      return {
+        error:
+          "Signed in to X, but couldn't save the session — Chrome still had the " +
+          "profile files locked. Close any open Chrome windows, then click Connect again.",
+      };
+    }
+
+    const sidecarPath = path.join(finalDir, "kyrelo-cookies.json");
+    try {
+      await fs.writeFile(
+        sidecarPath,
+        JSON.stringify({ savedAt: new Date().toISOString(), cookies }, null, 2),
+      );
+      console.log(`[twitter-connect] end: wrote ${cookies.length} cookies → ${sidecarPath}`);
+    } catch (err) {
+      console.warn("[twitter-connect] cookie sidecar write failed:", err);
+    }
+  } finally {
+    release();
   }
 
-  const sidecarPath = path.join(finalDir, "kyrelo-cookies.json");
-  try {
-    await fs.writeFile(
-      sidecarPath,
-      JSON.stringify({ savedAt: new Date().toISOString(), cookies }, null, 2),
-    );
-    console.log(`[twitter-connect] end: wrote ${cookies.length} cookies → ${sidecarPath}`);
-  } catch (err) {
-    console.warn("[twitter-connect] cookie sidecar write failed:", err);
-  }
-
-  const accounts = await listXAccounts();
   const acct: XAccount = { id, handle: capturedHandle, addedAt: new Date().toISOString() };
-  const existing = accounts.findIndex((a) => a.id === id);
-  if (existing >= 0) accounts[existing] = acct;
-  else accounts.push(acct);
-  await saveXAccounts(accounts);
+  await modifyXAccounts((accounts) =>
+    accounts.some((a) => a.id === id) ? accounts.map((a) => (a.id === id ? acct : a)) : [...accounts, acct],
+  );
 
   return { ok: true, handle: capturedHandle };
 }
@@ -208,10 +233,15 @@ export async function cancelTwitterConnect(): Promise<{ ok: true }> {
 export async function disconnectXAccount(
   id: string,
 ): Promise<{ ok: true } | { error: string }> {
-  if (getActive()) return { error: "Cancel the connect flow first." };
-  await fs.rm(profileDir(id), { recursive: true, force: true }).catch(() => {});
-  const accounts = await listXAccounts();
-  await saveXAccounts(accounts.filter((a) => a.id !== id));
+  if (isConnectActive()) return { error: "Cancel the connect flow first." };
+  // Wait for any job using this account's browser before deleting its profile.
+  const release = await acquireBrowserLock(`twitter:${id}`);
+  try {
+    await fs.rm(profileDir(id), { recursive: true, force: true }).catch(() => {});
+  } finally {
+    release();
+  }
+  await modifyXAccounts((accounts) => accounts.filter((a) => a.id !== id));
   return { ok: true };
 }
 

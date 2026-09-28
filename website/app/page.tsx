@@ -51,8 +51,8 @@ function Hero() {
         <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-400">
           Kyrelo is a local Buffer alternative for X. Schedule posts across multiple accounts,
           watch handles for new tweets, reply with AI-generated questions, and bulk delete your
-          old tweets and reposts for free — all running on your machine, with the only network
-          calls going to X and your AI provider.
+          old tweets and reposts for free — all running on your machine, talking only to X, your
+          AI provider, and any site you point an auto campaign at.
         </p>
         <div id="download" className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <a href={RELEASES_URL} className="btn-primary" target="_blank" rel="noreferrer">
@@ -106,9 +106,9 @@ function Why() {
           </p>
           <p className="mt-4 text-base leading-relaxed text-zinc-400">
             Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared
-            infrastructure. Your X session and AI keys live in a local data directory; the only
-            network calls are to <code className="rounded bg-panel px-1 py-0.5 text-[13px] text-zinc-300">x.com</code> and
-            whichever AI provider you choose. If something breaks, it breaks for you alone — and
+            infrastructure. Your X session and AI keys live in a local data directory; it only
+            talks to <code className="rounded bg-panel px-1 py-0.5 text-[13px] text-zinc-300">x.com</code>,
+            the AI provider whose key you add, and any site you point an auto campaign at. If something breaks, it breaks for you alone — and
             you can read the source to fix it.
           </p>
         </div>

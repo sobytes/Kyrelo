@@ -25,6 +25,8 @@ interface ConnectStatus {
 
 export function DeleterPanel() {
   const [accounts, setAccounts] = useState<XAccount[]>([]);
+  // Until the first load, show "Loading" rather than the "connect an account" prompt.
+  const [accountsLoaded, setAccountsLoaded] = useState(false);
   const [accountId, setAccountId] = useState<string>("");
   const [count, setCount] = useState(10);
   const [startingAt, setStartingAt] = useState(0);
@@ -37,10 +39,12 @@ export function DeleterPanel() {
 
   async function loadAccounts() {
     const r = (await fetch("/api/twitter-connect").then((r) => r.json())) as ConnectStatus;
-    setAccounts(r.accounts ?? []);
+    const list = r.accounts ?? [];
+    setAccounts(list);
+    setAccountsLoaded(true);
     setAccountId((curr) => {
-      if (curr && r.accounts.some((a) => a.id === curr)) return curr;
-      return r.accounts[0]?.id ?? "";
+      if (curr && list.some((a) => a.id === curr)) return curr;
+      return list[0]?.id ?? "";
     });
   }
 
@@ -90,6 +94,10 @@ export function DeleterPanel() {
     } finally {
       setStarting(false);
     }
+  }
+
+  if (!accountsLoaded) {
+    return <div className="card text-sm text-zinc-500">Loading…</div>;
   }
 
   if (accounts.length === 0) {
@@ -215,7 +223,7 @@ export function DeleterPanel() {
         <strong className="text-zinc-300">How this works.</strong> Kyrelo opens the
         account&apos;s own X profile in Chrome, scrolls to load enough tweets to cover
         your skip + count, then walks each one and picks Delete from the tweet menu.
-        Retweets and pinned tweets are skipped automatically.
+        Pinned tweets are always skipped. Reposts are skipped unless Include reposts is on.
       </div>
     </div>
   );

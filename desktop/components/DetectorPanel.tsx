@@ -1,23 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { GrokSettings, GrokState, SeenTweet } from "@/lib/types";
-
-declare global {
-  interface Window {
-    electronAPI?: {
-      isElectron: true;
-      openExternal?: (url: string) => Promise<boolean>;
-    };
-  }
-}
-
-function openExternal(url: string) {
-  if (window.electronAPI?.openExternal) {
-    void window.electronAPI.openExternal(url);
-  } else {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-}
+import { openExternal, useXConnect } from "./useXConnect";
 
 const POLL_MS = 8_000;
 
@@ -45,86 +29,6 @@ const SUGGESTED_HANDLES: { group: string; handles: string[] }[] = [
   { group: "Workforce / business", handles: ["LinkedInNews", "WSJ", "business"] },
 ];
 
-// --- Connect state, hoisted to top so the hero can drive it -----------------
-
-type ConnectPhase = "idle" | "starting" | "connecting" | "saving";
-
-interface ConnectState {
-  connected: boolean;
-  phase: ConnectPhase;
-  start: () => void;
-  done: () => void;
-  cancel: () => void;
-  refresh: () => void;
-}
-
-function useConnect(): ConnectState {
-  const [connected, setConnected] = useState(false);
-  const [phase, setPhase] = useState<ConnectPhase>("idle");
-
-  async function refresh() {
-    const r = await fetch("/api/twitter-connect").then((r) => r.json());
-    setConnected(Array.isArray(r.accounts) && r.accounts.length > 0);
-    setPhase((p) => (r.connecting && p === "idle" ? "connecting" : p));
-  }
-
-  useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, 5_000);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function start() {
-    setPhase("starting");
-    const r = await fetch("/api/twitter-connect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start" }),
-    }).then((r) => r.json());
-    if (r.error) {
-      if (r.chromeMissing) {
-        if (confirm(`${r.error}\n\nOpen the Chrome download page now?`)) {
-          openExternal("https://www.google.com/chrome/");
-        }
-      } else {
-        alert(r.error);
-      }
-      setPhase("idle");
-    } else {
-      setPhase("connecting");
-    }
-  }
-
-  async function done() {
-    setPhase("saving");
-    const r = await fetch("/api/twitter-connect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "done" }),
-    }).then((r) => r.json());
-    if (r.error) {
-      alert(r.error);
-      setPhase("connecting");
-      return;
-    }
-    setPhase("idle");
-    refresh();
-  }
-
-  async function cancel() {
-    await fetch("/api/twitter-connect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "cancel" }),
-    });
-    setPhase("idle");
-    refresh();
-  }
-
-  return { connected, phase, start, done, cancel, refresh };
-}
-
 // --- Main panel -------------------------------------------------------------
 
 export function DetectorPanel() {
@@ -135,7 +39,8 @@ export function DetectorPanel() {
   const [handleInput, setHandleInput] = useState("");
   const [showSuggested, setShowSuggested] = useState(false);
   const prevIdsRef = useRef<Set<string>>(new Set());
-  const connect = useConnect();
+  const connect = useXConnect();
+  const connected = (connect.status?.accounts.length ?? 0) > 0;
 
   async function load() {
     const [s, st] = await Promise.all([
@@ -153,7 +58,11 @@ export function DetectorPanel() {
       } else {
         const fresh = ids.filter((t) => !prev.has(t.id) && !t.skipped);
         if (fresh.length > 0) playChime();
-        for (const t of fresh) fireBrowserNotification(t);
+        // On macOS the background worker already shows a native notification
+        // for each new tweet (worker/index.mjs); only notify here elsewhere.
+        if (!navigator.userAgent.includes("Mac")) {
+          for (const t of fresh) fireBrowserNotification(t);
+        }
         prevIdsRef.current = new Set(ids.map((t) => t.id));
       }
     }
@@ -182,11 +91,12 @@ export function DetectorPanel() {
 
   async function save(next: GrokSettings) {
     setSettings(next);
-    await fetch("/api/grok-settings", {
+    const r = await fetch("/api/grok-settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next),
-    });
+    }).then((r) => r.json());
+    if (r.error) alert(r.error);
     // Settings change can wipe state — reload.
     fetch("/api/grok-state")
       .then((r) => r.json())
@@ -286,7 +196,7 @@ export function DetectorPanel() {
             tweets={tweets}
             onReply={openReply}
             settings={settings}
-            connected={connect.connected}
+            connected={connected}
           />
         </section>
       </div>
@@ -318,13 +228,14 @@ function Hero({
 }: {
   settings: GrokSettings;
   state: GrokState;
-  connect: ConnectState;
+  connect: ReturnType<typeof useXConnect>;
   refreshing: boolean;
   onToggleWatching: () => void;
   onRefreshNow: () => void;
 }) {
   // Decide phase
-  const needsConnect = !connect.connected && connect.phase === "idle";
+  const connected = (connect.status?.accounts.length ?? 0) > 0;
+  const needsConnect = !connected && connect.phase === "idle";
   const inLogin = connect.phase === "starting" || connect.phase === "connecting" || connect.phase === "saving";
   const needsHandles = settings.handles.length === 0;
   const watching = settings.enabled && !needsConnect && !needsHandles && !inLogin;
@@ -765,11 +676,12 @@ function ReplyModal({
     } catch {
       // clipboard may be denied — user can still copy manually
     }
-    await fetch("/api/grok-reply", {
+    const r = await fetch("/api/grok-reply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "mark", tweetId: tweet.id, replyText }),
-    });
+    }).then((r) => r.json());
+    if (r.error) alert(`Opened on X, but couldn't mark it as replied: ${r.error}`);
     onMarked();
   }
 

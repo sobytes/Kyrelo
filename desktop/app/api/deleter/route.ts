@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJob, startJob } from "@/lib/deleter";
 
 export const dynamic = "force-dynamic";
-// deleteTweets runs for as long as it takes to walk the timeline and delete
-// each tweet, so give it plenty of headroom (Next caps individual invocations).
-export const maxDuration = 600;
 
 export async function GET() {
   return NextResponse.json({ job: getJob() });

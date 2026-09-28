@@ -1,84 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
 import { XAccount } from "@/lib/types";
-
-type Phase = "idle" | "starting" | "connecting" | "saving";
-
-function openExternal(url: string) {
-  if (window.electronAPI?.openExternal) {
-    void window.electronAPI.openExternal(url);
-  } else {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-}
-
-interface ConnectState {
-  accounts: XAccount[];
-  connecting: boolean;
-}
+import { useXConnect } from "./useXConnect";
 
 export function ConnectedPanel() {
-  const [state, setState] = useState<ConnectState | null>(null);
-  const [phase, setPhase] = useState<Phase>("idle");
-
-  async function refresh() {
-    const r = (await fetch("/api/twitter-connect").then((r) => r.json())) as ConnectState;
-    setState(r);
-    setPhase((p) => (r.connecting && p === "idle" ? "connecting" : p));
-  }
-
-  useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, 5_000);
-    return () => clearInterval(id);
-  }, []);
-
-  async function start() {
-    setPhase("starting");
-    const r = await fetch("/api/twitter-connect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start" }),
-    }).then((r) => r.json());
-    if (r.error) {
-      if (r.chromeMissing) {
-        if (confirm(`${r.error}\n\nOpen the Chrome download page now?`)) {
-          openExternal("https://www.google.com/chrome/");
-        }
-      } else {
-        alert(r.error);
-      }
-      setPhase("idle");
-    } else {
-      setPhase("connecting");
-    }
-  }
-
-  async function done() {
-    setPhase("saving");
-    const r = await fetch("/api/twitter-connect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "done" }),
-    }).then((r) => r.json());
-    if (r.error) {
-      alert(r.error);
-      setPhase("connecting");
-      return;
-    }
-    setPhase("idle");
-    refresh();
-  }
-
-  async function cancel() {
-    await fetch("/api/twitter-connect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "cancel" }),
-    });
-    setPhase("idle");
-    refresh();
-  }
+  const { status: state, phase, start, done, cancel, refresh } = useXConnect();
 
   async function disconnect(account: XAccount) {
     if (
@@ -124,7 +49,7 @@ export function ConnectedPanel() {
               {phase === "starting"
                 ? "Opening Chrome…"
                 : phase === "connecting"
-                  ? "Log in to X in the Chrome window that opened. You can use email/username — Google blocks automated browsers."
+                  ? "Log in to X in the Chrome window that opened. Any sign-in method works, including Google or Apple."
                   : phase === "saving"
                     ? "Saving session…"
                     : "Connect opens Chrome to x.com/login. Sign in once and the session is saved to its own profile directory."}

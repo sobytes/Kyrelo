@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createScheduledPost } from "@/lib/scheduler";
 import { listScheduledPosts } from "@/lib/storage";
+import { MAX_POST_LENGTH } from "@/lib/tweet";
 import { SAFE_IMAGE_FILENAME } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +19,15 @@ export async function POST(req: NextRequest) {
     imagePath?: string;
     scheduledFor?: string;
   };
-  if (!body.text || !body.scheduledFor || !body.platform || !body.accountId) {
+  const text = body.text?.trim() ?? "";
+  if (!text || !body.scheduledFor || body.platform !== "twitter" || !body.accountId) {
     return NextResponse.json(
       { error: "platform, accountId, text, and scheduledFor are required" },
       { status: 400 },
     );
+  }
+  if (text.length > MAX_POST_LENGTH) {
+    return NextResponse.json({ error: `post is over ${MAX_POST_LENGTH} characters` }, { status: 400 });
   }
   if (body.imagePath && !SAFE_IMAGE_FILENAME.test(body.imagePath)) {
     return NextResponse.json({ error: "invalid imagePath" }, { status: 400 });
@@ -34,7 +39,7 @@ export async function POST(req: NextRequest) {
   const post = await createScheduledPost({
     platform: body.platform,
     accountId: body.accountId,
-    text: body.text.trim(),
+    text,
     imagePath: body.imagePath || undefined,
     scheduledFor: when.toISOString(),
   });

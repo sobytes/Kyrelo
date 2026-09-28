@@ -1,8 +1,9 @@
+import { hasApiKey } from "./ai";
 import { researchCampaign, writeCampaignDrafts, WrittenDraft } from "./campaign-ai";
 import { spreadTimes } from "./campaign-timing";
 import { fetchOgImage, generateAiImage, screenshotPage } from "./media";
-import { createScheduledPost } from "./scheduler";
-import { getApiKeys, getCampaign, getGrokSettings, listMediaItems, upsertCampaign } from "./storage";
+import { cancelScheduledPost, createScheduledPost } from "./scheduler";
+import { getCampaign, getGrokSettings, listMediaItems, upsertCampaign } from "./storage";
 import { MAX_TWEET_LENGTH, tweetLength } from "./tweet";
 import { Campaign, CampaignDraft, MediaItem } from "./types";
 
@@ -25,10 +26,6 @@ function fitTweet(text: string): string {
 const running: Set<string> = ((globalThis as { __kyreloCampaigns?: Set<string> }).__kyreloCampaigns ??=
   new Set());
 
-export async function hasOpenAiKey(): Promise<boolean> {
-  return Boolean(process.env.OPENAI_API_KEY || (await getApiKeys()).openai);
-}
-
 export interface StartCampaignInput {
   accountId: string;
   brief: string;
@@ -45,7 +42,7 @@ export async function startCampaign(input: StartCampaignInput): Promise<Campaign
   const campaign: Campaign = {
     id: crypto.randomUUID(),
     ...input,
-    useAiImages: input.useAiImages && (await hasOpenAiKey()),
+    useAiImages: input.useAiImages && (await hasApiKey("openai")),
     provider: settings.aiProvider,
     status: "researching",
     progress: "Reading your site and researching the market…",
@@ -55,7 +52,9 @@ export async function startCampaign(input: StartCampaignInput): Promise<Campaign
   };
   await upsertCampaign(campaign);
   running.add(campaign.id);
-  void runCampaign(campaign).finally(() => running.delete(campaign.id));
+  void runCampaign(campaign)
+    .catch((err) => console.error(`[campaign] ${campaign.id} crashed:`, err))
+    .finally(() => running.delete(campaign.id));
   return campaign;
 }
 
@@ -171,6 +170,16 @@ async function resolveDraft(
   return draft;
 }
 
+/** Drops a campaign the user doesn't want, so the modal stops offering it. */
+export async function discardCampaign(id: string): Promise<void> {
+  const c = await getCampaign(id);
+  if (!c) throw new Error("campaign not found");
+  if (c.status !== "review" && c.status !== "failed") {
+    throw new Error("only a campaign waiting for review can be discarded");
+  }
+  await upsertCampaign({ ...c, status: "discarded" });
+}
+
 export interface DraftEdit {
   id: string;
   text: string;
@@ -178,12 +187,27 @@ export interface DraftEdit {
   removeImage?: boolean;
 }
 
+// Campaign ids being scheduled right now. Claimed synchronously, before any
+// await, so two schedule calls (auto-schedule plus a click on the review
+// screen) can't both create the posts.
+const scheduling = new Set<string>();
+
 /**
  * Turns reviewed drafts into pending scheduled posts. `edits` (from the review
  * screen) can change text and time, drop an image, or omit a draft entirely;
  * images always come from the stored drafts, never from the client.
  */
 export async function scheduleCampaign(id: string, edits?: DraftEdit[]): Promise<Campaign> {
+  if (scheduling.has(id)) throw new Error("campaign is already being scheduled");
+  scheduling.add(id);
+  try {
+    return await scheduleCampaignOnce(id, edits);
+  } finally {
+    scheduling.delete(id);
+  }
+}
+
+async function scheduleCampaignOnce(id: string, edits?: DraftEdit[]): Promise<Campaign> {
   const c = await getCampaign(id);
   if (!c) throw new Error("campaign not found");
   if (c.status === "scheduled") throw new Error("campaign is already scheduled");
@@ -221,16 +245,22 @@ export async function scheduleCampaign(id: string, edits?: DraftEdit[]): Promise
   }
 
   const postIds: string[] = [];
-  for (const d of toPost) {
-    const post = await createScheduledPost({
-      platform: "twitter",
-      accountId: c.accountId,
-      text: d.text.trim(),
-      imagePath: d.media.imagePath,
-      scheduledFor: d.scheduledFor,
-      campaignId: c.id,
-    });
-    postIds.push(post.id);
+  try {
+    for (const d of toPost) {
+      const post = await createScheduledPost({
+        platform: "twitter",
+        accountId: c.accountId,
+        text: d.text.trim(),
+        imagePath: d.media.imagePath,
+        scheduledFor: d.scheduledFor,
+        campaignId: c.id,
+      });
+      postIds.push(post.id);
+    }
+  } catch (err) {
+    // All or nothing: a half-scheduled campaign would be duplicated on retry.
+    for (const postId of postIds) await cancelScheduledPost(postId).catch(() => {});
+    throw err;
   }
   c.drafts = toPost;
   c.postIds = postIds;

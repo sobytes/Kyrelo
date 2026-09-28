@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasOpenAiKey, startCampaign } from "@/lib/campaign";
-import { getApiKeys, getGrokSettings, listCampaigns, saveBrandProfile } from "@/lib/storage";
+import { hasApiKey } from "@/lib/ai";
+import { startCampaign } from "@/lib/campaign";
+import { getGrokSettings, listCampaigns, saveBrandProfile } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -8,16 +9,13 @@ const MAX_POSTS = 20;
 const MAX_WINDOW_MINUTES = 14 * 24 * 60;
 
 export async function GET() {
-  const [campaigns, settings, keys, openai] = await Promise.all([
+  const [campaigns, settings, anthropic, openai] = await Promise.all([
     listCampaigns(),
     getGrokSettings(),
-    getApiKeys(),
-    hasOpenAiKey(),
+    hasApiKey("anthropic"),
+    hasApiKey("openai"),
   ]);
-  const aiReady =
-    settings.aiProvider === "openai"
-      ? openai
-      : Boolean(process.env.ANTHROPIC_API_KEY || keys.anthropic);
+  const aiReady = settings.aiProvider === "openai" ? openai : anthropic;
   return NextResponse.json({
     campaigns: campaigns.slice(-10).reverse(),
     provider: settings.aiProvider,

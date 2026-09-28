@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AutoCampaignModal } from "@/components/AutoCampaignModal";
+import { MAX_POST_LENGTH } from "@/lib/tweet";
 import { GrokSettings, ScheduledPost, XAccount } from "@/lib/types";
 
 interface ConnectStatus {
@@ -11,6 +12,8 @@ interface ConnectStatus {
 export function SchedulerPanel() {
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [accounts, setAccounts] = useState<XAccount[]>([]);
+  // Until the first load, show "Loading" rather than the "connect an account" prompt.
+  const [accountsLoaded, setAccountsLoaded] = useState(false);
   const [accountId, setAccountId] = useState<string>("");
   const [text, setText] = useState("");
   const [scheduledFor, setScheduledFor] = useState(defaultDateTime());
@@ -19,39 +22,8 @@ export function SchedulerPanel() {
   const [reschedulingPost, setReschedulingPost] = useState<ScheduledPost | null>(null);
   const [editingPost, setEditingPost] = useState<ScheduledPost | null>(null);
   const [aiProvider, setAiProvider] = useState<GrokSettings["aiProvider"]>("claude");
-  const [imagePath, setImagePath] = useState<string | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const { imagePath, imagePreviewUrl, uploadingImage, pickImage, clearImage } = useImageAttachment(null);
   const [campaignOpen, setCampaignOpen] = useState(false);
-
-  async function pickImage(file: File) {
-    setUploadingImage(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const r = await fetch("/api/scheduler/upload", {
-        method: "POST",
-        body: fd,
-      }).then((r) => r.json());
-      if (r.error) {
-        alert(r.error);
-        return;
-      }
-      setImagePath(r.filename);
-      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
-      setImagePreviewUrl(URL.createObjectURL(file));
-    } finally {
-      setUploadingImage(false);
-    }
-  }
-
-  function clearImage() {
-    setImagePath(null);
-    if (imagePreviewUrl) {
-      URL.revokeObjectURL(imagePreviewUrl);
-      setImagePreviewUrl(null);
-    }
-  }
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1_000);
@@ -65,10 +37,12 @@ export function SchedulerPanel() {
 
   async function loadConnect() {
     const r = (await fetch("/api/twitter-connect").then((r) => r.json())) as ConnectStatus;
-    setAccounts(r.accounts ?? []);
+    const list = r.accounts ?? [];
+    setAccounts(list);
+    setAccountsLoaded(true);
     setAccountId((curr) => {
-      if (curr && r.accounts.some((a) => a.id === curr)) return curr;
-      return r.accounts[0]?.id ?? "";
+      if (curr && list.some((a) => a.id === curr)) return curr;
+      return list[0]?.id ?? "";
     });
   }
 
@@ -119,7 +93,8 @@ export function SchedulerPanel() {
 
   async function cancel(id: string) {
     if (!confirm("Cancel this scheduled post?")) return;
-    await fetch(`/api/scheduler/posts/${id}`, { method: "DELETE" });
+    const r = await fetch(`/api/scheduler/posts/${id}`, { method: "DELETE" }).then((r) => r.json());
+    if (r.error) alert(r.error);
     loadPosts();
   }
 
@@ -136,7 +111,11 @@ export function SchedulerPanel() {
   const upcoming = sorted.filter((p) => p.status === "pending" || p.status === "posting");
   const history = sorted.filter((p) => p.status === "posted" || p.status === "failed").reverse();
 
-  const overLimit = text.length > 4000;
+  const overLimit = text.length > MAX_POST_LENGTH;
+
+  if (!accountsLoaded) {
+    return <div className="card text-sm text-zinc-500">Loading…</div>;
+  }
 
   if (accounts.length === 0) {
     return (
@@ -174,7 +153,7 @@ export function SchedulerPanel() {
               onChange={(e) => setText(e.target.value)}
             />
             <div className={"mt-1 text-[10px] " + (overLimit ? "text-rose-400" : "text-zinc-500")}>
-              {text.length} / 4000
+              {text.length} / {MAX_POST_LENGTH}
             </div>
           </div>
 
@@ -298,6 +277,45 @@ export function SchedulerPanel() {
       )}
     </div>
   );
+}
+
+/**
+ * An image attached to a post being written or edited: uploads it via
+ * /api/scheduler/upload and keeps a local preview. Used by the compose form
+ * and the edit modal.
+ */
+function useImageAttachment(initialPath: string | null) {
+  const [imagePath, setImagePath] = useState<string | null>(initialPath);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  async function pickImage(file: File) {
+    setUploadingImage(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await fetch("/api/scheduler/upload", { method: "POST", body: fd }).then((r) => r.json());
+      if (r.error) {
+        alert(r.error);
+        return;
+      }
+      setImagePath(r.filename);
+      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(URL.createObjectURL(file));
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  function clearImage() {
+    setImagePath(null);
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(null);
+    }
+  }
+
+  return { imagePath, imagePreviewUrl, uploadingImage, pickImage, clearImage };
 }
 
 function PostRow({
@@ -497,14 +515,9 @@ function TimelineRow({
               </button>
             </div>
           )}
-          {post.status === "posting" && (
-            <button
-              onClick={onCancel}
-              className="text-[11px] text-zinc-500 hover:text-rose-400"
-            >
-              Cancel
-            </button>
-          )}
+          {/* No Cancel while posting: the browser is already sending it, and
+              deleting the record would only hide a post that still goes out.
+              A stuck "posting" post turns "failed" after 10 minutes. */}
         </div>
         <div className="whitespace-pre-wrap break-words text-sm text-zinc-200">
           {post.text}
@@ -555,41 +568,13 @@ function EditPostModal({
   const [scheduledFor, setScheduledFor] = useState(() =>
     toDateTimeLocal(new Date(post.scheduledFor)),
   );
-  const [imagePath, setImagePath] = useState<string | null>(post.imagePath ?? null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const { imagePath, imagePreviewUrl, uploadingImage, pickImage, clearImage } = useImageAttachment(
+    post.imagePath ?? null,
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const overLimit = text.length > 4000;
-
-  async function pickImage(file: File) {
-    setUploadingImage(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const r = await fetch("/api/scheduler/upload", { method: "POST", body: fd }).then((r) =>
-        r.json(),
-      );
-      if (r.error) {
-        alert(r.error);
-        return;
-      }
-      setImagePath(r.filename);
-      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
-      setImagePreviewUrl(URL.createObjectURL(file));
-    } finally {
-      setUploadingImage(false);
-    }
-  }
-
-  function clearImage() {
-    setImagePath(null);
-    if (imagePreviewUrl) {
-      URL.revokeObjectURL(imagePreviewUrl);
-      setImagePreviewUrl(null);
-    }
-  }
+  const overLimit = text.length > MAX_POST_LENGTH;
 
   async function save() {
     if (!text.trim() || !accountId || !scheduledFor) return;
@@ -652,7 +637,7 @@ function EditPostModal({
         />
         <div className="mt-1 flex items-center justify-between text-[10px]">
           <span className={overLimit ? "text-rose-400" : "text-zinc-500"}>
-            {text.length} / 4000
+            {text.length} / {MAX_POST_LENGTH}
           </span>
           {error && <span className="text-rose-400">{error}</span>}
         </div>
@@ -806,7 +791,7 @@ function RescheduleModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const overLimit = text.length > 4000;
+  const overLimit = text.length > MAX_POST_LENGTH;
   const providerName = aiProvider === "openai" ? "OpenAI" : "Claude";
 
   async function rewrite() {
@@ -840,6 +825,7 @@ function RescheduleModal({
           platform: "twitter",
           accountId,
           text,
+          imagePath: post.imagePath,
           scheduledFor: new Date(scheduledFor).toISOString(),
         }),
       }).then((r) => r.json());
@@ -885,7 +871,7 @@ function RescheduleModal({
         />
         <div className="mt-1 flex items-center justify-between text-[10px]">
           <span className={overLimit ? "text-rose-400" : "text-zinc-500"}>
-            {text.length} / 4000
+            {text.length} / {MAX_POST_LENGTH}
           </span>
           {error && <span className="text-rose-400">{error}</span>}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import pkg from "@/package.json";
 
 interface NavItem {
   href: string;
@@ -99,7 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="border-t border-line p-3 text-[10px] text-zinc-600">v0.1.0</div>
+        <div className="border-t border-line p-3 text-[10px] text-zinc-600">v{pkg.version}</div>
       </aside>
 
       <main className="ml-56 flex-1 overflow-x-hidden">{children}</main>

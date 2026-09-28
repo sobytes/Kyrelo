@@ -1,22 +1,57 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getApiKeys } from "./storage";
-import { AiProvider } from "./types";
+import { MAX_POST_LENGTH } from "./tweet";
+import { AiProvider, ApiKeys } from "./types";
 
 const MODEL = "claude-sonnet-4-6";
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
+/** A provider's key: the env var wins over the one saved in Settings. */
+async function findApiKey(provider: keyof ApiKeys): Promise<string | undefined> {
+  const fromEnv = provider === "anthropic" ? process.env.ANTHROPIC_API_KEY : process.env.OPENAI_API_KEY;
+  return fromEnv || (await getApiKeys())[provider];
+}
+
+export async function hasApiKey(provider: keyof ApiKeys): Promise<boolean> {
+  return Boolean(await findApiKey(provider));
+}
+
 export async function resolveAnthropicKey(): Promise<string> {
-  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
-  const stored = await getApiKeys();
-  if (stored.anthropic) return stored.anthropic;
-  throw new Error("ANTHROPIC_API_KEY is not set. Add it under Settings → API keys.");
+  const key = await findApiKey("anthropic");
+  if (!key) throw new Error("ANTHROPIC_API_KEY is not set. Add it under Settings → API keys.");
+  return key;
 }
 
 export async function resolveOpenAiKey(): Promise<string> {
-  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
-  const stored = await getApiKeys();
-  if (stored.openai) return stored.openai;
-  throw new Error("OPENAI_API_KEY is not set. Add it under Settings → API keys.");
+  const key = await findApiKey("openai");
+  if (!key) throw new Error("OPENAI_API_KEY is not set. Add it under Settings → API keys.");
+  return key;
+}
+
+/**
+ * POSTs JSON to the OpenAI API with the user's key and returns the parsed
+ * response. Every OpenAI call goes through here so they share auth, error
+ * reporting and a timeout (a hung request would otherwise stall a campaign
+ * or a reply forever).
+ */
+export async function openAiPost<T>(endpoint: string, body: object, timeoutMs = 120_000): Promise<T> {
+  const apiKey = await resolveOpenAiKey();
+  const res = await fetch(`https://api.openai.com/v1/${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OpenAI ${res.status}: ${text.slice(0, 300)}`);
+  }
+  return (await res.json()) as T;
+}
+
+/** Response shape of chat/completions, as far as we read it. */
+export interface OpenAiChatResponse {
+  choices?: { message?: { content?: string } }[];
 }
 
 const GROK_SYSTEM = `You write short, provocative reply tweets that tag @grok and ask it a single sharp question about the user's own tweet.
@@ -78,36 +113,20 @@ async function generateGrokViaClaude(input: GrokQuestionInput): Promise<string> 
 }
 
 async function generateGrokViaOpenAI(input: GrokQuestionInput): Promise<string> {
-  const apiKey = await resolveOpenAiKey();
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      temperature: 0.9,
-      max_tokens: 200,
-      messages: [
-        { role: "system", content: GROK_SYSTEM },
-        {
-          role: "user",
-          content:
-            (input.styleHint ? `Style guidance: ${input.styleHint}\n\n` : "") +
-            `The user's tweet:\n"""\n${input.tweetText}\n"""\n\nWrite the @grok reply.`,
-        },
-      ],
-    }),
+  const json = await openAiPost<OpenAiChatResponse>("chat/completions", {
+    model: OPENAI_MODEL,
+    temperature: 0.9,
+    max_tokens: 200,
+    messages: [
+      { role: "system", content: GROK_SYSTEM },
+      {
+        role: "user",
+        content:
+          (input.styleHint ? `Style guidance: ${input.styleHint}\n\n` : "") +
+          `The user's tweet:\n"""\n${input.tweetText}\n"""\n\nWrite the @grok reply.`,
+      },
+    ],
   });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`OpenAI ${res.status}: ${body.slice(0, 300)}`);
-  }
-  const json = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
   return json.choices?.[0]?.message?.content ?? "";
 }
 
@@ -129,7 +148,7 @@ Hard rules:
 - No em dashes. No emojis the original doesn't already use.
 - Output ONLY the rewritten post — no preamble, no quotes, no labels.`;
 
-function clampPostLength(text: string, max = 280): string {
+function clampPostLength(text: string, max = MAX_POST_LENGTH): string {
   let out = text.trim().replace(/^["']|["']$/g, "").trim();
   out = out.replace(/[ \t]+/g, " ");
   if (out.length > max) out = out.slice(0, max - 1).trimEnd() + "…";
@@ -167,30 +186,15 @@ async function rewriteViaClaude(text: string): Promise<string> {
 }
 
 async function rewriteViaOpenAI(text: string): Promise<string> {
-  const apiKey = await resolveOpenAiKey();
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      temperature: 0.9,
-      max_tokens: 400,
-      messages: [
-        { role: "system", content: REWRITE_SYSTEM },
-        { role: "user", content: `Rewrite this post:\n"""\n${text}\n"""` },
-      ],
-    }),
+  const json = await openAiPost<OpenAiChatResponse>("chat/completions", {
+    model: OPENAI_MODEL,
+    temperature: 0.9,
+    max_tokens: 400,
+    messages: [
+      { role: "system", content: REWRITE_SYSTEM },
+      { role: "user", content: `Rewrite this post:\n"""\n${text}\n"""` },
+    ],
   });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`OpenAI ${res.status}: ${body.slice(0, 300)}`);
-  }
-  const json = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
   return json.choices?.[0]?.message?.content ?? "";
 }
 

@@ -1,12 +1,5 @@
 import { Page } from "playwright";
-import { jitter, openBrowser, warmup } from "./session";
-
-function assertLoggedIn(page: Page) {
-  const url = page.url();
-  if (url.includes("/login") || url.includes("/i/flow/login")) {
-    throw new Error("X session expired. Reconnect under Connected accounts.");
-  }
-}
+import { assertLoggedIn, browserHasWaiters, jitter, openBrowser, warmup } from "./session";
 
 export interface DeleteOptions {
   accountId: string;
@@ -276,7 +269,17 @@ export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
     // locators after scrolling to the bottom to load more.
     let attempted = 0;
     let consecutiveNoTarget = 0;
+    let consecutiveFailures = 0;
     while (attempted < count) {
+      // A long delete run would otherwise hold the browser for minutes while
+      // a due scheduled post waits for it. Stop and let the post go out.
+      if (browserHasWaiters("twitter", opts.accountId)) {
+        emit({
+          kind: "log",
+          message: "Stopping early so a scheduled post can go out. Run the job again to continue.",
+        });
+        break;
+      }
       attempted++;
 
       // A previous iteration may have left an open menu, dropdown, or bottom
@@ -315,6 +318,7 @@ export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
       });
       const result = await deleteOne(page, target);
       if (result.ok) {
+        consecutiveFailures = 0;
         deleted.push(target.id);
         emit({
           kind: "deleted",
@@ -323,14 +327,16 @@ export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
           itemKind: target.itemKind,
         });
       } else {
-        skipped.push(target.id);
+        consecutiveFailures++;
+        if (!skipped.includes(target.id)) skipped.push(target.id);
         emit({ kind: "skipped", id: target.id, reason: result.reason });
-        // If the caret/delete menu didn't behave, one retry after re-scrolling
-        // is worth it, but don't spin forever.
-        if (skipped.length >= 3 && deleted.length === 0) {
+        // The same item stays at index `startingAt` after a failure, so the
+        // next iterations retry it. A couple of retries are worth it, but an
+        // item that can't be deleted would otherwise burn the whole count.
+        if (consecutiveFailures >= 3) {
           emit({
             kind: "log",
-            message: `Bailing after 3 consecutive failures with no successes.`,
+            message: `Stopping after 3 consecutive failures.`,
           });
           break;
         }

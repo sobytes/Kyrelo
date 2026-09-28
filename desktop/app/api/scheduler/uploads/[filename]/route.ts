@@ -1,16 +1,8 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { SAFE_IMAGE_FILENAME, uploadsDir } from "@/lib/uploads";
+import { imageTypeForFilename, SAFE_IMAGE_FILENAME, uploadsDir } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
-
-const MIME: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-};
 
 export async function GET(
   _req: Request,
@@ -32,8 +24,7 @@ export async function GET(
   } catch {
     return new Response("not found", { status: 404 });
   }
-  const ext = path.extname(filename).toLowerCase();
-  const type = MIME[ext] ?? "application/octet-stream";
+  const type = imageTypeForFilename(filename) ?? "application/octet-stream";
   return new Response(new Uint8Array(data), {
     headers: {
       "Content-Type": type,

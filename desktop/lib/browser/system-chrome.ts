@@ -109,7 +109,7 @@ function waitForCdp(port: number, timeoutMs: number): Promise<void> {
 // orphans its child processes — GPU, network service, crashpad — which keep
 // file handles open on the profile dir and block the post-login rename.
 // taskkill /T tears down the whole tree.
-function killChromeTree(proc: ChildProcess): void {
+export function killChromeTree(proc: ChildProcess): void {
   if (process.platform === "win32" && proc.pid) {
     try {
       spawn("taskkill", ["/pid", String(proc.pid), "/T", "/F"], { stdio: "ignore" });
@@ -167,18 +167,26 @@ export async function launchSystemChrome(
     await waitForCdp(port, 15_000);
     console.log(`[system-chrome] CDP ready on :${port}`);
   } catch (err) {
-    try {
-      proc.kill("SIGTERM");
-    } catch {}
+    killChromeTree(proc);
     throw new Error(
       `Couldn't connect to Chrome's debug port. Is Google Chrome installed at ` +
         `${chromePath}? (${err instanceof Error ? err.message : err})`,
     );
   }
 
-  const browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
-  const context = browser.contexts()[0] ?? (await browser.newContext());
-  const page = context.pages()[0] ?? (await context.newPage());
+  // Chrome is running and only we know its pid: if attaching fails, kill it
+  // or it keeps the profile dir open while the caller deletes it.
+  let browser: Browser;
+  let context: BrowserContext;
+  let page: Page;
+  try {
+    browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
+    context = browser.contexts()[0] ?? (await browser.newContext());
+    page = context.pages()[0] ?? (await context.newPage());
+  } catch (err) {
+    killChromeTree(proc);
+    throw err;
+  }
   console.log(`[system-chrome] attached: contexts=${browser.contexts().length} pages=${context.pages().length}`);
 
   return {

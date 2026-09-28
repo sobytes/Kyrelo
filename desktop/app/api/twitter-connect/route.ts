@@ -4,15 +4,15 @@ import {
   disconnectXAccount,
   endTwitterConnect,
   isConnectActive,
-  listXConnectedAccounts,
   startTwitterConnect,
 } from "@/lib/twitter-connect";
+import { listXAccounts } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function GET() {
-  const accounts = await listXConnectedAccounts();
+  const accounts = await listXAccounts();
   return NextResponse.json({
     accounts,
     connecting: isConnectActive(),

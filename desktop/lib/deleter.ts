@@ -64,6 +64,9 @@ export async function startJob(opts: StartOptions): Promise<{ job: DeleterJob } 
     skipped: [],
     log: [],
   };
+  // Re-check with no await since the check above: a second request that
+  // arrived during listXAccounts() would otherwise start a parallel job.
+  if (getJob()?.running) return { error: "Another delete job is already running." };
   setCurrent(job);
 
   const record = (line: string) => {
@@ -78,7 +81,8 @@ export async function startJob(opts: StartOptions): Promise<{ job: DeleterJob } 
       const verb = event.itemKind === "repost" ? "un-reposted" : "deleted";
       record(`${verb} ${event.url}`);
     } else if (event.kind === "skipped") {
-      job.skipped.push(event.id);
+      // A failed item is retried in place, so the same id can be skipped twice.
+      if (!job.skipped.includes(event.id)) job.skipped.push(event.id);
       record(`skipped ${event.id}: ${event.reason}`);
     }
   };

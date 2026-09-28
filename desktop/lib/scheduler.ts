@@ -4,13 +4,10 @@ import {
   getGrokSettings,
   insertScheduledPost,
   listScheduledPosts,
+  listXAccounts,
   updateScheduledPost,
 } from "./storage";
-import {
-  getDefaultAccountId,
-  isConnectActive,
-  listXConnectedAccounts,
-} from "./twitter-connect";
+import { getDefaultAccountId, isConnectActive } from "./twitter-connect";
 import { ScheduledPost } from "./types";
 import { uploadsDir } from "./uploads";
 
@@ -21,7 +18,24 @@ export interface DispatchOutcome {
   skipped?: string;
 }
 
+// One dispatch run at a time in this process, like the watcher's guard. The
+// worker skips overlapping ticks, but its flag resets when fetch gives up at
+// 300s; a second run would then treat the post still being sent as stale.
+const dispatchState = ((globalThis as { __kyreloDispatch?: { running: boolean } }).__kyreloDispatch ??= {
+  running: false,
+});
+
 export async function runDueScheduledPosts(): Promise<DispatchOutcome> {
+  if (dispatchState.running) return { ran: 0, posted: 0, failed: 0, skipped: "busy" };
+  dispatchState.running = true;
+  try {
+    return await dispatchDuePosts();
+  } finally {
+    dispatchState.running = false;
+  }
+}
+
+async function dispatchDuePosts(): Promise<DispatchOutcome> {
   if (isConnectActive()) return { ran: 0, posted: 0, failed: 0, skipped: "connecting" };
 
   const all = await listScheduledPosts();
@@ -58,7 +72,7 @@ export async function runDueScheduledPosts(): Promise<DispatchOutcome> {
   if (due.length === 0) return { ran: 0, posted: 0, failed: 0 };
   console.log(`[scheduler] dispatching ${due.length} due post(s)`);
 
-  const accounts = await listXConnectedAccounts();
+  const accounts = await listXAccounts();
   const accountIds = new Set(accounts.map((a) => a.id));
   if (accountIds.size === 0) {
     return { ran: 0, posted: 0, failed: 0, skipped: "no-account" };
