@@ -68,7 +68,7 @@ function Hero() {
           </a>
         </div>
         <p className="mt-3 text-xs text-zinc-500">
-          macOS (Apple Silicon, signed &amp; notarized) · Windows 10/11 x64 · Free, open source
+          macOS (Apple Silicon &amp; Intel, signed &amp; notarized) · Windows 10/11 x64 · Free, open source
         </p>
 
         <div className="relative mx-auto mt-16 max-w-5xl">
@@ -159,7 +159,7 @@ const FEATURES = [
   },
   {
     title: "macOS and Windows, signed",
-    body: "Apple Developer ID signed and notarized for macOS (no Gatekeeper warning), and Sectigo-signed for Windows. Open source — read it, build it yourself.",
+    body: "Apple Developer ID signed and notarized for macOS on Apple Silicon and Intel (no Gatekeeper warning), and Sectigo-signed for Windows. Open source — read it, build it yourself.",
     icon: "shield",
   },
 ];
@@ -310,7 +310,7 @@ const STEPS = [
   {
     n: 1,
     title: "Download & open",
-    body: "Grab the signed installer for your OS from GitHub releases. macOS: drag to Applications. Windows: run the .exe installer.",
+    body: "Grab the signed installer for your OS from GitHub releases. macOS: pick the -arm64 .dmg for Apple Silicon (M1 and later) or the -x64 .dmg for Intel, then drag to Applications. Windows: run the .exe installer.",
   },
   {
     n: 2,
