@@ -1,13 +1,11 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { Page } from "playwright";
+import { dataDir } from "../storage";
 import { browserHasWaiters, jitter, openBrowser, warmup } from "./session";
 
 async function dumpDebug(page: Page, label: string) {
-  const dir = path.join(
-    process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data"),
-    "debug",
-  );
+  const dir = path.join(dataDir, "debug");
   await fs.mkdir(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const png = path.join(dir, `twitter-watch-${label}-${stamp}.png`);

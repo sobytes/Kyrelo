@@ -11,6 +11,7 @@ import {
   listXConnectedAccounts,
 } from "./twitter-connect";
 import { ScheduledPost } from "./types";
+import { uploadsDir } from "./uploads";
 
 export interface DispatchOutcome {
   ran: number;
@@ -78,8 +79,7 @@ export async function runDueScheduledPosts(): Promise<DispatchOutcome> {
     await upsertScheduledPost(post);
     console.log(`[scheduler] posting id=${post.id} via account=${accountId}`);
     try {
-      const root = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
-      const imagePath = post.imagePath ? path.join(root, "uploads", post.imagePath) : undefined;
+      const imagePath = post.imagePath ? path.join(uploadsDir(), post.imagePath) : undefined;
       const r = await postTweetBrowser(accountId, post.text, { headless, imagePath });
       post.status = "posted";
       post.postedAt = new Date().toISOString();

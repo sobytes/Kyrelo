@@ -4,24 +4,12 @@ import { randomUUID } from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
 import { resolveOpenAiKey } from "./ai";
+import { IMAGE_EXT_BY_TYPE, MAX_IMAGE_BYTES, uploadsDir } from "./uploads";
 
 // Produces image files in .data/uploads/ for Auto Campaign posts. Every
 // function returns a bare filename (what ScheduledPost.imagePath expects), so
 // the existing scheduler attaches them with no changes.
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
-const EXT_BY_TYPE: Record<string, string> = {
-  "image/png": ".png",
-  "image/jpeg": ".jpg",
-  "image/gif": ".gif",
-  "image/webp": ".webp",
-};
-
-export function uploadsDir(): string {
-  const root = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
-  return path.join(root, "uploads");
-}
 
 async function saveImage(data: Buffer, ext: string): Promise<string> {
   const filename = `${randomUUID()}${ext}`;
@@ -83,7 +71,7 @@ export async function fetchOgImage(pageUrl: string): Promise<string> {
 
   const res = await safeFetch(imageUrl);
   const type = (res.headers.get("content-type") ?? "").split(";")[0].trim();
-  const ext = EXT_BY_TYPE[type];
+  const ext = IMAGE_EXT_BY_TYPE[type];
   if (!res.ok || !ext) throw new Error(`og:image isn't a usable image (${res.status} ${type})`);
   const data = Buffer.from(await res.arrayBuffer());
   if (data.length > MAX_IMAGE_BYTES) throw new Error("og:image is too large");

@@ -6,7 +6,7 @@ import {
   launchSystemChrome,
   SystemChromeHandle,
 } from "./browser/system-chrome";
-import { listXAccounts, saveXAccounts } from "./storage";
+import { dataDir, listXAccounts, saveXAccounts } from "./storage";
 import { XAccount } from "./types";
 
 interface ActiveConnect {
@@ -30,11 +30,7 @@ function setActive(v: ActiveConnect | null): void {
 }
 
 function userdataRoot(): string {
-  return path.join(
-    process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data"),
-    "userdata",
-    "twitter",
-  );
+  return path.join(dataDir, "userdata", "twitter");
 }
 
 function profileDir(accountId: string): string {

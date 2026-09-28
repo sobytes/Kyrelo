@@ -20,7 +20,8 @@ const CAMPAIGNS_KEY = "campaigns";
 const BRAND_PROFILE_KEY = "brand-profile";
 const MEDIA_LIBRARY_KEY = "media-library";
 
-const dataDir = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
+/** Root of all local app data. Electron sets STORAGE_DIR to the OS app-data folder. */
+export const dataDir = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
 
 async function read<T>(key: string): Promise<T | null> {
   try {

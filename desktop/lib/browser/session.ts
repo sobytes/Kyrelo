@@ -2,11 +2,9 @@ import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { BrowserContext, chromium, Page } from "playwright";
+import { dataDir } from "../storage";
 
-const USERDATA_ROOT = path.join(
-  process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data"),
-  "userdata",
-);
+const USERDATA_ROOT = path.join(dataDir, "userdata");
 
 export function userDataDir(platform: string, accountId: string): string {
   return path.join(USERDATA_ROOT, platform, accountId);

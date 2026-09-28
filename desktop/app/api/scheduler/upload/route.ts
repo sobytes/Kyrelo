@@ -2,16 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { IMAGE_EXT_BY_TYPE, MAX_IMAGE_BYTES, uploadsDir } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const MAX_BYTES = 10 * 1024 * 1024;
-
-function uploadsDir(): string {
-  const root = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
-  return path.join(root, "uploads");
-}
 
 export async function POST(req: NextRequest) {
   let form: FormData;
@@ -25,17 +20,17 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "no file" }, { status: 400 });
   }
-  if (!/^image\//.test(file.type)) {
-    return NextResponse.json({ error: "must be an image" }, { status: 400 });
+  const ext = IMAGE_EXT_BY_TYPE[file.type];
+  if (!ext) {
+    return NextResponse.json({ error: "use a PNG, JPEG, GIF or WebP image" }, { status: 400 });
   }
-  if (file.size > MAX_BYTES) {
+  if (file.size > MAX_IMAGE_BYTES) {
     return NextResponse.json(
-      { error: `file too large (${Math.round(file.size / 1024 / 1024)} MB; max 10 MB)` },
+      { error: `file too large (${Math.round(file.size / 1024 / 1024)} MB; max 5 MB)` },
       { status: 400 },
     );
   }
-  const safeExt = (path.extname(file.name) || ".png").toLowerCase().slice(0, 5);
-  const filename = `${randomUUID()}${safeExt}`;
+  const filename = `${randomUUID()}${ext}`;
   const dir = uploadsDir();
   await fs.mkdir(dir, { recursive: true });
   const dest = path.join(dir, filename);

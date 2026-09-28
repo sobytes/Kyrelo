@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createScheduledPost } from "@/lib/scheduler";
 import { listScheduledPosts } from "@/lib/storage";
+import { SAFE_IMAGE_FILENAME } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
-
-// imagePath must match what /api/scheduler/upload wrote — basename only,
-// random suffix + image extension. Anything else (path separators, dotfiles,
-// arbitrary disk paths) is rejected so the scheduler can't be tricked into
-// attaching a file from outside the uploads/ dir.
-const SAFE_IMAGE_PATH = /^[A-Za-z0-9_\-]{6,}\.(png|jpg|jpeg|gif|webp)$/i;
 
 export async function GET() {
   const posts = await listScheduledPosts();
@@ -29,7 +24,7 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  if (body.imagePath && !SAFE_IMAGE_PATH.test(body.imagePath)) {
+  if (body.imagePath && !SAFE_IMAGE_FILENAME.test(body.imagePath)) {
     return NextResponse.json({ error: "invalid imagePath" }, { status: 400 });
   }
   const when = new Date(body.scheduledFor);

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { cancelScheduledPost } from "@/lib/scheduler";
 import { listScheduledPosts, upsertScheduledPost } from "@/lib/storage";
+import { SAFE_IMAGE_FILENAME } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
-
-const SAFE_IMAGE_PATH = /^[A-Za-z0-9_\-]{6,}\.(png|jpg|jpeg|gif|webp)$/i;
 
 export async function DELETE(
   _req: Request,
@@ -48,7 +47,7 @@ export async function PATCH(
     if (!Number.isNaN(d.getTime())) post.scheduledFor = d.toISOString();
   }
   if ("imagePath" in body) {
-    if (body.imagePath && !SAFE_IMAGE_PATH.test(body.imagePath)) {
+    if (body.imagePath && !SAFE_IMAGE_FILENAME.test(body.imagePath)) {
       return NextResponse.json({ error: "invalid imagePath" }, { status: 400 });
     }
     post.imagePath = body.imagePath ? body.imagePath : undefined;

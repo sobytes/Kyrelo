@@ -9,6 +9,8 @@ import { AiProvider, CampaignMediaKind, MediaItem } from "./types";
 //   2. write    — N tweets on distinct angles, each with a media decision, as
 //      schema-validated JSON.
 
+// Deliberately a bigger model than lib/ai.ts uses for one-line replies and
+// rewrites: campaigns do multi-step web research and write several posts.
 const CLAUDE_MODEL = "claude-opus-5";
 const OPENAI_MODEL = process.env.OPENAI_CAMPAIGN_MODEL ?? "gpt-4.1";
 

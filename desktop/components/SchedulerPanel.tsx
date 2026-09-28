@@ -201,7 +201,7 @@ export function SchedulerPanel() {
                 {uploadingImage ? "Uploading…" : "Attach image"}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
                   className="hidden"
                   disabled={uploadingImage}
                   onChange={(e) => {
@@ -676,7 +676,7 @@ function EditPostModal({
               {uploadingImage ? "Uploading…" : "Attach image"}
               <input
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/gif,image/webp"
                 className="hidden"
                 disabled={uploadingImage}
                 onChange={(e) => {
