@@ -15,11 +15,13 @@ export function AccountsPanel({ platform }: { platform: PlatformId }) {
     return <div className="py-6 text-sm text-muted">Loading…</div>;
   }
   const accounts = status.accounts.filter((a) => a.platform === platform);
+  const title = accounts.length > 0 ? `Add another ${spec.label} account` : `Connect ${spec.label}`;
 
   return (
     <div className="space-y-6">
       {accounts.length > 0 && (
         <section className="space-y-2">
+          <div className="label">Connected</div>
           {accounts.map((a) => (
             <AccountRow key={a.id} account={a} onDisconnect={() => connect.disconnect(a)} />
           ))}
@@ -27,11 +29,11 @@ export function AccountsPanel({ platform }: { platform: PlatformId }) {
       )}
 
       {spec.connect === "browser" ? (
-        <BrowserConnectCard platform={platform} connect={connect} />
+        <BrowserConnectCard title={title} platform={platform} connect={connect} />
       ) : spec.connect === "oauth" ? (
-        <MastodonConnectCard connect={connect} />
+        <MastodonConnectCard title={title} connect={connect} />
       ) : (
-        <CredentialsConnectCard platform={platform} connect={connect} />
+        <CredentialsConnectCard title={title} platform={platform} connect={connect} />
       )}
 
       <p className="text-xs text-muted">
@@ -58,9 +60,11 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
 };
 
 function BrowserConnectCard({
+  title,
   platform,
   connect,
 }: {
+  title: string;
   platform: PlatformId;
   connect: ReturnType<typeof useAccounts>;
 }) {
@@ -73,7 +77,7 @@ function BrowserConnectCard({
   return (
     <div className="section space-y-3">
       <div>
-        <div className="text-sm font-semibold text-fg">Connect {spec.label}</div>
+        <div className="text-sm font-semibold text-fg">{title}</div>
         <div className="mt-0.5 text-xs text-muted">
           {phase === "starting"
             ? "Opening Chrome…"
@@ -118,7 +122,7 @@ function BrowserConnectCard({
 }
 
 /** Mastodon: type the server, approve Kyrelo in the browser. No tokens to copy. */
-function MastodonConnectCard({ connect }: { connect: ReturnType<typeof useAccounts> }) {
+function MastodonConnectCard({ title, connect }: { title: string; connect: ReturnType<typeof useAccounts> }) {
   const [server, setServer] = useState("");
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,7 +138,7 @@ function MastodonConnectCard({ connect }: { connect: ReturnType<typeof useAccoun
   return (
     <form onSubmit={submit} className="section space-y-3">
       <div>
-        <div className="text-sm font-semibold text-fg">Connect Mastodon</div>
+        <div className="text-sm font-semibold text-fg">{title}</div>
         <div className="mt-0.5 text-xs text-muted">
           Enter the server you signed up on. Your browser opens it to approve Kyrelo, and that&apos;s it.
         </div>
@@ -163,7 +167,15 @@ function MastodonConnectCard({ connect }: { connect: ReturnType<typeof useAccoun
 }
 
 /** Platforms where the user pastes credentials: the fields come from PLATFORMS[..].credentials. */
-function CredentialsConnectCard({ platform, connect }: { platform: PlatformId; connect: ReturnType<typeof useAccounts> }) {
+function CredentialsConnectCard({
+  title,
+  platform,
+  connect,
+}: {
+  title: string;
+  platform: PlatformId;
+  connect: ReturnType<typeof useAccounts>;
+}) {
   const spec = PLATFORMS[platform];
   const fields = spec.credentials ?? [];
   const [values, setValues] = useState<Record<string, string>>({});
@@ -187,7 +199,7 @@ function CredentialsConnectCard({ platform, connect }: { platform: PlatformId; c
   return (
     <form onSubmit={submit} className="section space-y-3">
       <div>
-        <div className="text-sm font-semibold text-fg">Connect {spec.label}</div>
+        <div className="text-sm font-semibold text-fg">{title}</div>
         <div className="mt-1 text-xs leading-relaxed text-muted">{GUIDES[platform]}</div>
       </div>
       <div className={`grid gap-2 ${fields.length > 1 ? "sm:grid-cols-2" : "max-w-md"}`}>

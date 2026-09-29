@@ -12,13 +12,11 @@ struct AccountsView: View {
 
     var body: some View {
         List {
-            Section {
+            Section("Connected") {
                 if accounts.isEmpty {
-                    Text("None connected yet.").foregroundStyle(Theme.muted)
+                    Text("No \(service.label) accounts connected yet.").foregroundStyle(Theme.muted)
                 }
-                ForEach(accounts) { account in
-                    Text("@\(account.handle)").font(.inter(.body, weight: .semibold)).foregroundStyle(Theme.fg)
-                }
+                ForEach(accounts) { ConnectedRow(account: $0) }
             }
             Section {
                 switch service.id.connect {
@@ -34,7 +32,7 @@ struct AccountsView: View {
                     .font(.inter(.footnote))
                     .foregroundStyle(Theme.primary)
             } header: {
-                Text("Connect \(service.label)")
+                Text(accounts.isEmpty ? "Connect \(service.label)" : "Add another \(service.label) account")
             } footer: {
                 Text("Stored only on your computer. Disconnect accounts there. Kyrelo isn't affiliated with \(service.label).")
                     .font(.inter(.caption))
@@ -43,6 +41,26 @@ struct AccountsView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Theme.canvas)
+    }
+}
+
+/// A connected account: posts to it go through the Scheduler.
+private struct ConnectedRow: View {
+    let account: Account
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("@\(account.handle)").font(.inter(.body, weight: .semibold)).foregroundStyle(Theme.fg)
+                if let added = account.addedAt.flatMap(ISODate.parse) {
+                    Text("Added \(added.formatted(date: .abbreviated, time: .omitted))").font(.mono(.caption)).foregroundStyle(Theme.muted)
+                }
+            }
+            Spacer()
+            Label("Connected", systemImage: "checkmark.circle.fill")
+                .font(.inter(.caption, weight: .semibold))
+                .foregroundStyle(Theme.success)
+        }
     }
 }
 

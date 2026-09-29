@@ -34,6 +34,8 @@ struct Account: Decodable, Hashable, Identifiable {
     let platform: PlatformId
     let id: String
     let handle: String
+    /// When it was connected (ISO); missing from older desktops.
+    let addedAt: String?
 
     /// Accounts are identified by platform + id: the same handle can exist on several platforms.
     var key: String { "\(platform.rawValue):\(id)" }
