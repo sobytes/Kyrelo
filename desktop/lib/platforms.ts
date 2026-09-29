@@ -25,6 +25,8 @@ export interface PlatformSpec {
   connect: "browser" | "credentials" | "oauth";
   /** Where to log in (browser platforms) or create the credentials. */
   loginUrl: string;
+  /** Where to make an account, for someone who doesn't have one yet. */
+  signupUrl: string;
   /** The fields a credentials connect asks for, with where to get them. */
   credentials?: CredentialField[];
 }
@@ -49,6 +51,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxImageBytes: 5 * 1024 * 1024,
     connect: "browser",
     loginUrl: "https://x.com/login",
+    signupUrl: "https://x.com/i/flow/signup",
   },
   bluesky: {
     id: "bluesky",
@@ -60,6 +63,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxImageBytes: 1_000_000,
     connect: "credentials",
     loginUrl: "https://bsky.app/settings/app-passwords",
+    signupUrl: "https://bsky.app/",
     credentials: [
       { key: "handle", label: "Handle", placeholder: "yourname.bsky.social" },
       { key: "appPassword", label: "App password", placeholder: "xxxx-xxxx-xxxx-xxxx", secret: true },
@@ -78,6 +82,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Type the server, approve Kyrelo there (startMastodonConnect).
     connect: "oauth",
     loginUrl: "https://joinmastodon.org/servers",
+    signupUrl: "https://joinmastodon.org/servers",
   },
   threads: {
     id: "threads",
@@ -87,6 +92,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxImageBytes: 0,
     connect: "credentials",
     loginUrl: "https://developers.facebook.com/docs/threads/get-started",
+    signupUrl: "https://www.threads.com/login",
     credentials: [{ key: "token", label: "Access token", placeholder: "Your Threads access token", secret: true }],
   },
 };

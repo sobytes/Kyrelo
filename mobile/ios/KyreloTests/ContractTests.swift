@@ -107,6 +107,8 @@ final class ContractTests: XCTestCase {
             let maxImageBytes: Int
             let connect: String
             let credentials: [String]
+            let loginUrl: String
+            let signupUrl: String
         }
         struct LengthCase: Decodable { let platform: String; let text: String; let length: Int }
         let platforms: [Platform]
@@ -121,6 +123,8 @@ final class ContractTests: XCTestCase {
             XCTAssertEqual(platform.label, p.label)
             XCTAssertEqual(platform.maxLength, p.maxLength)
             XCTAssertEqual(platform.maxImageBytes, p.maxImageBytes)
+            XCTAssertEqual(platform.loginUrl.absoluteString, p.loginUrl)
+            XCTAssertEqual(platform.signupUrl.absoluteString, p.signupUrl)
             switch platform.connect {
             case .browser: XCTAssertEqual(p.connect, "browser")
             case .oauth: XCTAssertEqual(p.connect, "oauth")

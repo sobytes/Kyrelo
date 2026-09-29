@@ -38,7 +38,7 @@ describe("contract: platform rules", () => {
     for (const id of PLATFORM_IDS) expect(PLATFORMS[id].maxImageBytes).toBeLessThanOrEqual(MAX_IMAGE_BYTES);
   });
 
-  it("lists the same platforms, names, limits and how each connects", () => {
+  it("lists the same platforms, names, limits, links and how each connects", () => {
     expect(rules.platforms).toEqual(
       PLATFORM_IDS.map((id) => ({
         id,
@@ -47,6 +47,8 @@ describe("contract: platform rules", () => {
         maxImageBytes: PLATFORMS[id].maxImageBytes,
         connect: PLATFORMS[id].connect,
         credentials: (PLATFORMS[id].credentials ?? []).map((f) => f.key),
+        loginUrl: PLATFORMS[id].loginUrl,
+        signupUrl: PLATFORMS[id].signupUrl,
       })),
     );
   });

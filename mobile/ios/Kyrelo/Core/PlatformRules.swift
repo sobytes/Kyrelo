@@ -41,6 +41,26 @@ extension PlatformId {
         }
     }
 
+    /// Where to log in, or to create the credentials Kyrelo asks for.
+    var loginUrl: URL {
+        switch self {
+        case .twitter: URL(string: "https://x.com/login")!
+        case .bluesky: URL(string: "https://bsky.app/settings/app-passwords")!
+        case .mastodon: URL(string: "https://joinmastodon.org/servers")!
+        case .threads: URL(string: "https://developers.facebook.com/docs/threads/get-started")!
+        }
+    }
+
+    /// Where to make an account, for someone who doesn't have one yet.
+    var signupUrl: URL {
+        switch self {
+        case .twitter: URL(string: "https://x.com/i/flow/signup")!
+        case .bluesky: URL(string: "https://bsky.app/")!
+        case .mastodon: URL(string: "https://joinmastodon.org/servers")!
+        case .threads: URL(string: "https://www.threads.com/login")!
+        }
+    }
+
     /// How an account is connected, as the desktop's PLATFORMS[..].connect.
     var connect: ConnectMethod {
         switch self {

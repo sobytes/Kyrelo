@@ -6,7 +6,9 @@
       "maxLength": 4000,
       "maxImageBytes": 5242880,
       "connect": "browser",
-      "credentials": []
+      "credentials": [],
+      "loginUrl": "https://x.com/login",
+      "signupUrl": "https://x.com/i/flow/signup"
     },
     {
       "id": "bluesky",
@@ -17,7 +19,9 @@
       "credentials": [
         "handle",
         "appPassword"
-      ]
+      ],
+      "loginUrl": "https://bsky.app/settings/app-passwords",
+      "signupUrl": "https://bsky.app/"
     },
     {
       "id": "mastodon",
@@ -25,7 +29,9 @@
       "maxLength": 500,
       "maxImageBytes": 5242880,
       "connect": "oauth",
-      "credentials": []
+      "credentials": [],
+      "loginUrl": "https://joinmastodon.org/servers",
+      "signupUrl": "https://joinmastodon.org/servers"
     },
     {
       "id": "threads",
@@ -35,7 +41,9 @@
       "connect": "credentials",
       "credentials": [
         "token"
-      ]
+      ],
+      "loginUrl": "https://developers.facebook.com/docs/threads/get-started",
+      "signupUrl": "https://www.threads.com/login"
     }
   ],
   "lengthCases": [

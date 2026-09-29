@@ -34,6 +34,11 @@ export function AccountsPanel({ platform }: { platform: PlatformId }) {
         <CredentialsConnectCard platform={platform} connect={connect} />
       )}
 
+      <p className="text-xs text-muted">
+        No {spec.label} account yet? <ExtLink href={spec.signupUrl}>Sign up for {spec.label}</ExtLink>, then connect it
+        here.
+      </p>
+
       <div className="section text-xs leading-relaxed text-muted">
         <strong className="text-fg">How this works.</strong> {HOW_IT_WORKS[platform]} Nothing is sent anywhere except{" "}
         {spec.label} itself. Kyrelo isn&apos;t affiliated with {spec.label}: using it is at your own risk, and it&apos;s up

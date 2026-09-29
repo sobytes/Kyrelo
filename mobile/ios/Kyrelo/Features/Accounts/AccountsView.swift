@@ -30,6 +30,9 @@ struct AccountsView: View {
                 case let .credentials(fields):
                     CredentialsConnect(platform: service.id, fields: fields, client: client, onDone: onChange)
                 }
+                Link("No \(service.label) account yet? Sign up", destination: service.id.signupUrl)
+                    .font(.inter(.footnote))
+                    .foregroundStyle(Theme.primary)
             } header: {
                 Text("Connect \(service.label)")
             } footer: {
@@ -56,10 +59,15 @@ private struct CredentialsConnect: View {
     @State private var failed = false
 
     var body: some View {
-        Text(platform == .bluesky
-             ? "Use an app password, not your main password: Bluesky → Settings → Privacy and security → App passwords."
-             : "Threads needs a token from a Meta developer app. The steps are on the Threads page in Kyrelo on your computer; paste the token here.")
-            .font(.inter(.footnote)).foregroundStyle(Theme.muted)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(platform == .bluesky
+                 ? "Use an app password, not your main password."
+                 : "Threads needs a token from a Meta developer app. The steps are on the Threads page in Kyrelo on your computer; paste the token here.")
+                .foregroundStyle(Theme.muted)
+            Link(platform == .bluesky ? "Create an app password" : "Meta's Threads API guide", destination: platform.loginUrl)
+                .foregroundStyle(Theme.primary)
+        }
+        .font(.inter(.footnote))
         ForEach(fields, id: \.key) { field in
             Group {
                 if field.secret {
