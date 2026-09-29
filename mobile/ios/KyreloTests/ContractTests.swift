@@ -125,6 +125,26 @@ final class ContractTests: XCTestCase {
         }
     }
 
+    // MARK: services.json
+
+    private struct ServicesContract: Decodable {
+        struct Service: Decodable { let id: String; let slug: String; let label: String; let sections: [String]; let features: [String] }
+        let sections: [String]
+        let services: [Service]
+    }
+
+    func testServicesMatchTheDesktop() throws {
+        let contract = try JSONDecoder().decode(ServicesContract.self, from: contract("services"))
+        XCTAssertEqual(SectionId.allCases.map(\.rawValue), contract.sections)
+        XCTAssertEqual(Services.all.map(\.id.rawValue), contract.services.map(\.id))
+        for (mine, theirs) in zip(Services.all, contract.services) {
+            XCTAssertEqual(mine.slug, theirs.slug)
+            XCTAssertEqual(mine.label, theirs.label)
+            XCTAssertEqual(mine.sections.map(\.rawValue), theirs.sections)
+            XCTAssertEqual(mine.features, theirs.features)
+        }
+    }
+
     // MARK: design-tokens.json
 
     private struct DesignTokens: Decodable {

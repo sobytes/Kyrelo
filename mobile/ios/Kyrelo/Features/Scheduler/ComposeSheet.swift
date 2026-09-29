@@ -1,9 +1,12 @@
 import SwiftUI
 
-/// Writes a post to one or more accounts, like the desktop compose form.
+/// Writes a post to one or more accounts, like the desktop compose form: the
+/// service's own accounts, and others under "Also post to".
 struct ComposeSheet: View {
     let client: BridgeClient
+    /// This service's accounts first.
     let accounts: [Account]
+    let platform: PlatformId
     let onScheduled: () -> Void
 
     @State private var text = ""
@@ -14,9 +17,10 @@ struct ComposeSheet: View {
     @State private var error: String?
     @Environment(\.dismiss) private var dismiss
 
-    init(client: BridgeClient, accounts: [Account], defaultKey: String?, onScheduled: @escaping () -> Void) {
+    init(client: BridgeClient, accounts: [Account], platform: PlatformId, defaultKey: String?, onScheduled: @escaping () -> Void) {
         self.client = client
         self.accounts = accounts
+        self.platform = platform
         self.onScheduled = onScheduled
         _targetKeys = State(initialValue: defaultKey.map { [$0] } ?? [])
     }
@@ -24,6 +28,8 @@ struct ComposeSheet: View {
     private var targets: [Account] { accounts.filter { targetKeys.contains($0.key) } }
     private var platforms: [PlatformId] { PlatformId.allCases.filter { p in targets.contains { $0.platform == p } } }
     private var overLimit: Bool { platforms.contains { $0.length(text) > $0.maxLength } }
+    /// Chosen platforms Kyrelo can't send images to: their posts go without the photo.
+    private var noPhoto: [PlatformId] { photo == nil ? [] : platforms.filter { $0.maxImageBytes == 0 } }
 
     var body: some View {
         NavigationStack {
@@ -38,18 +44,16 @@ struct ComposeSheet: View {
                         }
                     }
                 }
-                Section("Photo") { PhotoField(photo: $photo) }
-                if accounts.count > 1 {
-                    Section("Post to") {
-                        ForEach(accounts) { account in
-                            Toggle(isOn: Binding(
-                                get: { targetKeys.contains(account.key) },
-                                set: { on in if on { targetKeys.insert(account.key) } else { targetKeys.remove(account.key) } }
-                            )) {
-                                Text("\(account.platform.mark)  @\(account.handle)")
-                            }
-                        }
+                Section("Photo") {
+                    PhotoField(photo: $photo)
+                    if !noPhoto.isEmpty {
+                        Text("\(noPhoto.map(\.label).joined(separator: " and ")) posts are sent without the photo: Kyrelo can't post images there.")
+                            .font(.inter(.caption)).foregroundStyle(Theme.muted)
                     }
+                }
+                if accounts.count > 1 {
+                    accountSection("Post to", accounts.filter { $0.platform == platform })
+                    accountSection("Also post to", accounts.filter { $0.platform != platform })
                 }
                 Section {
                     DatePicker("When", selection: $date, in: Date()...)
@@ -71,6 +75,21 @@ struct ComposeSheet: View {
         }
     }
 
+    @ViewBuilder private func accountSection(_ title: String, _ list: [Account]) -> some View {
+        if !list.isEmpty {
+            Section(title) {
+                ForEach(list) { account in
+                    Toggle(isOn: Binding(
+                        get: { targetKeys.contains(account.key) },
+                        set: { on in if on { targetKeys.insert(account.key) } else { targetKeys.remove(account.key) } }
+                    )) {
+                        Text(account.platform == platform ? "@\(account.handle)" : "\(account.platform.label)  @\(account.handle)")
+                    }
+                }
+            }
+        }
+    }
+
     private func schedule() {
         sending = true
         error = nil
@@ -78,9 +97,9 @@ struct ComposeSheet: View {
             defer { sending = false }
             // One upload, sized for the strictest platform chosen (Bluesky: 1 MB).
             var imagePath: String?
-            if let photo {
+            if let photo, platforms.contains(where: { $0.maxImageBytes > 0 }) {
                 do {
-                    imagePath = try await client.uploadPhoto(photo, for: platforms)
+                    imagePath = try await client.uploadPhoto(photo, for: platforms.filter { $0.maxImageBytes > 0 })
                 } catch {
                     self.error = error.localizedDescription
                     return
@@ -89,7 +108,8 @@ struct ComposeSheet: View {
             var failures: [String] = []
             for account in targets {
                 do {
-                    try await client.schedulePost(on: account, text: text, at: date, imagePath: imagePath)
+                    let photoPath = account.platform.maxImageBytes > 0 ? imagePath : nil
+                    try await client.schedulePost(on: account, text: text, at: date, imagePath: photoPath)
                 } catch {
                     failures.append("\(account.platform.label) @\(account.handle): \(error.localizedDescription)")
                 }

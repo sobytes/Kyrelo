@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createScheduledPost } from "@/lib/scheduler";
-import { isPlatformId, postTextError } from "@/lib/platforms";
+import { isPlatformId, PLATFORMS, postTextError } from "@/lib/platforms";
 import { listAccounts, listScheduledPosts } from "@/lib/storage";
 import { SAFE_IMAGE_FILENAME } from "@/lib/uploads";
 
@@ -34,6 +34,9 @@ export async function POST(req: NextRequest) {
   }
   if (body.imagePath && !SAFE_IMAGE_FILENAME.test(body.imagePath)) {
     return NextResponse.json({ error: "invalid imagePath" }, { status: 400 });
+  }
+  if (body.imagePath && PLATFORMS[platform].maxImageBytes === 0) {
+    return NextResponse.json({ error: `Kyrelo can't post images to ${PLATFORMS[platform].label}` }, { status: 400 });
   }
   const when = new Date(body.scheduledFor);
   if (Number.isNaN(when.getTime())) {

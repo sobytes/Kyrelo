@@ -6,6 +6,9 @@ import Observation
 @MainActor
 final class SchedulerModel {
     let client: BridgeClient
+    /// The service this Scheduler is for.
+    let platform: PlatformId
+    /// Every connected account, this service's first: the rest can be added to a post.
     var accounts: [Account] = []
     var posts: [ScheduledPost] = []
     /// The account being viewed (Account.key).
@@ -13,11 +16,14 @@ final class SchedulerModel {
     var loaded = false
     var error: String?
 
-    init(client: BridgeClient) {
+    init(client: BridgeClient, platform: PlatformId) {
         self.client = client
+        self.platform = platform
     }
 
-    var selected: Account? { accounts.first { $0.key == selectedKey } }
+    /// This service's accounts: the tabs.
+    var own: [Account] { accounts.filter { $0.platform == platform } }
+    var selected: Account? { own.first { $0.key == selectedKey } }
 
     private var selectedPosts: [ScheduledPost] {
         guard let selected else { return [] }
@@ -36,8 +42,10 @@ final class SchedulerModel {
         do {
             async let a = client.accounts()
             async let p = client.posts()
-            (accounts, posts) = try await (a, p)
-            if selected == nil { selectedKey = accounts.first?.key }
+            let (all, loadedPosts) = try await (a, p)
+            accounts = all.filter { $0.platform == platform } + all.filter { $0.platform != platform }
+            posts = loadedPosts
+            if selected == nil { selectedKey = own.first?.key }
             loaded = true
             error = nil
         } catch {

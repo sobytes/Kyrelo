@@ -141,3 +141,21 @@ describe("contract: design tokens", () => {
   });
 });
 
+describe("contract: services", () => {
+  const sample = contract("services.json");
+
+  it("has a service for every platform, and only those", async () => {
+    const { SERVICES } = await import("./services");
+    expect(SERVICES.map((s) => s.id).sort()).toEqual([...PLATFORM_IDS].sort());
+    expect(new Set(SERVICES.map((s) => s.slug)).size).toBe(SERVICES.length);
+  });
+
+  it("gives each service known sections, including a way to connect it", () => {
+    for (const service of sample.services as { sections: string[]; label: string; id: string }[]) {
+      for (const section of service.sections) expect(sample.sections).toContain(section);
+      expect(service.sections).toContain("accounts");
+      expect(service.label).toBe(PLATFORMS[service.id as keyof typeof PLATFORMS].label);
+    }
+  });
+});
+

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cancelScheduledPost } from "@/lib/scheduler";
 import { listAccounts, listScheduledPosts, updateScheduledPost } from "@/lib/storage";
-import { postTextError } from "@/lib/platforms";
+import { PLATFORMS, postTextError } from "@/lib/platforms";
 import { SAFE_IMAGE_FILENAME } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +48,9 @@ export async function PATCH(
   }
   if (body.imagePath && !SAFE_IMAGE_FILENAME.test(body.imagePath)) {
     return NextResponse.json({ error: "invalid imagePath" }, { status: 400 });
+  }
+  if (body.imagePath && PLATFORMS[existing.platform].maxImageBytes === 0) {
+    return NextResponse.json({ error: `Kyrelo can't post images to ${PLATFORMS[existing.platform].label}` }, { status: 400 });
   }
 
   // Applied to the latest stored copy, and only while it is still pending:

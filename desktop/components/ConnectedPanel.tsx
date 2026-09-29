@@ -1,66 +1,56 @@
 "use client";
 import { useState } from "react";
-import { PLATFORM_IDS, PLATFORMS } from "@/lib/platforms";
+import { PLATFORMS } from "@/lib/platforms";
 import { Account, PlatformId } from "@/lib/types";
 import { PlatformBadge } from "./PlatformBadge";
 import { openExternal, useAccounts } from "./useAccounts";
 
-export function ConnectedPanel() {
-  const accounts = useAccounts();
-  const { status } = accounts;
+/** One service's Accounts section: its connected accounts and how to add one. */
+export function AccountsPanel({ platform }: { platform: PlatformId }) {
+  const connect = useAccounts();
+  const { status } = connect;
+  const spec = PLATFORMS[platform];
 
   if (!status) {
     return <div className="py-6 text-sm text-muted">Loading…</div>;
   }
+  const accounts = status.accounts.filter((a) => a.platform === platform);
 
   return (
     <div className="space-y-6">
-      {PLATFORM_IDS.map((platform) => (
-        <PlatformSection
-          key={platform}
-          platform={platform}
-          accounts={status.accounts.filter((a) => a.platform === platform)}
-          connect={accounts}
-        />
-      ))}
+      {accounts.length > 0 && (
+        <section className="space-y-2">
+          {accounts.map((a) => (
+            <AccountRow key={a.id} account={a} onDisconnect={() => connect.disconnect(a)} />
+          ))}
+        </section>
+      )}
+
+      {spec.connect === "browser" ? (
+        <BrowserConnectCard platform={platform} connect={connect} />
+      ) : platform === "mastodon" ? (
+        <MastodonConnectCard connect={connect} />
+      ) : (
+        <CredentialsConnectCard platform={platform} connect={connect} />
+      )}
 
       <div className="section text-xs leading-relaxed text-muted">
-        <strong className="text-fg">How this works.</strong> Each X account gets its own
-        Chrome profile on this computer; you sign in once and Kyrelo posts through that session. Bluesky uses an app password, stored only on this computer. Nothing is sent
-        anywhere except the platform itself. The Monitor, Deleter and auto campaigns work with X
-        accounts. Kyrelo isn&apos;t affiliated with X or Bluesky: using it is at your own risk, and
-        it&apos;s up to you to stay within their terms.
+        <strong className="text-fg">How this works.</strong> {HOW_IT_WORKS[platform]} Nothing is sent anywhere except{" "}
+        {spec.label} itself. Kyrelo isn&apos;t affiliated with {spec.label}: using it is at your own risk, and it&apos;s up
+        to you to stay within their terms.
       </div>
     </div>
   );
 }
 
-function PlatformSection({
-  platform,
-  accounts,
-  connect,
-}: {
-  platform: PlatformId;
-  accounts: Account[];
-  connect: ReturnType<typeof useAccounts>;
-}) {
-  const spec = PLATFORMS[platform];
-  return (
-    <section className="space-y-2">
-      <div className="label flex items-center gap-2">
-        <PlatformBadge platform={platform} /> {spec.label}
-      </div>
-      {accounts.map((a) => (
-        <AccountRow key={a.id} account={a} onDisconnect={() => connect.disconnect(a)} />
-      ))}
-      {spec.connect === "browser" ? (
-        <BrowserConnectCard platform={platform} connect={connect} />
-      ) : (
-        <BlueskyConnectCard connect={connect} />
-      )}
-    </section>
-  );
-}
+const HOW_IT_WORKS: Record<PlatformId, string> = {
+  twitter:
+    "Each X account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through that session. The Monitor reads timelines through your first X account.",
+  bluesky: "Bluesky uses an app password, stored only on this computer, and Bluesky's own API.",
+  mastodon: "Your server gives Kyrelo its own sign-in, stored only on this computer. Remove it any time here or in your Mastodon settings.",
+  threads:
+    "Kyrelo posts with Meta's official Threads API, using your token, stored only on this computer and renewed as you post. Threads posts are text only.",
+};
 
 function BrowserConnectCard({
   platform,
@@ -78,7 +68,7 @@ function BrowserConnectCard({
   return (
     <div className="section space-y-3">
       <div>
-        <div className="text-sm font-semibold text-fg">Add a {spec.label} account</div>
+        <div className="text-sm font-semibold text-fg">Connect {spec.label}</div>
         <div className="mt-0.5 text-xs text-muted">
           {phase === "starting"
             ? "Opening Chrome…"
@@ -114,77 +104,146 @@ function BrowserConnectCard({
       </div>
 
       {busyHere && (
-        <p className="text-[10px] text-muted">
-          Connecting in progress — the Monitor and scheduled posts pause until it finishes.
+        <p className="text-[11px] text-muted">
+          Connecting in progress. The Monitor and scheduled posts pause until it finishes.
         </p>
       )}
     </div>
   );
 }
 
-function BlueskyConnectCard({ connect }: { connect: ReturnType<typeof useAccounts> }) {
-  const [handle, setHandle] = useState("");
-  const [appPassword, setAppPassword] = useState("");
+/** Mastodon: type the server, approve Kyrelo in the browser. No tokens to copy. */
+function MastodonConnectCard({ connect }: { connect: ReturnType<typeof useAccounts> }) {
+  const [server, setServer] = useState("");
+  const [waiting, setWaiting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const err = await connect.startMastodon(server);
+    if (err) setError(err);
+    else setWaiting(true);
+  }
+
+  return (
+    <form onSubmit={submit} className="section space-y-3">
+      <div>
+        <div className="text-sm font-semibold text-fg">Connect Mastodon</div>
+        <div className="mt-0.5 text-xs text-muted">
+          Enter the server you signed up on. Your browser opens it to approve Kyrelo, and that&apos;s it.
+        </div>
+      </div>
+      <div className="flex max-w-md gap-2">
+        <input
+          className="input text-sm"
+          placeholder="mastodon.social"
+          value={server}
+          onChange={(e) => setServer(e.target.value)}
+          autoComplete="off"
+        />
+        <button type="submit" disabled={!server.trim()} className="btn-primary shrink-0 text-sm">
+          Connect
+        </button>
+      </div>
+      {waiting && (
+        <p className="text-xs text-muted">
+          Click <strong className="text-fg">Authorize</strong> in the browser tab that opened. Your account appears here
+          when you do.
+        </p>
+      )}
+      {error && <div className="text-xs text-error">{error}</div>}
+    </form>
+  );
+}
+
+/** Platforms where the user pastes credentials: the fields come from PLATFORMS[..].credentials. */
+function CredentialsConnectCard({ platform, connect }: { platform: PlatformId; connect: ReturnType<typeof useAccounts> }) {
+  const spec = PLATFORMS[platform];
+  const fields = spec.credentials ?? [];
+  const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const complete = fields.every((f) => values[f.key]?.trim());
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
     try {
-      const err = await connect.connectBluesky(handle, appPassword);
-      if (err) {
-        setError(err);
-      } else {
-        setHandle("");
-        setAppPassword("");
-      }
+      const err = await connect.connectWithCredentials(platform, values);
+      if (err) setError(err);
+      else setValues({});
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3">
+    <form onSubmit={submit} className="section space-y-3">
       <div>
-        <div className="text-sm font-semibold text-fg">Add a Bluesky account</div>
-        <div className="mt-0.5 text-xs text-muted">
-          Use an <strong>app password</strong>, not your main password. Create one in Bluesky under{" "}
-          <button
-            type="button"
-            onClick={() => openExternal(PLATFORMS.bluesky.loginUrl)}
-            className="text-primary underline hover:text-fg"
-          >
-            Settings → Privacy and security → App passwords
-          </button>
-          .
-        </div>
+        <div className="text-sm font-semibold text-fg">Connect {spec.label}</div>
+        <div className="mt-1 text-xs leading-relaxed text-muted">{GUIDES[platform]}</div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <input
-          className="input text-sm"
-          placeholder="yourname.bsky.social"
-          value={handle}
-          onChange={(e) => setHandle(e.target.value)}
-          autoComplete="off"
-        />
-        <input
-          className="input text-sm"
-          type="password"
-          placeholder="xxxx-xxxx-xxxx-xxxx"
-          value={appPassword}
-          onChange={(e) => setAppPassword(e.target.value)}
-          autoComplete="off"
-        />
+      <div className={`grid gap-2 ${fields.length > 1 ? "sm:grid-cols-2" : "max-w-md"}`}>
+        {fields.map((f) => (
+          <input
+            key={f.key}
+            className="input text-sm"
+            type={f.secret ? "password" : "text"}
+            placeholder={f.placeholder}
+            aria-label={f.label}
+            value={values[f.key] ?? ""}
+            onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}
+            autoComplete="off"
+          />
+        ))}
       </div>
       {error && <div className="text-xs text-error">{error}</div>}
-      <button type="submit" disabled={saving || !handle.trim() || !appPassword.trim()} className="btn-primary text-sm">
-        {saving ? "Checking…" : "Connect Bluesky"}
+      <button type="submit" disabled={saving || !complete} className="btn-primary text-sm">
+        {saving ? "Checking…" : `Connect ${spec.label}`}
       </button>
     </form>
   );
 }
+
+function ExtLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={() => openExternal(href)} className="text-primary underline hover:text-primary-hover">
+      {children}
+    </button>
+  );
+}
+
+// Where to get the credentials, step by step.
+const GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
+  bluesky: (
+    <>
+      Use an <strong className="text-fg">app password</strong>, not your main password. Create one in Bluesky under{" "}
+      <ExtLink href={PLATFORMS.bluesky.loginUrl}>Settings → Privacy and security → App passwords</ExtLink>.
+    </>
+  ),
+  threads: (
+    <>
+      Meta only lets apps post to Threads with a token from a Meta developer app. It takes about five minutes, once;
+      Kyrelo keeps the token renewed after that.
+      <ol className="mt-2 list-decimal space-y-1 pl-5">
+        <li>
+          <ExtLink href="https://developers.facebook.com/apps/creation/">Create a Meta app</ExtLink> and choose{" "}
+          <em>Access the Threads API</em>.
+        </li>
+        <li>
+          In the app, open <em>Use cases → Threads API → Settings</em>, add your Threads username as a tester, then accept
+          the invite in Threads (<em>Settings → Account → Website permissions → Invites</em>).
+        </li>
+        <li>
+          Back in <em>Use cases → Threads API</em>, use the <em>User token generator</em> with the{" "}
+          <em>threads_content_publish</em> permission, and paste the token below.
+        </li>
+      </ol>
+    </>
+  ),
+};
 
 function AccountRow({ account, onDisconnect }: { account: Account; onDisconnect: () => void }) {
   return (
@@ -193,7 +252,7 @@ function AccountRow({ account, onDisconnect }: { account: Account; onDisconnect:
         <PlatformBadge platform={account.platform} size="lg" />
         <div>
           <div className="text-sm font-semibold text-fg">@{account.handle}</div>
-          <div className="text-[11px] text-muted">Added {new Date(account.addedAt).toLocaleDateString()}</div>
+          <div className="font-mono text-[11px] text-muted">Added {new Date(account.addedAt).toLocaleDateString()}</div>
         </div>
       </div>
       <button onClick={onDisconnect} className="btn-danger text-xs">

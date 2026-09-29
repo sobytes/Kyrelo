@@ -85,7 +85,7 @@ export interface GrokState {
 }
 
 /** Every social network Kyrelo can post to. Rules per platform: lib/platforms.ts. */
-export type PlatformId = "twitter" | "bluesky";
+export type PlatformId = "twitter" | "bluesky" | "mastodon" | "threads";
 export type ScheduledStatus = "pending" | "posting" | "posted" | "failed";
 
 export interface ScheduledPost {

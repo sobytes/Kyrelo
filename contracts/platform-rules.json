@@ -11,6 +11,18 @@
       "label": "Bluesky",
       "maxLength": 300,
       "maxImageBytes": 1000000
+    },
+    {
+      "id": "mastodon",
+      "label": "Mastodon",
+      "maxLength": 500,
+      "maxImageBytes": 5242880
+    },
+    {
+      "id": "threads",
+      "label": "Threads",
+      "maxLength": 500,
+      "maxImageBytes": 0
     }
   ],
   "lengthCases": [
@@ -38,6 +50,26 @@
       "platform": "bluesky",
       "text": "café 🦋",
       "length": 6
+    },
+    {
+      "platform": "mastodon",
+      "text": "hi https://example.com/a/very/long/path/that/goes/on",
+      "length": 26
+    },
+    {
+      "platform": "mastodon",
+      "text": "thanks @alice@fosstodon.org 👨‍👩‍👧",
+      "length": 15
+    },
+    {
+      "platform": "threads",
+      "text": "hi https://example.com/a/very/long/path/that/goes/on",
+      "length": 52
+    },
+    {
+      "platform": "threads",
+      "text": "👨‍👩‍👧 family",
+      "length": 8
     }
   ]
 }

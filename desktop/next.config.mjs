@@ -5,6 +5,16 @@ const nextConfig = {
   // so switching back to a tab recompiled it (seconds of "frozen" app). The
   // app has a handful of pages and routes the worker hits every 30-90s; keep
   // them all compiled for the session.
+  // Pages from before the app was organised by service.
+  async redirects() {
+    return [
+      { source: "/detector", destination: "/x/monitor", permanent: false },
+      { source: "/scheduler", destination: "/x/scheduler", permanent: false },
+      { source: "/deleter", destination: "/x/deleter", permanent: false },
+      { source: "/unfollow", destination: "/x/unfollow", permanent: false },
+      { source: "/connected", destination: "/", permanent: false },
+    ];
+  },
   onDemandEntries: {
     maxInactiveAge: 12 * 60 * 60 * 1000,
     pagesBufferLength: 100,

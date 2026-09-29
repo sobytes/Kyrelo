@@ -172,7 +172,7 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
-  mainWindow.loadURL(`${appUrl}/detector`);
+  mainWindow.loadURL(`${appUrl}/`);
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     // Only ever let http(s) URLs escape to the OS; refuse file://, javascript:,
     // mailto:, etc. in case any user-facing copy ends up containing one.

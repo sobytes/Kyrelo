@@ -43,7 +43,7 @@ describe("scheduled post routes", () => {
 
   it.each([
     ["whitespace-only text", { ...valid, text: "   " }],
-    ["an unknown platform", { ...valid, platform: "mastodon" }],
+    ["an unknown platform", { ...valid, platform: "myspace" }],
     ["text over the limit", { ...valid, text: "x".repeat(4001) }],
     ["an invalid date", { ...valid, scheduledFor: "not a date" }],
     ["an image path outside uploads", { ...valid, imagePath: "../api-keys.json" }],

@@ -107,10 +107,20 @@ export function useAccounts() {
     refresh();
   }
 
-  /** Returns an error message, or null on success. */
-  async function connectBluesky(handle: string, appPassword: string): Promise<string | null> {
-    const r = await post({ action: "connect-bluesky", handle, appPassword });
+  /** Credentials the user typed (PLATFORMS[..].credentials). Returns an error message, or null on success. */
+  async function connectWithCredentials(platform: PlatformId, fields: Record<string, string>): Promise<string | null> {
+    const r = await post({ action: "connect", platform, fields });
     refresh();
+    return r.error ?? null;
+  }
+
+  /**
+   * Mastodon: opens the server's "Authorize Kyrelo?" page in the browser. The
+   * account appears here (the list refreshes) once the user approves.
+   */
+  async function startMastodon(server: string): Promise<string | null> {
+    const r = (await post({ action: "mastodon-start", server })) as { error?: string; authorizeUrl?: string };
+    if (r.authorizeUrl) openExternal(r.authorizeUrl);
     return r.error ?? null;
   }
 
@@ -118,12 +128,12 @@ export function useAccounts() {
     const what =
       PLATFORMS[account.platform].connect === "browser"
         ? "This wipes the saved Chrome session, so you'll need to log in again to re-add it."
-        : "This forgets its app password.";
+        : "This forgets its sign-in.";
     if (!confirm(`Disconnect ${PLATFORMS[account.platform].label} account @${account.handle}? ${what}`)) return;
     const r = await post({ action: "disconnect", platform: account.platform, accountId: account.id });
     if (r.error) alert(r.error);
     refresh();
   }
 
-  return { status, phase, phasePlatform, start, done, cancel, connectBluesky, disconnect, refresh };
+  return { status, phase, phasePlatform, start, done, cancel, connectWithCredentials, startMastodon, disconnect, refresh };
 }

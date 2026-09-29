@@ -8,14 +8,18 @@ extension PlatformId {
         switch self {
         case .twitter: "X"
         case .bluesky: "Bluesky"
+        case .mastodon: "Mastodon"
+        case .threads: "Threads"
         }
     }
 
-    /// The badge the desktop shows for this platform.
+    /// A letter mark for the service, where there is no room for its name.
     var mark: String {
         switch self {
-        case .twitter: "𝕏"
-        case .bluesky: "🦋"
+        case .twitter: "X"
+        case .bluesky: "B"
+        case .mastodon: "M"
+        case .threads: "T"
         }
     }
 
@@ -23,14 +27,17 @@ extension PlatformId {
         switch self {
         case .twitter: 4000
         case .bluesky: 300
+        case .mastodon, .threads: 500
         }
     }
 
     /// Largest image file the platform accepts on a post.
     var maxImageBytes: Int {
         switch self {
-        case .twitter: 5 * 1024 * 1024
+        case .twitter, .mastodon: 5 * 1024 * 1024
         case .bluesky: 1_000_000
+        // Threads' API only takes images from a public web address.
+        case .threads: 0
         }
     }
 
@@ -38,7 +45,15 @@ extension PlatformId {
     func length(_ text: String) -> Int {
         switch self {
         case .twitter: ReplyRules.length(text) // links count 23
-        case .bluesky: text.count // what a person sees; links in full
+        case .bluesky, .threads: text.count // what a person sees; links in full
+        case .mastodon: Self.mastodonCountable(text).count
         }
+    }
+
+    /// Mastodon counts every link as 23 characters, and @user@server as @user.
+    private static func mastodonCountable(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: #"https?://\S+"#, with: String(repeating: "x", count: 23), options: .regularExpression)
+            .replacingOccurrences(of: #"(@[\w.]+)@[\w.-]+\w"#, with: "$1", options: .regularExpression)
     }
 }

@@ -13,12 +13,24 @@ export interface PlatformSpec {
   maxLength: number;
   /** Post length as this platform counts it. */
   length: (text: string) => number;
-  /** Largest image file the platform accepts on a post. */
+  /**
+   * Largest image file the platform accepts on a post. 0: Kyrelo can't post
+   * images there (Threads' API only takes images from a public web address).
+   */
   maxImageBytes: number;
-  /** How an account is connected: logging in through Chrome, or an app password. */
-  connect: "browser" | "app-password";
-  /** Where to log in (browser platforms) or create an app password. */
+  /** How an account is connected: logging in through Chrome, or credentials the user pastes. */
+  connect: "browser" | "credentials";
+  /** Where to log in (browser platforms) or create the credentials. */
   loginUrl: string;
+  /** The fields a credentials connect asks for, with where to get them. */
+  credentials?: CredentialField[];
+}
+
+export interface CredentialField {
+  key: "handle" | "appPassword" | "instance" | "token";
+  label: string;
+  placeholder: string;
+  secret?: boolean;
 }
 
 const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
@@ -43,10 +55,50 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Bluesky rejects image blobs over ~1 MB.
     maxImageBytes: 1_000_000,
-    connect: "app-password",
+    connect: "credentials",
     loginUrl: "https://bsky.app/settings/app-passwords",
+    credentials: [
+      { key: "handle", label: "Handle", placeholder: "yourname.bsky.social" },
+      { key: "appPassword", label: "App password", placeholder: "xxxx-xxxx-xxxx-xxxx", secret: true },
+    ],
+  },
+  mastodon: {
+    id: "mastodon",
+    label: "Mastodon",
+    // Mastodon's default. Every link counts as 23 characters, like X, and a
+    // mention of someone on another server counts only the @username.
+    maxLength: 500,
+    length: mastodonLength,
+    // Kyrelo's own upload limit (lib/uploads.ts); every Mastodon server takes
+    // at least 8 MB.
+    maxImageBytes: 5 * 1024 * 1024,
+    connect: "credentials",
+    loginUrl: "https://docs.joinmastodon.org/client/token/",
+    credentials: [
+      { key: "instance", label: "Server", placeholder: "mastodon.social" },
+      { key: "token", label: "Access token", placeholder: "Your access token", secret: true },
+    ],
+  },
+  threads: {
+    id: "threads",
+    label: "Threads",
+    maxLength: 500,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    maxImageBytes: 0,
+    connect: "credentials",
+    loginUrl: "https://developers.facebook.com/docs/threads/get-started",
+    credentials: [{ key: "token", label: "Access token", placeholder: "Your Threads access token", secret: true }],
   },
 };
+
+const URL_RE = /https?:\/\/\S+/g;
+const REMOTE_MENTION_RE = /(@[\w.]+)@[\w.-]+\w/g;
+
+/** Mastodon's count: links as 23 characters, @user@server as @user, then characters as seen. */
+export function mastodonLength(text: string): number {
+  const counted = text.replace(URL_RE, "x".repeat(23)).replace(REMOTE_MENTION_RE, "$1");
+  return Array.from(graphemes.segment(counted)).length;
+}
 
 export const PLATFORM_IDS = Object.keys(PLATFORMS) as PlatformId[];
 

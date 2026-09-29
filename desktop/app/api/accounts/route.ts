@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectBluesky, disconnectAccount } from "@/lib/accounts";
+import { connectWithCredentials, disconnectAccount, startMastodonConnect } from "@/lib/accounts";
 import {
   cancelBrowserConnect,
   connectingPlatform,
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 // Accounts on every platform. Never returns credentials: listAccounts() holds
-// none (Bluesky app passwords live in account-secrets, see lib/storage.ts).
+// none (passwords and tokens live in account-secrets, see lib/storage.ts).
 export async function GET() {
   return NextResponse.json({
     accounts: await listAccounts(),
@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
     action?: string;
     platform?: string;
     accountId?: string;
-    handle?: string;
-    appPassword?: string;
+    fields?: Record<string, unknown>;
+    server?: string;
   };
   try {
     switch (body.action) {
@@ -39,9 +39,18 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(await endBrowserConnect());
       case "cancel":
         return NextResponse.json(await cancelBrowserConnect());
-      // App-password login (Bluesky).
-      case "connect-bluesky":
-        return NextResponse.json(await connectBluesky(body.handle ?? "", body.appPassword ?? ""));
+      // Credentials the user typed (Bluesky, Threads).
+      case "connect": {
+        if (!isPlatformId(body.platform)) return badRequest("unknown platform");
+        const fields = Object.fromEntries(
+          Object.entries(body.fields ?? {}).filter(([, v]) => typeof v === "string"),
+        ) as Record<string, string>;
+        return NextResponse.json(await connectWithCredentials(body.platform, fields));
+      }
+      // Mastodon: returns the server's "Authorize Kyrelo?" page; it redirects
+      // back to /api/accounts/mastodon/callback.
+      case "mastodon-start":
+        return NextResponse.json(await startMastodonConnect(body.server ?? "", req.nextUrl.origin));
       case "disconnect":
         if (!isPlatformId(body.platform) || !body.accountId) return badRequest("platform and accountId required");
         return NextResponse.json(await disconnectAccount(body.platform, body.accountId));

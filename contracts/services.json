@@ -1,0 +1,15 @@
+{
+  "sections": ["monitor", "scheduler", "deleter", "unfollow", "accounts"],
+  "services": [
+    {
+      "id": "twitter",
+      "slug": "x",
+      "label": "X",
+      "sections": ["monitor", "scheduler", "deleter", "unfollow", "accounts"],
+      "features": ["campaigns"]
+    },
+    { "id": "bluesky", "slug": "bluesky", "label": "Bluesky", "sections": ["scheduler", "accounts"], "features": [] },
+    { "id": "mastodon", "slug": "mastodon", "label": "Mastodon", "sections": ["scheduler", "accounts"], "features": [] },
+    { "id": "threads", "slug": "threads", "label": "Threads", "sections": ["scheduler", "accounts"], "features": [] }
+  ]
+}

@@ -19,7 +19,8 @@ describe("platform rules", () => {
 
   it("recognises platform ids", () => {
     expect(isPlatformId("bluesky")).toBe(true);
-    expect(isPlatformId("mastodon")).toBe(false);
+    expect(isPlatformId("mastodon")).toBe(true);
+    expect(isPlatformId("myspace")).toBe(false);
     // Removed in September 2026.
     expect(isPlatformId("linkedin")).toBe(false);
     expect(isPlatformId(undefined)).toBe(false);

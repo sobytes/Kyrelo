@@ -171,7 +171,7 @@ export function UnfollowPanel() {
     return (
       <div className="flex flex-col items-center justify-center gap-2 border-y border-line py-12 text-center">
         <div className="text-sm text-fg">No X accounts connected yet.</div>
-        <Link href="/connected" className="btn-primary mt-2 text-sm">
+        <Link href="/x/accounts" className="btn-primary mt-2 text-sm">
           Connect an account
         </Link>
       </div>

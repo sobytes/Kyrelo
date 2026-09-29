@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { AutoCampaignModal } from "@/components/AutoCampaignModal";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { PLATFORMS } from "@/lib/platforms";
+import { hasFeature, ServiceSpec } from "@/lib/services";
 import { Account, GrokSettings, PlatformId, ScheduledPost } from "@/lib/types";
 
 interface ConnectStatus {
@@ -41,7 +42,7 @@ function isOverLimit(text: string, platforms: PlatformId[]): boolean {
   return platforms.some((p) => PLATFORMS[p].length(text) > PLATFORMS[p].maxLength);
 }
 
-export function SchedulerPanel() {
+export function SchedulerPanel({ service }: { service: ServiceSpec }) {
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   // Until the first load, show "Loading" rather than the "connect an account" prompt.
@@ -71,12 +72,17 @@ export function SchedulerPanel() {
 
   async function loadConnect() {
     const r = (await fetch("/api/accounts").then((r) => r.json())) as ConnectStatus;
-    const list = r.accounts ?? [];
+    // This service's accounts first: they're the tabs and the default target;
+    // the rest can be added to a post ("Also post to").
+    const list = [...(r.accounts ?? [])].sort(
+      (a, b) => Number(b.platform === service.id) - Number(a.platform === service.id),
+    );
     setAccounts(list);
     setAccountsLoaded(true);
+    const own = list.filter((a) => a.platform === service.id);
     setSelectedKey((curr) => {
-      if (curr && list.some((a) => accountKey(a) === curr)) return curr;
-      return list[0] ? accountKey(list[0]) : "";
+      if (curr && own.some((a) => accountKey(a) === curr)) return curr;
+      return own[0] ? accountKey(own[0]) : "";
     });
   }
 
@@ -116,7 +122,8 @@ export function SchedulerPanel() {
             platform: account.platform,
             accountId: account.id,
             text,
-            imagePath: imagePath || undefined,
+            // Platforms Kyrelo can't send images to get the text alone.
+            imagePath: (PLATFORMS[account.platform].maxImageBytes > 0 && imagePath) || undefined,
             scheduledFor: new Date(scheduledFor).toISOString(),
           }),
         }).then((r) => r.json());
@@ -146,7 +153,8 @@ export function SchedulerPanel() {
     setReschedulingPost(post);
   }
 
-  const selected = accounts.find((a) => accountKey(a) === selectedKey);
+  const own = accounts.filter((a) => a.platform === service.id);
+  const selected = own.find((a) => accountKey(a) === selectedKey);
   const targets = accounts.filter((a) => targetKeys.includes(accountKey(a)));
   const forAccount = selected ? posts.filter((p) => postAccountKey(p) === selectedKey) : [];
   const sorted = [...forAccount].sort((a, b) =>
@@ -164,29 +172,28 @@ export function SchedulerPanel() {
     return <div className="py-6 text-sm text-muted">Loading…</div>;
   }
 
-  if (accounts.length === 0) {
+  if (own.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 border-y border-line py-12 text-center">
-        <div className="text-sm text-fg">No accounts connected yet.</div>
-        <div className="text-xs text-muted">
-          Connect one to start scheduling posts.
-        </div>
-        <Link href="/connected" className="btn-primary mt-2 text-sm">
-          Connect an account
+        <div className="text-sm text-fg">No {service.label} accounts connected yet.</div>
+        <div className="text-xs text-muted">Connect one to start scheduling posts.</div>
+        <Link href={`/${service.slug}/accounts`} className="btn-primary mt-2 text-sm">
+          Connect {service.label}
         </Link>
       </div>
     );
   }
 
+  const imagesDropped = imagePath ? targets.filter((a) => PLATFORMS[a.platform].maxImageBytes === 0) : [];
+
   return (
     <div className="space-y-5">
-      <AccountTabs accounts={accounts} selectedKey={selectedKey} onSelect={setSelectedKey} />
+      <AccountTabs accounts={own} selectedKey={selectedKey} onSelect={setSelectedKey} addHref={`/${service.slug}/accounts`} />
 
       <section className="card space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="label !mb-0">Schedule a post</div>
-          {/* Auto campaigns write X posts (280 characters). */}
-          {selected?.platform === "twitter" && (
+          {hasFeature(service, "campaigns") && selected && (
             <button type="button" onClick={() => setCampaignOpen(true)} className="btn-ghost text-xs">
               Auto-generate campaign
             </button>
@@ -208,13 +215,14 @@ export function SchedulerPanel() {
           {accounts.length > 1 && (
             <div>
               <div className="label">Post to</div>
-              <div className="flex flex-wrap gap-2">
-                {accounts.map((a) => {
+              <div className="flex flex-wrap items-center gap-2">
+                {accounts.map((a, i) => {
                   const key = accountKey(a);
                   const on = targetKeys.includes(key);
                   return (
+                    <Fragment key={key}>
+                    {i === own.length && <span className="text-xs text-muted">Also post to</span>}
                     <button
-                      key={key}
                       type="button"
                       onClick={() =>
                         setTargetKeys((keys) => (on ? keys.filter((k) => k !== key) : [...keys, key]))
@@ -226,6 +234,7 @@ export function SchedulerPanel() {
                     >
                       <PlatformBadge platform={a.platform} />@{a.handle}
                     </button>
+                    </Fragment>
                   );
                 })}
               </div>
@@ -267,6 +276,13 @@ export function SchedulerPanel() {
               </label>
             )}
           </div>
+
+          {imagesDropped.length > 0 && (
+            <p className="text-xs text-muted">
+              {[...new Set(imagesDropped.map((a) => PLATFORMS[a.platform].label))].join(" and ")} posts are sent without
+              the image: Kyrelo can&apos;t post images there.
+            </p>
+          )}
 
           <div>
             <div className="label">When</div>
@@ -331,7 +347,7 @@ export function SchedulerPanel() {
         />
       )}
 
-      {campaignOpen && selected?.platform === "twitter" && (
+      {campaignOpen && selected && hasFeature(service, "campaigns") && (
         <AutoCampaignModal
           account={selected}
           onClose={() => setCampaignOpen(false)}
@@ -801,10 +817,13 @@ function AccountTabs({
   accounts,
   selectedKey,
   onSelect,
+  addHref,
 }: {
   accounts: Account[];
   selectedKey: string;
   onSelect: (key: string) => void;
+  /** This service's Accounts section. */
+  addHref: string;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-0 border-b border-line">
@@ -828,7 +847,7 @@ function AccountTabs({
         );
       })}
       <Link
-        href="/connected"
+        href={addHref}
         className="ml-auto px-3 py-2.5 text-xs text-muted hover:text-fg"
       >
         + add account

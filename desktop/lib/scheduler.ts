@@ -119,6 +119,7 @@ async function dispatchDuePosts(): Promise<DispatchOutcome> {
         imagePath,
         onSendingStarted: () =>
           updateScheduledPost(post.id, (latest) => ({ ...latest, sendingStartedAt: new Date().toISOString() })),
+        idempotencyKey: post.id,
       });
       await updateScheduledPost(post.id, (latest) => ({
         ...latest,

@@ -1,8 +1,8 @@
 # Kyrelo — Community Driven Buffer Alternative
 
-A local desktop app, iPhone companion and marketing site for **Kyrelo**, the open-source, community-driven Buffer alternative for X and Bluesky.
+A local desktop app, iPhone companion and marketing site for **Kyrelo**, the open-source, community-driven Buffer alternative for X, Bluesky, Mastodon and Threads.
 
-- **Publish:** schedule posts to X and Bluesky, or let an AI auto campaign research, write and space out a series of X posts.
+- **Publish:** schedule posts to X, Bluesky, Mastodon and Threads, or let an AI auto campaign research, write and space out a series of X posts.
 - **Engage:** watch X handles in the Monitor; Autopilot drafts replies under new posts for you to pick, edit and send yourself.
 - **Clean up:** bulk delete posts, replies and reposts, unlike likes, and unfollow dead, bot-like or never-engaging accounts with a reason for each.
 
@@ -23,7 +23,7 @@ Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared inf
 
 | Folder | What it is |
 |---|---|
-| [`desktop/`](./desktop) | The Electron + Next.js + Playwright app: Scheduler, auto campaigns, Monitor + Autopilot, Deleter and Unfollow. Built for macOS first. |
+| [`desktop/`](./desktop) | The Electron + Next.js + Playwright app, organised by service (X, Bluesky, Mastodon, Threads), each with its own sections: Scheduler, auto campaigns, Monitor + Autopilot, Deleter and Unfollow. Built for macOS first. |
 | [`mobile/ios/`](./mobile/ios) | Native iPhone app (SwiftUI), paired with the desktop app, which does the work: the Monitor feed and reply drafts, the Scheduler with photos, and auto campaigns. Xcode project generated from `project.yml` by XcodeGen and committed. |
 | [`contracts/`](./contracts) | Rules the desktop and iOS apps must agree on, as test fixtures both apps' tests read. |
 | [`website/`](./website) | The marketing site at [kyrelo.com](https://kyrelo.com). Plain Next.js + Tailwind, deploys to Vercel with **Root Directory = `website`**. |
@@ -40,11 +40,17 @@ cd Kyrelo
 
 The first run installs dependencies and downloads Playwright's Chromium, so give it a minute. The app window opens on its own.
 
-Then, in the app:
+The app opens on a home screen of services: X, Bluesky, Mastodon and Threads. Pick one to use its sections; Settings are shared by all of them. In the app:
 
-1. **Connected** → connect your X accounts (you log in through a normal Chrome window) and Bluesky (with an app password).
+1. **A service → Accounts** → connect it:
+   - **X**: log in through a normal Chrome window.
+   - **Bluesky**: your handle and an app password.
+   - **Mastodon**: just your server's name; your browser asks you to approve Kyrelo.
+   - **Threads**: a token from a Meta developer app (Meta requires it; the screen walks you through it, about five minutes, once). Threads posts are text only.
 2. **Settings → API keys** → add a Claude or OpenAI key for AI replies, rewrites and auto campaigns. The page has step-by-step instructions for getting one.
-3. **Scheduler** → write and schedule posts, or use **✨ Auto-generate campaign**.
+3. **A service → Scheduler** → write and schedule posts, to that service and your other accounts too. On X, **Auto-generate campaign** plans a whole series.
+
+Which sections each service has is set in [`contracts/services.json`](./contracts/services.json): X has Monitor, Scheduler, Deleter, Unfollow and Accounts; the others Scheduler and Accounts for now.
 
 Your data (keys, X session, scheduled posts, uploads) stays on your machine in the app's data folder and is never committed.
 

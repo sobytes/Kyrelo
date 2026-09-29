@@ -1,64 +1,62 @@
 import SwiftUI
 
-/// Scheduled posts per account, as on the desktop Scheduler page. The desktop
-/// does the sending; the phone edits the queue.
+/// A service's scheduled posts per account, as on the desktop Scheduler
+/// section. The desktop does the sending; the phone edits the queue.
 struct SchedulerView: View {
+    let service: ServiceSpec
     @State private var model: SchedulerModel
     @State private var composing = false
     @State private var editing: ScheduledPost?
     @State private var campaignAccount: Account?
     @Environment(\.scenePhase) private var scenePhase
 
-    init(client: BridgeClient) {
-        _model = State(initialValue: SchedulerModel(client: client))
+    init(client: BridgeClient, service: ServiceSpec) {
+        self.service = service
+        _model = State(initialValue: SchedulerModel(client: client, platform: service.id))
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                if !model.accounts.isEmpty {
-                    accountPicker.listRowBackground(Color.clear).listRowInsets(EdgeInsets())
-                }
-                if let error = model.error {
-                    Text(error).font(.inter(.footnote)).foregroundStyle(Theme.error).listRowBackground(Color.clear)
-                }
-                if model.loaded && model.accounts.isEmpty {
-                    Text("No accounts connected yet. Connect them in Kyrelo on your computer.")
-                        .foregroundStyle(Theme.muted).listRowBackground(Color.clear)
-                }
-                if model.selected != nil {
-                    Section("Upcoming") {
-                        if model.upcoming.isEmpty { Text("Nothing queued.").foregroundStyle(Theme.muted) }
-                        ForEach(model.upcoming) { post in
-                            PostRow(post: post, client: model.client)
-                                .contentShape(Rectangle())
-                                .onTapGesture { if post.status == .pending { editing = post } }
-                        }
+        List {
+            if !model.own.isEmpty {
+                accountPicker.listRowBackground(Color.clear).listRowInsets(EdgeInsets())
+            }
+            if let error = model.error {
+                Text(error).font(.inter(.footnote)).foregroundStyle(Theme.error).listRowBackground(Color.clear)
+            }
+            if model.loaded && model.own.isEmpty {
+                Text("No \(service.label) accounts connected yet. Connect them in Kyrelo on your computer, under \(service.label) → Accounts.")
+                    .foregroundStyle(Theme.muted).listRowBackground(Color.clear)
+            }
+            if model.selected != nil {
+                Section("Upcoming") {
+                    if model.upcoming.isEmpty { Text("Nothing queued.").foregroundStyle(Theme.muted) }
+                    ForEach(model.upcoming) { post in
+                        PostRow(post: post, client: model.client)
+                            .contentShape(Rectangle())
+                            .onTapGesture { if post.status == .pending { editing = post } }
                     }
-                    if !model.history.isEmpty {
-                        Section("History") {
-                            ForEach(model.history.prefix(20)) { PostRow(post: $0, client: model.client) }
-                        }
+                }
+                if !model.history.isEmpty {
+                    Section("History") {
+                        ForEach(model.history.prefix(20)) { PostRow(post: $0, client: model.client) }
                     }
                 }
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(Theme.canvas)
-            .overlay { if !model.loaded && model.error == nil { ProgressView() } }
-            .refreshable { await model.load() }
-            .navigationTitle("Scheduler")
-            .toolbar {
-                if let selected = model.selected, selected.platform == .twitter {
-                    // Auto campaigns write X posts (280 characters).
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("✨ Campaign") { campaignAccount = selected }
-                    }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Theme.canvas)
+        .overlay { if !model.loaded && model.error == nil { ProgressView() } }
+        .refreshable { await model.load() }
+        .toolbar {
+            if service.hasCampaigns, let selected = model.selected {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Campaign") { campaignAccount = selected }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { composing = true } label: { Image(systemName: "square.and.pencil") }
-                        .disabled(model.accounts.isEmpty)
-                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { composing = true } label: { Image(systemName: "square.and.pencil") }
+                    .disabled(model.own.isEmpty)
             }
         }
         .task(id: scenePhase) {
@@ -69,7 +67,7 @@ struct SchedulerView: View {
             }
         }
         .sheet(isPresented: $composing) {
-            ComposeSheet(client: model.client, accounts: model.accounts, defaultKey: model.selectedKey) {
+            ComposeSheet(client: model.client, accounts: model.accounts, platform: service.id, defaultKey: model.selectedKey) {
                 Task { await model.load() }
             }
         }
@@ -84,14 +82,14 @@ struct SchedulerView: View {
     private var accountPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(model.accounts) { account in
+                ForEach(model.own) { account in
                     let on = account.key == model.selectedKey
                     Button { model.selectedKey = account.key } label: {
-                        Label { Text("@\(account.handle)") } icon: { Text(account.platform.mark) }
+                        Text("@\(account.handle)")
                             .font(.inter(.subheadline))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .background(on ? Theme.primary.opacity(0.18) : Theme.surface, in: Capsule())
-                            .overlay(Capsule().stroke(on ? Theme.primary : Theme.line))
+                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.sm))
+                            .overlay(RoundedRectangle(cornerRadius: Radius.sm).stroke(on ? Theme.fg : Theme.line))
                             .foregroundStyle(on ? Theme.fg : Theme.muted)
                     }
                     .buttonStyle(.plain)

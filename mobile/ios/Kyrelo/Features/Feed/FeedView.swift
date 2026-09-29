@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// The Monitor feed with Autopilot's draft replies under each tweet.
+/// The Monitor feed with Autopilot's draft replies under each tweet: X's
+/// Monitor section, shown inside the service screen.
 struct FeedView: View {
     let onUnpair: () -> Void
     @State private var model: FeedModel
@@ -14,38 +15,30 @@ struct FeedView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                if let settings = model.settings {
-                    Section { statusCard(settings) }
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                }
-                if let error = model.error {
-                    Text(error).font(.inter(.footnote)).foregroundStyle(Theme.error).listRowBackground(Color.clear)
-                }
-                ForEach(model.tweets) { tweet in
-                    TweetRow(tweet: tweet) { text in replying = ReplyTarget(tweet: tweet, text: text) }
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                }
-                if model.settings != nil && model.tweets.isEmpty {
-                    Text("No tweets yet.").foregroundStyle(Theme.muted).listRowBackground(Color.clear)
-                }
+        List {
+            if let settings = model.settings {
+                Section { statusCard(settings) }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(Theme.canvas)
-            .overlay { if model.settings == nil && model.error == nil { ProgressView() } }
-            .refreshable { await model.load() }
-            .navigationTitle("Monitor")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Unpair", role: .destructive, action: onUnpair).font(.inter(.footnote))
-                }
+            if let error = model.error {
+                Text(error).font(.inter(.footnote)).foregroundStyle(Theme.error).listRowBackground(Color.clear)
+            }
+            ForEach(model.tweets) { tweet in
+                TweetRow(tweet: tweet) { text in replying = ReplyTarget(tweet: tweet, text: text) }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+            }
+            if model.settings != nil && model.tweets.isEmpty {
+                Text("No tweets yet.").foregroundStyle(Theme.muted).listRowBackground(Color.clear)
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Theme.canvas)
+        .overlay { if model.settings == nil && model.error == nil { ProgressView() } }
+        .refreshable { await model.load() }
         // Refresh every 15s while the app is in front.
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }

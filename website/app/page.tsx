@@ -6,7 +6,7 @@ const APP_JSON_LD = {
   "@type": "SoftwareApplication",
   name: "Kyrelo",
   description:
-    "Free, open-source desktop app to schedule posts to X and Bluesky, plan AI campaigns, draft replies you send yourself, bulk delete tweets and unfollow inactive accounts.",
+    "Free, open-source desktop app to schedule posts to X, Bluesky, Mastodon and Threads, plan AI campaigns, draft replies you send yourself, bulk delete tweets and unfollow inactive accounts.",
   applicationCategory: "SocialNetworkingApplication",
   operatingSystem: "macOS, Windows",
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
@@ -59,7 +59,8 @@ function Hero() {
           Run your socials from your own computer.
         </h1>
         <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted">
-          Kyrelo is a free, open-source Buffer alternative for X and Bluesky. Schedule posts, let AI
+          Kyrelo is a free, open-source Buffer alternative for X, Bluesky, Mastodon and Threads.
+          Schedule posts, let AI
           plan a whole campaign, get reply drafts under the posts you care about, and clean up old
           tweets and dead follows. No SaaS and no outages: it runs on your machine with your own
           accounts and your own AI key.
@@ -161,8 +162,8 @@ const FEATURE_GROUPS = [
     heading: "Publish",
     features: [
       {
-        title: "Schedule to X and Bluesky",
-        body: "Write once and post to any of your connected accounts, with each network's character limit checked as you type. Attach an image, pick a time, and Kyrelo posts it for you. Connect as many accounts as you like.",
+        title: "Schedule to X, Bluesky, Mastodon and Threads",
+        body: "Each service has its own space in the app. Write once, post to one account or several across services, with each network's character limit checked as you type. Connecting is quick: sign in to X, an app password for Bluesky, just your server's name for Mastodon.",
         icon: "calendar",
       },
       {

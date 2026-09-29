@@ -142,7 +142,7 @@ export function DeleterPanel() {
         <div className="text-xs text-muted">
           Connect one to delete tweets from its timeline.
         </div>
-        <Link href="/connected" className="btn-primary mt-2 text-sm">
+        <Link href="/x/accounts" className="btn-primary mt-2 text-sm">
           Connect an account
         </Link>
       </div>

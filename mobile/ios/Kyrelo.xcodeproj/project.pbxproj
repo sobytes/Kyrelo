@@ -8,7 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		00AABA7137900D20F5591CB8 /* PhotoField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3E0EE305FD5B5794A6FC5C /* PhotoField.swift */; };
+		181A53B629636453DA329763 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 860B9BFC64FA4F6F553EAECE /* HomeView.swift */; };
 		31376F0C7CCECE209878C13B /* BridgeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CB294475FDCBC98CD8B75E /* BridgeClient.swift */; };
+		31D2D166003B6360909F718E /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = 396F0A9B3BB67E89CD663C4C /* Services.swift */; };
 		3FF285A433827E3DE3B3CAEE /* AutopilotSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35ED055D0549A2C9014DB264 /* AutopilotSheet.swift */; };
 		41D4809F79E75EEB32F4594B /* PhotoPrep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0457154AD91DB1238578FA /* PhotoPrep.swift */; };
 		42A9E55065A70803C7751A67 /* CampaignSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE80A37744425D8C029551B3 /* CampaignSheet.swift */; };
@@ -56,6 +58,7 @@
 		1C06956099474C430820B9B1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		35ED055D0549A2C9014DB264 /* AutopilotSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutopilotSheet.swift; sourceTree = "<group>"; };
 		37CB294475FDCBC98CD8B75E /* BridgeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeClient.swift; sourceTree = "<group>"; };
+		396F0A9B3BB67E89CD663C4C /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
 		3A0457154AD91DB1238578FA /* PhotoPrep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPrep.swift; sourceTree = "<group>"; };
 		482BEEAD1F871EB8ACB432BF /* contracts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = contracts; path = ../../contracts; sourceTree = SOURCE_ROOT; };
 		59F58F07499D76A6FC072BD3 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
@@ -69,6 +72,7 @@
 		72AA012DBF0BC290D566C87C /* Kyrelo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kyrelo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		79461F54CA98DE13B1B0D90E /* IBMPlexMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexMono-Regular.ttf"; sourceTree = "<group>"; };
 		823ACBD256A224220B24F875 /* Inter.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Inter.ttf; sourceTree = "<group>"; };
+		860B9BFC64FA4F6F553EAECE /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		8BDBEDE774CA8267ACAB9DE1 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
 		9B3DF1CD38AD16C85A46C68C /* PairView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairView.swift; sourceTree = "<group>"; };
 		A17391502916ECFCD1B7F08C /* FeedModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedModel.swift; sourceTree = "<group>"; };
@@ -141,6 +145,7 @@
 				40623FC3C225E5202EE8BB9D /* Autopilot */,
 				0EF6991425F347C37AECB52E /* Campaign */,
 				A60FEF81FFCE87E19F23EAE0 /* Feed */,
+				78C47B7F11C6C45CADE5FF5C /* Home */,
 				8BE9AFF56DD9E6ABF8CBC00E /* Pair */,
 				27B2F7904D80D77F39C6827D /* Reply */,
 				A9404C26C78A814779B9D570 /* Scheduler */,
@@ -163,6 +168,14 @@
 				0EDC1DD2178E7D129B675A6F /* Pairing.swift */,
 			);
 			path = Bridge;
+			sourceTree = "<group>";
+		};
+		78C47B7F11C6C45CADE5FF5C /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				860B9BFC64FA4F6F553EAECE /* HomeView.swift */,
+			);
+			path = Home;
 			sourceTree = "<group>";
 		};
 		8BE9AFF56DD9E6ABF8CBC00E /* Pair */ = {
@@ -223,6 +236,7 @@
 				3A0457154AD91DB1238578FA /* PhotoPrep.swift */,
 				0675E8CB4CF60117E2A71424 /* PlatformRules.swift */,
 				EBBDB3C9B2C596E5A2FF9BAA /* ReplyRules.swift */,
+				396F0A9B3BB67E89CD663C4C /* Services.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -381,6 +395,7 @@
 				70065F336A9A75DCC92A204E /* ComposeSheet.swift in Sources */,
 				8858F1B26DF619265AC4797A /* FeedModel.swift in Sources */,
 				976525F85F434DDAA9ED6B57 /* FeedView.swift in Sources */,
+				181A53B629636453DA329763 /* HomeView.swift in Sources */,
 				A496F16368C4C30401F6DAFF /* KyreloApp.swift in Sources */,
 				61D4EB61A22D1A325410C66B /* Monitor.swift in Sources */,
 				E80B812F8E38316361A62799 /* PairView.swift in Sources */,
@@ -394,6 +409,7 @@
 				4956DB3D97E765C211A022C6 /* Scheduler.swift in Sources */,
 				CA89A31096077BC26233EBD4 /* SchedulerModel.swift in Sources */,
 				430E9CBE57980461E6182C23 /* SchedulerView.swift in Sources */,
+				31D2D166003B6360909F718E /* Services.swift in Sources */,
 				66FEF89E6369A3072399BFDE /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

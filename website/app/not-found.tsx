@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 const LINKS = [
-  { href: "/#features", title: "Features", body: "Scheduling, monitoring, reply drafts and clean-up for X and Bluesky." },
+  { href: "/#features", title: "Features", body: "Scheduling, monitoring, reply drafts and clean-up for X, Bluesky, Mastodon and Threads." },
   { href: "/#delete-tweets", title: "Delete tweets", body: "Bulk delete your old posts and reposts, free." },
   { href: "/tweetdelete-alternative", title: "TweetDelete alternative", body: "How Kyrelo compares, side by side." },
 ];

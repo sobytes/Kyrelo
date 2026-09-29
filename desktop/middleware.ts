@@ -11,11 +11,17 @@ import { NextRequest, NextResponse } from "next/server";
 //   anything not same-origin. The worker and server-side fetches send neither.
 
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+const OAUTH_CALLBACK = "/api/accounts/mastodon/callback";
 
 export function middleware(req: NextRequest) {
   const host = req.headers.get("host") ?? "";
   const hostname = host.replace(/:\d+$/, "").toLowerCase();
   if (!LOOPBACK_HOSTS.has(hostname)) return forbidden("bad host");
+
+  // The one page other sites send the browser to: the user's Mastodon server
+  // after they approve Kyrelo. A plain navigation that changes nothing unless
+  // it carries the one-time state Kyrelo just issued (lib/accounts.ts).
+  if (req.method === "GET" && req.nextUrl.pathname === OAUTH_CALLBACK) return NextResponse.next();
 
   const site = req.headers.get("sec-fetch-site");
   if (site && site !== "same-origin" && site !== "none") return forbidden("cross-site request");

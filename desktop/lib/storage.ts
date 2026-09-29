@@ -216,11 +216,17 @@ async function legacyXAccounts(): Promise<Account[]> {
 }
 
 /**
- * Credentials for API-based accounts (Bluesky app passwords), keyed
- * "platform:id". Kept out of the accounts list so they never reach the UI.
+ * Credentials for API-based accounts, keyed "platform:id". Kept out of the
+ * accounts list so they never reach the UI. Which fields are set depends on
+ * the platform: Bluesky an app password; Mastodon its server and token;
+ * Threads a token (refreshed now and then) and the user's Threads id.
  */
 export interface AccountSecret {
-  appPassword: string;
+  appPassword?: string;
+  instance?: string;
+  token?: string;
+  userId?: string;
+  refreshedAt?: string;
 }
 
 function secretKey(platform: PlatformId, id: string): string {
