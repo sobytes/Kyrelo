@@ -22,7 +22,7 @@ const ID = "[A-Za-z0-9_.-]+";
 /**
  * What the phone may call: method + an exact path pattern. Everything else
  * gets 404: connecting or disconnecting accounts, API keys, the Deleter,
- * Unfollow and phone access itself.
+ * Unfollow, the handle finder and phone access itself.
  */
 const ALLOWED: [method: string, path: RegExp][] = [
   // Monitor + Autopilot

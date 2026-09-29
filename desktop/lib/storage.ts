@@ -12,6 +12,7 @@ import {
   PlatformId,
   ScheduledPost,
   UnfollowData,
+  HandleFinderData,
 } from "./types";
 
 const GROK_SETTINGS_KEY = "grok-settings";
@@ -27,6 +28,7 @@ const CAMPAIGNS_KEY = "campaigns";
 const BRAND_PROFILE_KEY = "brand-profile";
 const MEDIA_LIBRARY_KEY = "media-library";
 const UNFOLLOW_KEY = "unfollow";
+const HANDLE_FINDER_KEY = "handle-finder";
 
 /** Root of all local app data. Electron sets STORAGE_DIR to the OS app-data folder. */
 export const dataDir = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
@@ -295,6 +297,26 @@ export async function modifyUnfollowData(
   const all = await modify<Record<string, UnfollowData>>(UNFOLLOW_KEY, {}, (stored) => ({
     ...stored,
     [accountId]: change({ ...EMPTY_UNFOLLOW, ...stored[accountId] }),
+  }));
+  return all[accountId];
+}
+
+// --- Handle finder: one entry per X account id ---
+
+const EMPTY_FINDER: HandleFinderData = { suggestions: [], dropped: [], follows: [] };
+
+export async function getHandleFinderData(accountId: string): Promise<HandleFinderData> {
+  const all = (await read<Record<string, HandleFinderData>>(HANDLE_FINDER_KEY)) ?? {};
+  return { ...EMPTY_FINDER, ...all[accountId] };
+}
+
+export async function modifyHandleFinderData(
+  accountId: string,
+  change: (data: HandleFinderData) => HandleFinderData,
+): Promise<HandleFinderData> {
+  const all = await modify<Record<string, HandleFinderData>>(HANDLE_FINDER_KEY, {}, (stored) => ({
+    ...stored,
+    [accountId]: change({ ...EMPTY_FINDER, ...stored[accountId] }),
   }));
   return all[accountId];
 }

@@ -73,6 +73,7 @@ describe("reading X's Following data", () => {
         createdAt: "2018-10-10T20:19:24.000Z",
         defaultAvatar: false,
         followsYou: true,
+        youFollow: true,
       },
       {
         id: "222",
@@ -97,6 +98,7 @@ describe("reading X's Following data", () => {
         createdAt: "2010-08-07T03:40:11.000Z",
         defaultAvatar: true,
         followsYou: false,
+        youFollow: true,
       },
     ]);
   });

@@ -11,6 +11,7 @@ import {
   ReplyStyle,
   SeenTweet,
 } from "@/lib/types";
+import { HandleFinderModal } from "./HandleFinderModal";
 import { openExternal, useAccounts } from "./useAccounts";
 
 const POLL_MS = 8_000;
@@ -54,6 +55,7 @@ export function DetectorPanel() {
   const [replying, setReplying] = useState<{ tweet: SeenTweet; text?: string } | null>(null);
   const [handleInput, setHandleInput] = useState("");
   const [showSuggested, setShowSuggested] = useState(false);
+  const [finding, setFinding] = useState(false);
   const prevIdsRef = useRef<Set<string>>(new Set());
   const connect = useAccounts();
   const connected = hasXAccount(connect);
@@ -148,6 +150,18 @@ export function DetectorPanel() {
     save({ ...settings!, handles: [...settings!.handles, ...additions] });
   }
 
+  /** From the handle finder: watch or stop watching several handles at once. */
+  function setWatched(handles: string[], watch: boolean) {
+    const lower = handles.map((h) => h.toLowerCase());
+    const current = settings!.handles;
+    save({
+      ...settings!,
+      handles: watch
+        ? [...current, ...lower.filter((h) => !current.some((x) => x.toLowerCase() === h))]
+        : current.filter((x) => !lower.includes(x.toLowerCase())),
+    });
+  }
+
   function toggleSuggested(h: string) {
     const lower = h.toLowerCase();
     const isOn = settings!.handles.some((x) => x.toLowerCase() === lower);
@@ -204,6 +218,7 @@ export function DetectorPanel() {
             setShowSuggested={setShowSuggested}
             onToggleSuggested={toggleSuggested}
             onAddGroup={addGroup}
+            onFind={connected ? () => setFinding(true) : undefined}
           />
           <AutopilotCard
             autopilot={settings.autopilot}
@@ -220,6 +235,15 @@ export function DetectorPanel() {
           />
         </section>
       </div>
+
+      {finding && (
+        <HandleFinderModal
+          accounts={connect.status?.accounts.filter((a) => a.platform === "twitter") ?? []}
+          watched={settings.handles.map((h) => h.toLowerCase())}
+          onWatch={setWatched}
+          onClose={() => setFinding(false)}
+        />
+      )}
 
       {replying && (
         <ReplyModal
@@ -403,6 +427,7 @@ function HandlesCard({
   setShowSuggested,
   onToggleSuggested,
   onAddGroup,
+  onFind,
 }: {
   settings: GrokSettings;
   handleInput: string;
@@ -414,6 +439,8 @@ function HandlesCard({
   setShowSuggested: (b: boolean) => void;
   onToggleSuggested: (h: string) => void;
   onAddGroup: (handles: string[]) => void;
+  /** Opens the handle finder; missing until an X account is connected. */
+  onFind?: () => void;
 }) {
   return (
     <div className="card space-y-3">
@@ -471,11 +498,17 @@ function HandlesCard({
         </button>
       </div>
 
+      {onFind && (
+        <button onClick={onFind} className="btn-primary w-full text-xs">
+          ✨ Find accounts for my brand
+        </button>
+      )}
+
       <button
         onClick={() => setShowSuggested(!showSuggested)}
         className="w-full rounded-md border border-line py-1.5 text-xs text-zinc-400 hover:border-line2 hover:text-zinc-200"
       >
-        {showSuggested ? "Hide suggested" : "Suggested handles ▾"}
+        {showSuggested ? "Hide popular handles" : "Popular tech handles ▾"}
       </button>
 
       {showSuggested && (

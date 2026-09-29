@@ -35,8 +35,10 @@ function xDate(v: unknown): string | undefined {
  * `relationship_counts`, `tweet_counts`, `relationship_perspectives`; in
  * 2026 `legacy` is gone), so each field is read from wherever it is.
  */
-export function usersFromResponse(json: unknown): (FollowedAccount & { id: string })[] {
-  const out: (FollowedAccount & { id: string })[] = [];
+export type XUser = FollowedAccount & { id: string; youFollow?: boolean };
+
+export function usersFromResponse(json: unknown): XUser[] {
+  const out: XUser[] = [];
   const walk = (node: unknown) => {
     if (Array.isArray(node)) return node.forEach(walk);
     if (!isObject(node)) return;
@@ -61,6 +63,7 @@ export function usersFromResponse(json: unknown): (FollowedAccount & { id: strin
           createdAt: xDate(core.created_at) ?? xDate(legacy.created_at),
           defaultAvatar: bool(legacy.default_profile_image) ?? (avatarUrl ? avatarUrl.includes("default_profile") : undefined),
           followsYou: bool(relationship.followed_by) ?? bool(legacy.followed_by) ?? false,
+          youFollow: bool(relationship.following) ?? bool(legacy.following),
         });
       }
       return; // a user's own fields don't contain the users we want
@@ -114,7 +117,7 @@ const STALL_SCROLLS = 8;
 
 /** Scrolls x.com/<handle>/following to the end and returns everyone on it. */
 export async function scanFollowing(page: Page, accountId: string, handle: string, emit: Emit): Promise<FollowingScan> {
-  const fromData = new Map<string, FollowedAccount & { id: string }>();
+  const fromData = new Map<string, XUser>();
   const stop = watchGraphql(page, "Following", (json) => {
     for (const u of usersFromResponse(json)) fromData.set(u.handle.toLowerCase(), u);
   });
@@ -266,23 +269,31 @@ function readRepliedTo(page: Page, me: string): Promise<string[]> {
 
 // --- One profile -----------------------------------------------------------------
 
-/**
- * When `handle` last posted: ISO, null if they have no posts, undefined if
- * the page couldn't tell (suspended, blocked, didn't load).
- */
-export async function lastPostedAt(page: Page, handle: string, userId?: string): Promise<string | null | undefined> {
-  // The profile's timeline data (the operation was UserTweets until 2026).
-  // Started before navigating so the response can't be missed; it can land
-  // after the posts render, so it's awaited rather than listened for.
-  const fromData = userId
-    ? page
-        .waitForResponse((res) => /\/graphql\/[^/]+\/(UserTweets|UserOriginalsTimeline)\?/.test(res.url()) && res.ok(), {
-          timeout: 15_000,
-        })
-        .then((res) => res.json())
-        .then((json) => latestPostIn(json, userId))
-        .catch(() => undefined)
-    : Promise.resolve(undefined);
+const settle = <T>(p: Promise<T>, ms: number) =>
+  Promise.race([p, new Promise<undefined>((r) => setTimeout(() => r(undefined), ms))]);
+
+export interface ProfileVisit {
+  /** The profile's stats, from the data X's page loads. */
+  user?: XUser;
+  /** ISO time of their newest original post, null if they have none, undefined if the page couldn't tell. */
+  lastPostAt: string | null | undefined;
+  /** X says the account doesn't exist or is suspended. */
+  missing: boolean;
+}
+
+/** Opens x.com/<handle> and reads who they are and when they last posted. */
+export async function visitProfile(page: Page, handle: string): Promise<ProfileVisit> {
+  // Started before navigating so the responses can't be missed. The timeline
+  // one can land after the posts render, so it's awaited, briefly.
+  const onResponse = (operation: RegExp) =>
+    page
+      .waitForResponse((res) => operation.test(res.url()) && res.ok(), { timeout: 15_000 })
+      .then((res) => res.json())
+      .catch(() => undefined);
+  const profileData = onResponse(/\/graphql\/[^/]+\/UserByScreenName\?/);
+  // The operation was UserTweets until 2026.
+  const timelineData = onResponse(/\/graphql\/[^/]+\/(UserTweets|UserOriginalsTimeline)\?/);
+
   await page.goto(`https://x.com/${handle}`, { waitUntil: "domcontentloaded" });
   assertLoggedIn(page);
   const loaded = await page
@@ -290,25 +301,66 @@ export async function lastPostedAt(page: Page, handle: string, userId?: string):
     .first()
     .waitFor({ timeout: 12_000 })
     .then(() => true, () => false);
-  const latest = await fromData;
-  if (latest) return latest;
-  if (!loaded) return undefined;
+
+  const user = usersFromResponse(await settle(profileData, 3_000)).find(
+    (u) => u.handle.toLowerCase() === handle.toLowerCase(),
+  );
+  if (!user) {
+    const missing = (await page.getByText(/this account doesn.t exist|account suspended/i).count()) > 0;
+    return { lastPostAt: undefined, missing };
+  }
+
+  const latest = latestPostIn(await settle(timelineData, 3_000), user.id);
+  if (latest) return { user, lastPostAt: latest, missing: false };
+  if (!loaded) return { user, lastPostAt: undefined, missing: false };
   // Fallback: the newest dated post of theirs on the page (pinned ones are
   // usually old, reposts show the original's date, so both are skipped).
   const fromPage = await page.evaluate((h) => {
-    let latest: string | null = null;
+    let newest: string | null = null;
     for (const art of Array.from(document.querySelectorAll('article[data-testid="tweet"]'))) {
       if (/pinned/i.test(art.querySelector('[data-testid="socialContext"]')?.textContent ?? "")) continue;
       for (const a of Array.from(art.querySelectorAll("a[href*='/status/']"))) {
         if (a.getAttribute("href")?.split("/")[1]?.toLowerCase() !== h) continue;
         const dt = a.querySelector("time")?.getAttribute("datetime");
-        if (dt && (!latest || dt > latest)) latest = dt;
+        if (dt && (!newest || dt > newest)) newest = dt;
       }
     }
-    return latest;
+    return newest;
   }, handle.toLowerCase());
-  if (fromPage) return fromPage;
-  return (await page.locator('[data-testid="emptyState"]').count()) > 0 ? null : undefined;
+  if (fromPage) return { user, lastPostAt: fromPage, missing: false };
+  const empty = (await page.locator('[data-testid="emptyState"]').count()) > 0;
+  return { user, lastPostAt: empty ? null : undefined, missing: false };
+}
+
+// --- X's own suggestions ------------------------------------------------------------
+
+const WHO_TO_FOLLOW_SCROLLS = 6;
+
+/** The accounts on X's "Who to follow" page for this account, with stats where X's data had them. */
+export async function readWhoToFollow(page: Page, emit: Emit): Promise<(FollowedAccount & { id?: string })[]> {
+  const fromData = new Map<string, XUser>();
+  const stop = watchGraphql(page, "[A-Za-z]+", (json) => {
+    for (const u of usersFromResponse(json)) fromData.set(u.handle.toLowerCase(), u);
+  });
+  const handles = new Map<string, { handle: string; name: string; followsYou: boolean }>();
+  try {
+    await page.goto("https://x.com/i/connect_people", { waitUntil: "domcontentloaded" });
+    await jitter(2500, 4000);
+    assertLoggedIn(page);
+    for (let i = 0; i < WHO_TO_FOLLOW_SCROLLS; i++) {
+      for (const cell of await readUserCells(page)) handles.set(cell.handle.toLowerCase(), cell);
+      await page.mouse.wheel(0, 900 + Math.random() * 400);
+      await jitter(1400, 2400);
+    }
+  } finally {
+    stop();
+  }
+  // The page's list decides who's suggested; X's data adds the stats.
+  const suggested = [...handles.entries()]
+    .map(([key, cell]) => fromData.get(key) ?? cell)
+    .filter((u) => !("youFollow" in u && u.youFollow));
+  emit(`X suggests ${suggested.length} accounts for you.`);
+  return suggested;
 }
 
 /**

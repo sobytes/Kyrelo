@@ -215,3 +215,35 @@ export interface UnfollowData {
   history: FollowChange[];
 }
 
+/** Why the handle finder suggests an account (see lib/handle-finder.ts). */
+export type SuggestionGroup = "audience" | "competitor" | "news" | "peer";
+
+/** An X account the handle finder suggests watching or following, checked on X. */
+export interface HandleSuggestion {
+  handle: string;
+  name: string;
+  group: SuggestionGroup;
+  reason: string;
+  /** Came from X's own "Who to follow" for this account. */
+  fromX: boolean;
+  userId?: string;
+  bio?: string;
+  followers?: number;
+  posts?: number;
+  /** ISO time of their newest original post. */
+  lastPostAt?: string;
+  youFollow: boolean;
+  /** When Kyrelo followed them from the finder. */
+  followedAt?: string;
+}
+
+/** The handle finder's last run for one X account. */
+export interface HandleFinderData {
+  suggestions: HandleSuggestion[];
+  ranAt?: string;
+  /** Suggestions left out after checking X, and why. */
+  dropped: { handle: string; why: string }[];
+  /** Follows made from the finder (newest last), for the daily limit. */
+  follows: { handle: string; at: string }[];
+}
+

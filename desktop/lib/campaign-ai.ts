@@ -1,18 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { OpenAiChatResponse, openAiPost, resolveAnthropicKey } from "./ai";
+import { jsonCompletion, RESEARCH_MODELS, webResearch } from "./ai-web";
 import { AiProvider, CampaignMediaKind, MediaItem } from "./types";
 
-// Research + writing for Auto Campaigns. Two stages, each with a Claude and an
-// OpenAI implementation, matching lib/ai.ts:
+// Research + writing for Auto Campaigns, on the shared calls in lib/ai-web.ts:
 //   1. research — live web search/fetch over the user's site, competitors and
 //      the niche, returned as a written brief plus source URLs.
 //   2. write    — N tweets on distinct angles, each with a media decision, as
 //      schema-validated JSON.
 
-// Deliberately a bigger model than lib/ai.ts uses for one-line replies and
-// rewrites: campaigns do multi-step web research and write several posts.
-const CLAUDE_MODEL = "claude-opus-5";
-const OPENAI_MODEL = process.env.OPENAI_CAMPAIGN_MODEL ?? "gpt-4.1";
+const CLAUDE_MODEL = RESEARCH_MODELS.claude;
+const OPENAI_MODEL = RESEARCH_MODELS.openai;
 
 export interface ResearchInput {
   brief: string;
@@ -84,84 +82,16 @@ function extractYoutube(text: string, urls: string[]): string[] {
   return Array.from(new Set(found.map((m) => m[0]))).slice(0, 5);
 }
 
-async function researchViaClaude(input: ResearchInput): Promise<ResearchResult> {
-  const client = new Anthropic({ apiKey: await resolveAnthropicKey() });
-  const messages: Anthropic.Beta.BetaMessageParam[] = [
-    { role: "user", content: researchPrompt(input) },
-  ];
-  const sources = new Set<string>();
-  let notes = "";
-
-  // Server tools can pause a long turn (stop_reason "pause_turn"); re-send the
-  // paused assistant turn to let Claude continue.
-  for (let i = 0; i < 5; i++) {
-    const msg = await client.beta.messages
-      .stream({
-        model: CLAUDE_MODEL,
-        max_tokens: 32000,
-        thinking: { type: "adaptive" },
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
-        system: RESEARCH_SYSTEM,
-        tools: [
-          { type: "web_search_20260209", name: "web_search", max_uses: 8 },
-          { type: "web_fetch_20260209", name: "web_fetch", max_uses: 6 },
-        ],
-        messages,
-      })
-      .finalMessage();
-
-    if (msg.stop_reason === "refusal") {
-      throw new Error("Claude declined to research this brief.");
-    }
-    for (const block of msg.content) {
-      if (block.type === "web_search_tool_result" && Array.isArray(block.content)) {
-        for (const r of block.content) sources.add(r.url);
-      } else if (block.type === "text") {
-        notes += block.text;
-      }
-    }
-    if (msg.stop_reason !== "pause_turn") break;
-    messages.push({ role: "assistant", content: msg.content });
-  }
-
-  if (!notes.trim()) throw new Error("Research came back empty.");
-  return { notes, sources: [...sources], youtube: extractYoutube(notes, [...sources]) };
-}
-
-async function researchViaOpenAI(input: ResearchInput): Promise<ResearchResult> {
-  // Web search runs several searches server-side, so allow longer than usual.
-  const json = await openAiPost<{
-    output?: {
-      type: string;
-      content?: { type: string; text?: string; annotations?: { type: string; url?: string }[] }[];
-    }[];
-  }>(
-    "responses",
-    {
-      model: OPENAI_MODEL,
-      instructions: RESEARCH_SYSTEM,
-      input: researchPrompt(input),
-      tools: [{ type: "web_search" }],
-    },
-    5 * 60_000,
-  );
-  let notes = "";
-  const sources = new Set<string>();
-  for (const item of json.output ?? []) {
-    if (item.type !== "message") continue;
-    for (const c of item.content ?? []) {
-      if (c.type !== "output_text") continue;
-      notes += c.text ?? "";
-      for (const a of c.annotations ?? []) if (a.url) sources.add(a.url);
-    }
-  }
-  if (!notes.trim()) throw new Error("Research came back empty.");
-  return { notes, sources: [...sources], youtube: extractYoutube(notes, [...sources]) };
-}
-
-export function researchCampaign(input: ResearchInput): Promise<ResearchResult> {
-  return input.provider === "openai" ? researchViaOpenAI(input) : researchViaClaude(input);
+export async function researchCampaign(input: ResearchInput): Promise<ResearchResult> {
+  const { text, sources } = await webResearch({
+    system: RESEARCH_SYSTEM,
+    prompt: researchPrompt(input),
+    provider: input.provider,
+    task: "research this brief",
+    fetchPages: true,
+  });
+  if (!text.trim()) throw new Error("Research came back empty.");
+  return { notes: text, sources, youtube: extractYoutube(text, sources) };
 }
 
 const MEDIA_KINDS: CampaignMediaKind[] = ["none", "library", "og", "screenshot", "ai", "youtube"];
@@ -244,46 +174,16 @@ function formatWindow(minutes: number): string {
   return `${Math.round(minutes / 1440)} days`;
 }
 
-async function writeViaClaude(input: WriteInput): Promise<string> {
-  const client = new Anthropic({ apiKey: await resolveAnthropicKey() });
-  const msg = await client.beta.messages
-    .stream({
-      model: CLAUDE_MODEL,
-      max_tokens: 32000,
-      thinking: { type: "adaptive" },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      system: WRITE_SYSTEM,
-      output_config: { format: { type: "json_schema", schema: DRAFTS_SCHEMA } },
-      messages: [{ role: "user", content: writePrompt(input) }],
-    })
-    .finalMessage();
-  if (msg.stop_reason === "refusal") throw new Error("Claude declined to write these posts.");
-  if (msg.stop_reason === "max_tokens") throw new Error("Claude ran out of room writing the posts.");
-  return msg.content
-    .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("");
-}
-
-async function writeViaOpenAI(input: WriteInput): Promise<string> {
-  const json = await openAiPost<OpenAiChatResponse>("chat/completions", {
-    model: OPENAI_MODEL,
-    temperature: 0.9,
-    messages: [
-      { role: "system", content: WRITE_SYSTEM },
-      { role: "user", content: writePrompt(input) },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: { name: "campaign_drafts", strict: true, schema: DRAFTS_SCHEMA },
-    },
-  });
-  return json.choices?.[0]?.message?.content ?? "";
-}
-
 export async function writeCampaignDrafts(input: WriteInput): Promise<WrittenDraft[]> {
-  const raw = input.provider === "openai" ? await writeViaOpenAI(input) : await writeViaClaude(input);
+  const raw = await jsonCompletion({
+    system: WRITE_SYSTEM,
+    prompt: writePrompt(input),
+    schema: DRAFTS_SCHEMA,
+    name: "campaign_drafts",
+    provider: input.provider,
+    task: "write these posts",
+    temperature: 0.9,
+  });
   let parsed: { drafts?: WrittenDraft[] };
   try {
     parsed = JSON.parse(raw);

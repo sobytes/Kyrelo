@@ -2,19 +2,21 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { NextRequest } from "next/server";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 // The routes use lib/storage.ts, which reads STORAGE_DIR at import time.
 let posts: typeof import("./scheduler/posts/route");
 let postById: typeof import("./scheduler/posts/[id]/route");
 let settings: typeof import("./grok-settings/route");
 let unfollow: typeof import("./unfollow/route");
+let finder: typeof import("./handle-finder/route");
 beforeAll(async () => {
   process.env.STORAGE_DIR = await mkdtemp(path.join(os.tmpdir(), "kyrelo-routes-"));
   posts = await import("./scheduler/posts/route");
   postById = await import("./scheduler/posts/[id]/route");
   settings = await import("./grok-settings/route");
   unfollow = await import("./unfollow/route");
+  finder = await import("./handle-finder/route");
   // Posts must belong to a connected account.
   const { saveAccount } = await import("@/lib/browser-connect");
   const addedAt = new Date().toISOString();
@@ -160,6 +162,62 @@ describe("unfollow route", () => {
     expect((await res.json()).data.keep).toEqual(["pal", "ghost"]);
     const undo = await unfollow.POST(json("POST", { action: "keep", accountId: "acct", handle: "ghost", keep: false }));
     expect((await undo.json()).data.keep).toEqual(["pal"]);
+  });
+});
+
+describe("handle finder route", () => {
+  beforeAll(async () => {
+    const { modifyHandleFinderData } = await import("@/lib/storage");
+    await modifyHandleFinderData("acct", (d) => ({
+      ...d,
+      suggestions: [
+        { handle: "Fresh", name: "Fresh", group: "audience", reason: "", fromX: false, youFollow: false },
+        { handle: "friend", name: "Friend", group: "peer", reason: "", fromX: false, youFollow: true },
+      ],
+    }));
+  });
+
+  const followReq = (handles: unknown) => finder.POST(json("POST", { action: "follow", accountId: "acct", handles }));
+
+  it("only follows accounts it suggested", async () => {
+    expect((await (await followReq(["stranger"])).json()).error).toMatch(/isn't in the finder's suggestions/);
+  });
+
+  it("skips accounts already followed", async () => {
+    expect((await (await followReq(["friend"])).json()).error).toMatch(/already follow all of them/);
+  });
+
+  it("caps a run", async () => {
+    const res = await followReq(Array.from({ length: 51 }, (_, i) => `a${i}`));
+    expect((await res.json()).error).toMatch(/up to 50 at a time/);
+  });
+
+  describe("without an AI key", () => {
+    // A key in the environment counts too (lib/ai.ts); without this a real run would start.
+    const env = { anthropic: process.env.ANTHROPIC_API_KEY, openai: process.env.OPENAI_API_KEY };
+    beforeAll(() => {
+      delete process.env.ANTHROPIC_API_KEY;
+      delete process.env.OPENAI_API_KEY;
+    });
+    afterAll(() => {
+      if (env.anthropic !== undefined) process.env.ANTHROPIC_API_KEY = env.anthropic;
+      if (env.openai !== undefined) process.env.OPENAI_API_KEY = env.openai;
+    });
+    const find = (body: object) => finder.POST(json("POST", { action: "find", accountId: "acct", ...body }));
+
+    it("needs an AI key and a valid link to research", async () => {
+      expect((await (await find({ brief: "Invoices for plumbers" })).json()).error).toMatch(/API key in Settings/);
+      expect((await (await find({ url: "javascript:alert(1)" })).json()).error).toMatch(/must start with http/);
+    });
+
+    it("saves the brand profile it's sent, and keeps it when a request sends none", async () => {
+      const { getBrandProfile } = await import("@/lib/storage");
+      const saved = { brief: "Invoices for plumbers", url: "https://example.com", competitors: "" };
+      await find(saved);
+      expect(await getBrandProfile()).toEqual(saved);
+      await find({});
+      expect(await getBrandProfile()).toEqual(saved);
+    });
   });
 });
 

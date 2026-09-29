@@ -77,6 +77,7 @@ describe("phone bridge", () => {
       ["POST", "/api/deleter"],
       ["POST", "/api/unfollow"],
       ["GET", "/api/unfollow"],
+      ["POST", "/api/handle-finder"],
       ["POST", "/api/accounts"], // connecting / disconnecting accounts
       ["DELETE", "/api/grok-state"],
       ["PATCH", "/api/scheduler/posts/a/../../settings/keys"],

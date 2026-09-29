@@ -1,8 +1,8 @@
-import { Page } from "playwright";
-import { lastPostedAt, scanFollowing, scanInteractions, setFollowing } from "./browser/twitter-follows";
-import { postWaitingForBrowser, jitter, openBrowser, warmup } from "./browser/session";
-import { getGrokSettings, getUnfollowData, listAccounts, modifyUnfollowData } from "./storage";
-import { Account, FollowChange, UnfollowData } from "./types";
+import { BrowserJob, findXAccount, jobSlot, JobResult, yieldToPosts } from "./browser-job";
+import { scanFollowing, scanInteractions, setFollowing, visitProfile } from "./browser/twitter-follows";
+import { jitter } from "./browser/session";
+import { getGrokSettings, getUnfollowData, modifyUnfollowData } from "./storage";
+import { FollowChange, UnfollowData } from "./types";
 import {
   INTERACTION_WINDOW_DAYS,
   protectionReason,
@@ -11,8 +11,8 @@ import {
   unfollowReasons,
 } from "./unfollow-rules";
 
-// The Unfollow tab's background jobs, one at a time, like the Deleter
-// (lib/deleter.ts): the UI starts one and polls GET /api/unfollow.
+// The Unfollow tab's background jobs (lib/browser-job.ts), one at a time:
+// the UI starts one and polls GET /api/unfollow.
 //   scan      read the Following list, then who interacts with the user
 //   activity  open profiles to see when each last posted
 //   unfollow  unfollow the chosen accounts, slowly
@@ -26,28 +26,14 @@ const MAX_HISTORY = 2_000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type UnfollowJobKind = "scan" | "activity" | "unfollow" | "refollow";
+export type UnfollowJob = BrowserJob<UnfollowJobKind>;
+type Result = JobResult<UnfollowJobKind>;
 
-export interface UnfollowJob {
-  id: string;
-  kind: UnfollowJobKind;
-  accountId: string;
-  handle: string;
-  startedAt: string;
-  finishedAt?: string;
-  running: boolean;
-  /** Accounts to go through (0 for a scan). */
-  total: number;
-  done: number;
-  failed: number;
-  log: string[];
-  error?: string;
-}
-
-// On globalThis so Next dev hot-reload doesn't lose a running job.
-const G = globalThis as { __kyreloUnfollowJob?: UnfollowJob | null };
+const slot = jobSlot<UnfollowJobKind>("unfollow", "Another Unfollow job is already running.");
+const run = slot.run;
 
 export function getUnfollowJob(): UnfollowJob | null {
-  return G.__kyreloUnfollowJob ?? null;
+  return slot.current();
 }
 
 /** What the rules need besides the accounts: keep list, Monitor handles, interactions. */
@@ -62,72 +48,10 @@ export async function unfollowContext(data: UnfollowData, now = new Date()): Pro
   };
 }
 
-type Result = { job: UnfollowJob } | { error: string };
-
-async function findAccount(accountId: string): Promise<Account | undefined> {
-  return (await listAccounts("twitter")).find((a) => a.id === accountId);
-}
-
-/**
- * Starts `work` in a visible Chrome on the account's profile, as the Deleter
- * does, and returns the job at once.
- */
-function run(
-  kind: UnfollowJobKind,
-  account: Account,
-  total: number,
-  work: (page: Page, job: UnfollowJob, record: (line: string) => void) => Promise<void>,
-): Result {
-  if (getUnfollowJob()?.running) return { error: "Another Unfollow job is already running." };
-  const job: UnfollowJob = {
-    id: crypto.randomUUID(),
-    kind,
-    accountId: account.id,
-    handle: account.handle,
-    startedAt: new Date().toISOString(),
-    running: true,
-    total,
-    done: 0,
-    failed: 0,
-    log: [],
-  };
-  G.__kyreloUnfollowJob = job;
-  const record = (line: string) => {
-    job.log.push(`[${new Date().toISOString()}] ${line}`);
-    if (job.log.length > 300) job.log.splice(0, job.log.length - 300);
-  };
-
-  (async () => {
-    try {
-      const browser = await openBrowser("twitter", { purpose: `unfollow-${kind}`, headless: false, accountId: account.id });
-      try {
-        await warmup(browser.page, "https://x.com/home").catch((err) => console.warn("[unfollow] warmup skipped:", err));
-        await work(browser.page, job, record);
-      } finally {
-        await browser.close();
-      }
-    } catch (err) {
-      job.error = err instanceof Error ? err.message : String(err);
-      record(`error: ${job.error}`);
-    } finally {
-      job.running = false;
-      job.finishedAt = new Date().toISOString();
-    }
-  })();
-  return { job };
-}
-
-/** True (and logged) when a scheduled post is waiting for this account's browser. */
-function yieldToPosts(job: UnfollowJob, record: (line: string) => void): boolean {
-  if (!postWaitingForBrowser("twitter", job.accountId)) return false;
-  record("Stopping early so a scheduled post can go out. Run it again to carry on.");
-  return true;
-}
-
 export async function startScan(accountId: string): Promise<Result> {
-  const account = await findAccount(accountId);
+  const account = await findXAccount(accountId);
   if (!account) return { error: "Account not found." };
-  return run("scan", account, 0, async (page, job, record) => {
+  return run("scan", account, 0, async ({ page }, job, record) => {
     record(`Reading who @${account.handle} follows…`);
     const scan = await scanFollowing(page, account.id, account.handle, record);
     const now = new Date().toISOString();
@@ -158,7 +82,7 @@ export async function startScan(accountId: string): Promise<Result> {
 }
 
 export async function startActivityCheck(accountId: string, handles: string[]): Promise<Result> {
-  const account = await findAccount(accountId);
+  const account = await findXAccount(accountId);
   if (!account) return { error: "Account not found." };
   const data = await getUnfollowData(account.id);
   const byHandle = new Map(data.following.map((a) => [a.handle.toLowerCase(), a]));
@@ -168,10 +92,10 @@ export async function startActivityCheck(accountId: string, handles: string[]): 
     return { error: `Check up to ${MAX_ACTIVITY_CHECKS_PER_RUN} accounts at a time.` };
   }
 
-  return run("activity", account, targets.length, async (page, job, record) => {
+  return run("activity", account, targets.length, async ({ page }, job, record) => {
     for (const target of targets) {
       if (yieldToPosts(job, record)) return;
-      let at = await lastPostedAt(page, target.handle, target.id);
+      let at = (await visitProfile(page, target.handle)).lastPostAt;
       // An empty timeline on an account X says has posts: suspended or blocked, not "never posted".
       if (at === null && (target.posts ?? 0) > 0) at = undefined;
       if (at === undefined) {
@@ -196,7 +120,7 @@ export async function startActivityCheck(accountId: string, handles: string[]): 
 }
 
 export async function startUnfollow(accountId: string, handles: string[], rules: UnfollowRules): Promise<Result> {
-  const account = await findAccount(accountId);
+  const account = await findXAccount(accountId);
   if (!account) return { error: "Account not found." };
   const data = await getUnfollowData(account.id);
   if (handles.length === 0) return { error: "Tick the accounts to unfollow." };
@@ -223,7 +147,7 @@ export async function startUnfollow(accountId: string, handles: string[], rules:
     targets.push({ account: target, reasons: unfollowReasons(target, rules, ctx) });
   }
 
-  return run("unfollow", account, targets.length, async (page, job, record) => {
+  return run("unfollow", account, targets.length, async ({ page }, job, record) => {
     let failuresInARow = 0;
     for (const { account: target, reasons } of targets) {
       if (yieldToPosts(job, record)) return;
@@ -263,7 +187,7 @@ export async function startUnfollow(accountId: string, handles: string[], rules:
 }
 
 export async function startRefollow(accountId: string, handles: string[]): Promise<Result> {
-  const account = await findAccount(accountId);
+  const account = await findXAccount(accountId);
   if (!account) return { error: "Account not found." };
   const data = await getUnfollowData(account.id);
   const targets: FollowChange[] = [];
@@ -275,7 +199,7 @@ export async function startRefollow(accountId: string, handles: string[]): Promi
   if (targets.length === 0) return { error: "Pick who to follow again." };
   if (targets.length > MAX_UNFOLLOWS_PER_RUN) return { error: `Follow up to ${MAX_UNFOLLOWS_PER_RUN} at a time.` };
 
-  return run("refollow", account, targets.length, async (page, job, record) => {
+  return run("refollow", account, targets.length, async ({ page }, job, record) => {
     for (const target of targets) {
       if (yieldToPosts(job, record)) return;
       const result = await setFollowing(page, target.handle, target.userId, true);
