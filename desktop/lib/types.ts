@@ -1,3 +1,5 @@
+import type { FollowedAccount } from "./unfollow-rules";
+
 export type AiProvider = "claude" | "openai";
 
 export interface ApiKeys {
@@ -183,3 +185,33 @@ export interface Campaign {
   error?: string;
   createdAt: string;
 }
+
+/** One follow change made by the Unfollow tab, kept so it can be undone. */
+export interface FollowChange {
+  handle: string;
+  name: string;
+  /** X's user id, when the scan had it (finds the right button on the profile). */
+  userId?: string;
+  action: "unfollowed" | "refollowed";
+  at: string;
+  /** Why it was suggested, as shown at the time. */
+  reasons: string[];
+}
+
+/** The Unfollow tab's saved state for one X account. */
+export interface UnfollowData {
+  following: (FollowedAccount & { id?: string })[];
+  scannedAt?: string;
+  /** False when the last scan couldn't read X's stats. */
+  hasStats: boolean;
+  /** The last scan stopped before the end of the list. */
+  partial: boolean;
+  /** Lowercase handle → when they were last seen interacting (ISO). */
+  interactions: Record<string, string>;
+  interactionsScannedAt?: string;
+  /** Lowercase handles never to unfollow. */
+  keep: string[];
+  /** Newest last. */
+  history: FollowChange[];
+}
+

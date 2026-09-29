@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Account } from "@/lib/types";
+import { JobLog, JobStatus } from "./JobLog";
 
 interface DeleterJob {
   id: string;
@@ -231,28 +232,11 @@ export function DeleterPanel() {
 }
 
 function JobPanel({ job, onDismiss }: { job: DeleterJob; onDismiss: () => void }) {
-  const status = job.error
-    ? "failed"
-    : job.running
-      ? "running"
-      : "done";
-  const statusStyles: Record<string, string> = {
-    running: "bg-amber-500/10 text-amber-300",
-    done: "bg-live/10 text-emerald-300",
-    failed: "bg-rose-500/10 text-rose-300",
-  };
   return (
     <section className="card space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm">
-          <span
-            className={
-              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide " +
-              statusStyles[status]
-            }
-          >
-            {status}
-          </span>
+          <JobStatus running={job.running} error={job.error} />
           <span className="text-zinc-300">
             @{job.handle} · skip {job.startingAt} · up to {job.count}
           </span>
@@ -273,23 +257,7 @@ function JobPanel({ job, onDismiss }: { job: DeleterJob; onDismiss: () => void }
         </div>
       </div>
 
-      {job.error && (
-        <div className="rounded-md border border-rose-900/50 bg-rose-950/30 p-2 text-[11px] text-rose-300">
-          {job.error}
-        </div>
-      )}
-
-      <div className="max-h-64 overflow-y-auto rounded-md border border-line bg-ink p-2 font-mono text-[11px] leading-relaxed text-zinc-400">
-        {job.log.length === 0 ? (
-          <div className="text-zinc-600">Waiting for the browser to open…</div>
-        ) : (
-          job.log.map((line, i) => (
-            <div key={i} className="whitespace-pre-wrap break-words">
-              {line}
-            </div>
-          ))
-        )}
-      </div>
+      <JobLog log={job.log} error={job.error} />
     </section>
   );
 }

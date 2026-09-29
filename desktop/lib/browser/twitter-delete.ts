@@ -1,5 +1,5 @@
 import { Page } from "playwright";
-import { assertLoggedIn, browserHasWaiters, jitter, openBrowser, warmup } from "./session";
+import { assertLoggedIn, postWaitingForBrowser, jitter, openBrowser, warmup } from "./session";
 
 export interface DeleteOptions {
   accountId: string;
@@ -274,7 +274,7 @@ export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
     while (attempted < count) {
       // A long delete run would otherwise hold the browser for minutes while
       // a due scheduled post waits for it. Stop and let the post go out.
-      if (browserHasWaiters("twitter", opts.accountId)) {
+      if (postWaitingForBrowser("twitter", opts.accountId)) {
         emit({
           kind: "log",
           message: "Stopping early so a scheduled post can go out. Run the job again to continue.",

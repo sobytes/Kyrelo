@@ -11,6 +11,7 @@ import {
   Account,
   PlatformId,
   ScheduledPost,
+  UnfollowData,
 } from "./types";
 
 const GROK_SETTINGS_KEY = "grok-settings";
@@ -25,6 +26,7 @@ const MOBILE_BRIDGE_KEY = "mobile-bridge";
 const CAMPAIGNS_KEY = "campaigns";
 const BRAND_PROFILE_KEY = "brand-profile";
 const MEDIA_LIBRARY_KEY = "media-library";
+const UNFOLLOW_KEY = "unfollow";
 
 /** Root of all local app data. Electron sets STORAGE_DIR to the OS app-data folder. */
 export const dataDir = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
@@ -276,3 +278,24 @@ export async function getMobileBridgeConfig(): Promise<MobileBridgeConfig> {
 export async function saveMobileBridgeConfig(config: MobileBridgeConfig): Promise<void> {
   await write(MOBILE_BRIDGE_KEY, config);
 }
+
+// --- Unfollow tab: one entry per X account id ---
+
+const EMPTY_UNFOLLOW: UnfollowData = { following: [], hasStats: false, partial: false, interactions: {}, keep: [], history: [] };
+
+export async function getUnfollowData(accountId: string): Promise<UnfollowData> {
+  const all = (await read<Record<string, UnfollowData>>(UNFOLLOW_KEY)) ?? {};
+  return { ...EMPTY_UNFOLLOW, ...all[accountId] };
+}
+
+export async function modifyUnfollowData(
+  accountId: string,
+  change: (data: UnfollowData) => UnfollowData,
+): Promise<UnfollowData> {
+  const all = await modify<Record<string, UnfollowData>>(UNFOLLOW_KEY, {}, (stored) => ({
+    ...stored,
+    [accountId]: change({ ...EMPTY_UNFOLLOW, ...stored[accountId] }),
+  }));
+  return all[accountId];
+}
+

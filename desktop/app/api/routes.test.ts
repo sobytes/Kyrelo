@@ -8,11 +8,13 @@ import { beforeAll, describe, expect, it } from "vitest";
 let posts: typeof import("./scheduler/posts/route");
 let postById: typeof import("./scheduler/posts/[id]/route");
 let settings: typeof import("./grok-settings/route");
+let unfollow: typeof import("./unfollow/route");
 beforeAll(async () => {
   process.env.STORAGE_DIR = await mkdtemp(path.join(os.tmpdir(), "kyrelo-routes-"));
   posts = await import("./scheduler/posts/route");
   postById = await import("./scheduler/posts/[id]/route");
   settings = await import("./grok-settings/route");
+  unfollow = await import("./unfollow/route");
   // Posts must belong to a connected account.
   const { saveAccount } = await import("@/lib/browser-connect");
   const addedAt = new Date().toISOString();
@@ -113,3 +115,51 @@ describe("monitor settings route", () => {
     expect("evil" in body.settings).toBe(false);
   });
 });
+
+describe("unfollow route", () => {
+  // Every refusal happens before a browser opens.
+  beforeAll(async () => {
+    const { modifyUnfollowData } = await import("@/lib/storage");
+    await modifyUnfollowData("acct", (d) => ({
+      ...d,
+      following: [
+        { handle: "ghost", name: "Ghost", followsYou: false, posts: 0 },
+        { handle: "Pal", name: "Pal", followsYou: true, posts: 0 },
+        { handle: "celeb", name: "Celeb", followsYou: false, posts: 0, followers: 2_000_000 },
+      ],
+      keep: ["pal"],
+    }));
+  });
+
+  const unfollowReq = (handles: unknown, rules?: object) =>
+    unfollow.POST(json("POST", { action: "unfollow", accountId: "acct", handles, rules }));
+
+  it("refuses accounts that aren't in the last scan", async () => {
+    const res = await unfollowReq(["stranger"]);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/isn't in your last scan/);
+  });
+
+  it("refuses kept and big accounts, whatever the page sent", async () => {
+    expect((await (await unfollowReq(["pal"])).json()).error).toMatch(/protected \(on your keep list\)/);
+    expect((await (await unfollowReq(["celeb"])).json()).error).toMatch(/protected \(big account\)/);
+  });
+
+  it("caps a run", async () => {
+    const res = await unfollowReq(Array.from({ length: 101 }, (_, i) => `a${i}`));
+    expect((await res.json()).error).toMatch(/up to 100 at a time/);
+  });
+
+  it("only follows again accounts it unfollowed", async () => {
+    const res = await unfollow.POST(json("POST", { action: "refollow", accountId: "acct", handles: ["ghost"] }));
+    expect((await res.json()).error).toMatch(/wasn't unfollowed here/);
+  });
+
+  it("keeps and unkeeps", async () => {
+    const res = await unfollow.POST(json("POST", { action: "keep", accountId: "acct", handle: "Ghost" }));
+    expect((await res.json()).data.keep).toEqual(["pal", "ghost"]);
+    const undo = await unfollow.POST(json("POST", { action: "keep", accountId: "acct", handle: "ghost", keep: false }));
+    expect((await undo.json()).data.keep).toEqual(["pal"]);
+  });
+});
+

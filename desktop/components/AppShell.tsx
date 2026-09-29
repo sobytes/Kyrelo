@@ -43,6 +43,17 @@ const NAV: NavItem[] = [
     ),
   },
   {
+    href: "/unfollow",
+    label: "Unfollow",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="9" cy="8" r="4" />
+        <path d="M2 21a7 7 0 0 1 14 0" />
+        <path d="M17 11h5" />
+      </svg>
+    ),
+  },
+  {
     href: "/connected",
     label: "Connected",
     icon: (

@@ -92,8 +92,10 @@ const STEALTH_INIT = `
 // UI-triggered routes, and the connect flow when it replaces a profile dir)
 // inside a single Node process.
 const browserLocks: Record<string, Promise<void>> = {};
-// How many callers are queued behind the current holder, per lock key.
+// How many callers are queued behind the current holder, per lock key, and
+// how many of those are posts.
 const lockWaiters: Record<string, number> = {};
+const postWaiters: Record<string, number> = {};
 // What currently holds each lock, for the "waited for the browser" log.
 const lockHolders: Record<string, string> = {};
 
@@ -102,13 +104,16 @@ export async function acquireBrowserLock(platform: string, purpose = "unknown"):
   let release!: () => void;
   const current = new Promise<void>((r) => (release = r));
   browserLocks[platform] = prev.then(() => current);
+  const isPost = purpose === "post";
   lockWaiters[platform] = (lockWaiters[platform] ?? 0) + 1;
+  if (isPost) postWaiters[platform] = (postWaiters[platform] ?? 0) + 1;
   const heldBy = lockHolders[platform];
   const waitStart = Date.now();
   try {
     await prev;
   } finally {
     lockWaiters[platform]--;
+    if (isPost) postWaiters[platform]--;
   }
   const waitedSec = Math.round((Date.now() - waitStart) / 1000);
   if (waitedSec >= 5) {
@@ -122,12 +127,21 @@ export async function acquireBrowserLock(platform: string, purpose = "unknown"):
 }
 
 /**
- * True when someone (e.g. a scheduled post) is queued for this account's
- * browser. Long-running holders like the timeline scraper check this and
- * hand the browser over early so posts go out on time.
+ * True when anything is queued for this account's browser. The Monitor's
+ * scraper checks this and hands over at once: its checks are short and pick
+ * up where they left off next time.
  */
 export function browserHasWaiters(platform: string, accountId: string): boolean {
   return (lockWaiters[`${platform}:${accountId}`] ?? 0) > 0;
+}
+
+/**
+ * True when a post is queued for this account's browser. Long jobs the user
+ * started (Deleter, Unfollow) check this and stop early so posts go out on
+ * time; anything else, like the Monitor's next check, waits for them.
+ */
+export function postWaitingForBrowser(platform: string, accountId: string): boolean {
+  return (postWaiters[`${platform}:${accountId}`] ?? 0) > 0;
 }
 
 // Strip files that make Chrome refuse to start cleanly on a profile dir:
