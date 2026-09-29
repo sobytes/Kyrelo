@@ -177,6 +177,83 @@ final class BridgeClient {
         let removeImage: Bool
     }
 
+    // MARK: - Monitor: watched handles and keywords
+
+    func setHandles(_ handles: [String]) async throws -> MonitorSettings {
+        try await request(SettingsResponse.self, "PUT", "/api/grok-settings", body: ["handles": handles]).settings
+    }
+
+    func setKeywords(_ keywords: [String]) async throws -> MonitorSettings {
+        try await request(SettingsResponse.self, "PUT", "/api/grok-settings", body: ["keywords": keywords]).settings
+    }
+
+    // MARK: - X tools (the desktop runs them in its Chrome)
+
+    func deleterJob() async throws -> DeleterJob? {
+        try await request(DeleterResponse.self, "GET", "/api/deleter").job
+    }
+
+    func startDeleter(accountId: String, target: DeleteTarget, count: Int, startingAt: Int, includeReposts: Bool) async throws -> DeleterJob? {
+        try await request(DeleterResponse.self, "POST", "/api/deleter", body: DeleterStart(
+            accountId: accountId, target: target.rawValue, count: count, startingAt: startingAt, includeReposts: includeReposts
+        )).job
+    }
+
+    /// The followed accounts with the desktop's verdict under these rules.
+    func unfollowState(accountId: String, rules: UnfollowRules?) async throws -> UnfollowState {
+        let json = String(decoding: try JSONEncoder().encode(rules ?? Self.defaultRules), as: UTF8.self)
+        var q = URLComponents()
+        q.queryItems = [URLQueryItem(name: "accountId", value: accountId), URLQueryItem(name: "rules", value: json)]
+        return try await request(UnfollowState.self, "GET", "/api/unfollow?\(q.percentEncodedQuery ?? "")")
+    }
+
+    /// scan, activity (handles), unfollow (handles + rules), refollow (handles), keep (handle + keep).
+    func unfollowAction(_ action: String, accountId: String, handles: [String] = [], handle: String? = nil,
+                        keep: Bool? = nil, rules: UnfollowRules? = nil) async throws {
+        _ = try await request(Empty.self, "POST", "/api/unfollow", body: UnfollowAction(
+            action: action, accountId: accountId, handles: handles, handle: handle, keep: keep, rules: rules
+        ))
+    }
+
+    func finderState(accountId: String) async throws -> FinderState {
+        try await request(FinderState.self, "GET", "/api/handle-finder?accountId=\(accountId.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? accountId)")
+    }
+
+    func startFinder(accountId: String, profile: BrandProfile) async throws {
+        _ = try await request(Empty.self, "POST", "/api/handle-finder", body: FinderStart(
+            action: "find", accountId: accountId, brief: profile.brief, url: profile.url, competitors: profile.competitors
+        ))
+    }
+
+    func followSuggested(accountId: String, handles: [String]) async throws {
+        _ = try await request(Empty.self, "POST", "/api/handle-finder", body: FinderFollow(action: "follow", accountId: accountId, handles: handles))
+    }
+
+    /// The desktop's defaults (lib/unfollow-rules.ts DEFAULT_RULES).
+    static let defaultRules = UnfollowRules(dead: true, inactiveDays: 180, neverEngage: false, bots: true, notFollowingBack: false, protectBig: true)
+
+    // MARK: - Connecting accounts (Bluesky, Mastodon, Threads; X signs in on the computer)
+
+    /// Checks the credentials on the desktop and saves the account; returns its handle.
+    func connectAccount(_ platform: PlatformId, fields: [String: String]) async throws -> String {
+        try await request(ConnectResult.self, "POST", "/api/accounts/phone", body: PhoneConnect(
+            action: "connect", platform: platform.rawValue, fields: fields
+        ), slow: true).connected()
+    }
+
+    /// The server's "Authorize Kyrelo?" page; it redirects to kyrelo://mastodon.
+    func startMastodon(server: String) async throws -> URL {
+        let r = try await request(MastodonStart.self, "POST", "/api/accounts/phone", body: PhoneConnect(action: "mastodon-start", server: server), slow: true)
+        guard let link = r.authorizeUrl, let url = URL(string: link) else { throw BridgeError.server(r.error ?? "Couldn't reach that server.") }
+        return url
+    }
+
+    func finishMastodon(state: String, code: String) async throws -> String {
+        try await request(ConnectResult.self, "POST", "/api/accounts/phone", body: PhoneConnect(
+            action: "mastodon-finish", state: state, code: code
+        ), slow: true).connected()
+    }
+
     // MARK: - Transport
 
     private func request<T: Decodable>(
@@ -242,4 +319,50 @@ final class BridgeClient {
         let imagePath: String?
     }
     private struct UploadResponse: Decodable { let filename: String? }
+    private struct DeleterResponse: Decodable { let job: DeleterJob? }
+    private struct DeleterStart: Encodable {
+        let accountId: String
+        let target: String
+        let count: Int
+        let startingAt: Int
+        let includeReposts: Bool
+    }
+    private struct UnfollowAction: Encodable {
+        let action: String
+        let accountId: String
+        let handles: [String]
+        let handle: String?
+        let keep: Bool?
+        let rules: UnfollowRules?
+    }
+    private struct FinderStart: Encodable {
+        let action: String
+        let accountId: String
+        let brief: String
+        let url: String
+        let competitors: String
+    }
+    private struct PhoneConnect: Encodable {
+        let action: String
+        var platform: String?
+        var fields: [String: String]?
+        var server: String?
+        var state: String?
+        var code: String?
+    }
+    /// { ok, handle } or { error }, as lib/accounts.ts ConnectResult.
+    private struct ConnectResult: Decodable {
+        let handle: String?
+        let error: String?
+        func connected() throws -> String {
+            guard let handle else { throw BridgeError.server(error ?? "Couldn't connect.") }
+            return handle
+        }
+    }
+    private struct MastodonStart: Decodable { let authorizeUrl: String?; let error: String? }
+    private struct FinderFollow: Encodable {
+        let action: String
+        let accountId: String
+        let handles: [String]
+    }
 }

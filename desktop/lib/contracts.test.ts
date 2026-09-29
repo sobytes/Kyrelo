@@ -38,13 +38,15 @@ describe("contract: platform rules", () => {
     for (const id of PLATFORM_IDS) expect(PLATFORMS[id].maxImageBytes).toBeLessThanOrEqual(MAX_IMAGE_BYTES);
   });
 
-  it("lists the same platforms, names and limits", () => {
+  it("lists the same platforms, names, limits and how each connects", () => {
     expect(rules.platforms).toEqual(
       PLATFORM_IDS.map((id) => ({
         id,
         label: PLATFORMS[id].label,
         maxLength: PLATFORMS[id].maxLength,
         maxImageBytes: PLATFORMS[id].maxImageBytes,
+        connect: PLATFORMS[id].connect,
+        credentials: (PLATFORMS[id].credentials ?? []).map((f) => f.key),
       })),
     );
   });
@@ -161,6 +163,38 @@ describe("contract: services", () => {
       expect(service.sections).toContain("accounts");
       expect(service.label).toBe(PLATFORMS[service.id as keyof typeof PLATFORMS].label);
     }
+  });
+});
+
+describe("contract: X tools sample (Deleter, Unfollow, finder)", () => {
+  const sample = contract("x-tools.json");
+  const allowed = (fields: string) => fields.split(/\s+/).filter(Boolean);
+  const jobFields = "id kind accountId handle startedAt finishedAt running total done failed log error";
+
+  it("uses only fields the Deleter job defines", () => {
+    const fields = allowed("id accountId handle target count startingAt includeReposts startedAt finishedAt running deleted skipped log error");
+    for (const key of keyPaths(sample.deleter.job)) expect(fields).toContain(key);
+  });
+
+  it("has the fields GET /api/unfollow returns for the phone", async () => {
+    const route = await import("@/app/api/unfollow/route");
+    const { NextRequest } = await import("next/server");
+    const real = await (await route.GET(new NextRequest("http://127.0.0.1:3000/api/unfollow?accountId=none&rules=%7B%7D"))).json();
+    expect(Object.keys(sample.unfollow).sort()).toEqual(Object.keys(real).sort());
+    expect(Object.keys(sample.unfollow.rules).sort()).toEqual(Object.keys(real.rules).sort());
+    const rowFields = allowed(
+      "handle name followers following posts followsYou lastPostAt kept reasons protectedBecause needsActivityCheck",
+    );
+    for (const key of keyPaths(sample.unfollow.rows)) expect(rowFields).toContain(key);
+    for (const key of keyPaths(sample.unfollow.job)) expect(allowed(jobFields)).toContain(key);
+  });
+
+  it("uses only fields a handle suggestion defines", () => {
+    const fields = allowed(
+      "handle name group reason fromX userId bio followers posts lastPostAt youFollow followedAt",
+    );
+    for (const key of keyPaths(sample.finder.data.suggestions)) expect(fields).toContain(key);
+    expect(Object.keys(sample.finder).sort()).toEqual(["aiReady", "data", "job", "profile"]);
   });
 });
 

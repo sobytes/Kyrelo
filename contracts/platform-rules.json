@@ -4,25 +4,38 @@
       "id": "twitter",
       "label": "X",
       "maxLength": 4000,
-      "maxImageBytes": 5242880
+      "maxImageBytes": 5242880,
+      "connect": "browser",
+      "credentials": []
     },
     {
       "id": "bluesky",
       "label": "Bluesky",
       "maxLength": 300,
-      "maxImageBytes": 1000000
+      "maxImageBytes": 1000000,
+      "connect": "credentials",
+      "credentials": [
+        "handle",
+        "appPassword"
+      ]
     },
     {
       "id": "mastodon",
       "label": "Mastodon",
       "maxLength": 500,
-      "maxImageBytes": 5242880
+      "maxImageBytes": 5242880,
+      "connect": "oauth",
+      "credentials": []
     },
     {
       "id": "threads",
       "label": "Threads",
       "maxLength": 500,
-      "maxImageBytes": 0
+      "maxImageBytes": 0,
+      "connect": "credentials",
+      "credentials": [
+        "token"
+      ]
     }
   ],
   "lengthCases": [

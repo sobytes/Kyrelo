@@ -7,6 +7,7 @@ struct FeedView: View {
     @State private var model: FeedModel
     @State private var replying: ReplyTarget?
     @State private var editingAutopilot = false
+    @State private var editingWatchList = false
     @Environment(\.scenePhase) private var scenePhase
 
     init(client: BridgeClient, onUnpair: @escaping () -> Void) {
@@ -53,6 +54,11 @@ struct FeedView: View {
                 Task { await model.load() }
             }
         }
+        .sheet(isPresented: $editingWatchList) {
+            if let settings = model.settings {
+                WatchListSheet(client: model.client, settings: settings) { model.settings = $0 }
+            }
+        }
         .sheet(isPresented: $editingAutopilot) {
             if let autopilot = model.settings?.autopilot {
                 AutopilotSheet(autopilot: autopilot, onSave: model.saveAutopilot)
@@ -79,6 +85,9 @@ struct FeedView: View {
                         Group { if model.checking { ProgressView() } else { Text("Check now") } }.frame(maxWidth: .infinity)
                     }
                     .disabled(model.checking)
+                    Button { editingWatchList = true } label: {
+                        Text("Watch list").frame(maxWidth: .infinity)
+                    }
                     Button { editingAutopilot = true } label: {
                         Text("Autopilot: \(settings.autopilot.enabled ? "on" : "off")").frame(maxWidth: .infinity)
                     }

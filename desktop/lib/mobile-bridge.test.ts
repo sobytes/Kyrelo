@@ -62,9 +62,21 @@ describe("phone bridge", () => {
       ["POST", "/api/campaigns/abc-123/schedule"],
       ["DELETE", "/api/campaigns/abc-123"],
       ["GET", "/api/brand-profile"],
+      ["GET", "/api/deleter"],
+      ["POST", "/api/deleter"],
+      ["POST", "/api/unfollow"],
+      ["POST", "/api/handle-finder"],
+      ["POST", "/api/accounts/phone"],
     ]) {
       const res = await call(path, { method, body: method === "GET" ? undefined : "{}" });
       expect(res.status, `${method} ${path}`).toBe(200);
+      expect(apiCalls.at(-1)?.url).toBe(path);
+    }
+  });
+
+  it("passes the query on, for reads that name the account", async () => {
+    for (const path of ["/api/unfollow?accountId=kyreloapp", "/api/handle-finder?accountId=kyreloapp"]) {
+      expect((await call(path, {})).status).toBe(200);
       expect(apiCalls.at(-1)?.url).toBe(path);
     }
   });
@@ -74,11 +86,9 @@ describe("phone bridge", () => {
     for (const [method, path] of [
       ["POST", "/api/mobile"], // phone access settings: never from the phone
       ["PUT", "/api/settings/keys"],
-      ["POST", "/api/deleter"],
-      ["POST", "/api/unfollow"],
-      ["GET", "/api/unfollow"],
-      ["POST", "/api/handle-finder"],
-      ["POST", "/api/accounts"], // connecting / disconnecting accounts
+      ["GET", "/api/settings/keys"],
+      ["POST", "/api/accounts"], // disconnecting accounts, X's Chrome sign-in
+      ["GET", "/api/accounts/mastodon/callback"],
       ["DELETE", "/api/grok-state"],
       ["PATCH", "/api/scheduler/posts/a/../../settings/keys"],
       ["GET", "/api/campaigns/abc/secret"],

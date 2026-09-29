@@ -28,7 +28,7 @@ export function AccountsPanel({ platform }: { platform: PlatformId }) {
 
       {spec.connect === "browser" ? (
         <BrowserConnectCard platform={platform} connect={connect} />
-      ) : platform === "mastodon" ? (
+      ) : spec.connect === "oauth" ? (
         <MastodonConnectCard connect={connect} />
       ) : (
         <CredentialsConnectCard platform={platform} connect={connect} />

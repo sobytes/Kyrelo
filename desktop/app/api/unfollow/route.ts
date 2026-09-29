@@ -2,24 +2,62 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGrokSettings, getUnfollowData } from "@/lib/storage";
 import {
   getUnfollowJob,
+  unfollowContext,
   setKept,
   startActivityCheck,
   startRefollow,
   startScan,
   startUnfollow,
 } from "@/lib/unfollow";
-import { parseRules } from "@/lib/unfollow-rules";
+import { needsActivityCheck, parseRules, protectionReason, unfollowReasons } from "@/lib/unfollow-rules";
 
 export const dynamic = "force-dynamic";
 
-// The Unfollow tab. Not reachable from the phone (see lib/mobile-bridge.ts).
+// The Unfollow section, for the desktop and (through lib/mobile-bridge.ts)
+// the phone.
+//
+// With `rules` (JSON, see parseRules) the answer also has `rows`: each
+// followed account with the reasons the rules give and why it's kept, if it
+// is. The phone shows those rather than re-implementing the rules.
 
 export async function GET(req: NextRequest) {
   const accountId = req.nextUrl.searchParams.get("accountId");
   const job = getUnfollowJob();
   if (!accountId) return NextResponse.json({ job });
   const [data, settings] = await Promise.all([getUnfollowData(accountId), getGrokSettings()]);
-  return NextResponse.json({ job, data, watched: settings.handles.map((h) => h.toLowerCase()) });
+  const rawRules = req.nextUrl.searchParams.get("rules");
+  if (!rawRules) return NextResponse.json({ job, data, watched: settings.handles.map((h) => h.toLowerCase()) });
+
+  let parsed: unknown = {};
+  try {
+    parsed = JSON.parse(rawRules);
+  } catch {
+    // Unreadable rules: the defaults.
+  }
+  const rules = parseRules(parsed);
+  const ctx = await unfollowContext(data);
+  const rows = data.following.map((a) => ({
+    handle: a.handle,
+    name: a.name,
+    followers: a.followers,
+    following: a.following,
+    posts: a.posts,
+    followsYou: a.followsYou,
+    lastPostAt: a.lastPostAt,
+    kept: data.keep.includes(a.handle.toLowerCase()),
+    reasons: unfollowReasons(a, rules, ctx),
+    protectedBecause: protectionReason(a, rules, ctx),
+    needsActivityCheck: needsActivityCheck(a, ctx.now),
+  }));
+  return NextResponse.json({
+    job,
+    rules,
+    scannedAt: data.scannedAt ?? null,
+    hasStats: data.hasStats,
+    partial: data.partial,
+    rows,
+    history: data.history.slice(-50).reverse(),
+  });
 }
 
 export async function POST(req: NextRequest) {

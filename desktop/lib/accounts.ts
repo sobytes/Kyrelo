@@ -55,6 +55,9 @@ export function connectWithCredentials(platform: PlatformId, fields: Fields): Pr
 
 // --- Mastodon: sign in through the browser ------------------------------------------
 
+/** The phone signs in in its own browser sheet, which catches this redirect. */
+export const PHONE_MASTODON_REDIRECT = "kyrelo://mastodon";
+
 interface PendingMastodon {
   instance: string;
   clientId: string;
@@ -70,12 +73,15 @@ const SIGN_IN_WINDOW_MS = 15 * 60_000;
 
 /**
  * Registers Kyrelo with the user's server and returns the page where they
- * approve it. `origin` is where this app is served, for the redirect back.
+ * approve it. `redirectUri` is where the server sends the code: this app's
+ * callback route, or the phone app (PHONE_MASTODON_REDIRECT).
  */
-export async function startMastodonConnect(server: string, origin: string): Promise<{ authorizeUrl: string } | { error: string }> {
+export async function startMastodonConnect(
+  server: string,
+  redirectUri: string,
+): Promise<{ authorizeUrl: string } | { error: string }> {
   const instance = normalizeInstance(server);
   if (!instance) return { error: "Enter your Mastodon server, like mastodon.social." };
-  const redirectUri = `${origin}/api/accounts/mastodon/callback`;
   let app;
   try {
     app = await registerApp(instance, redirectUri);

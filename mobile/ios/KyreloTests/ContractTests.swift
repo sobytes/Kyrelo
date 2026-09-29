@@ -100,13 +100,20 @@ final class ContractTests: XCTestCase {
     // MARK: platform-rules.json
 
     private struct PlatformRulesContract: Decodable {
-        struct Platform: Decodable { let id: String; let label: String; let maxLength: Int; let maxImageBytes: Int }
+        struct Platform: Decodable {
+            let id: String
+            let label: String
+            let maxLength: Int
+            let maxImageBytes: Int
+            let connect: String
+            let credentials: [String]
+        }
         struct LengthCase: Decodable { let platform: String; let text: String; let length: Int }
         let platforms: [Platform]
         let lengthCases: [LengthCase]
     }
 
-    func testPlatformsNamesAndLimitsMatch() throws {
+    func testPlatformsNamesLimitsAndConnectingMatch() throws {
         let rules = try JSONDecoder().decode(PlatformRulesContract.self, from: contract("platform-rules"))
         XCTAssertEqual(PlatformId.allCases.map(\.rawValue), rules.platforms.map(\.id))
         for p in rules.platforms {
@@ -114,6 +121,13 @@ final class ContractTests: XCTestCase {
             XCTAssertEqual(platform.label, p.label)
             XCTAssertEqual(platform.maxLength, p.maxLength)
             XCTAssertEqual(platform.maxImageBytes, p.maxImageBytes)
+            switch platform.connect {
+            case .browser: XCTAssertEqual(p.connect, "browser")
+            case .oauth: XCTAssertEqual(p.connect, "oauth")
+            case let .credentials(fields):
+                XCTAssertEqual(p.connect, "credentials")
+                XCTAssertEqual(fields.map(\.key), p.credentials)
+            }
         }
     }
 
@@ -204,5 +218,31 @@ final class ContractTests: XCTestCase {
         XCTAssertTrue(s.campaignsInfo.aiReady)
         XCTAssertEqual(s.brandProfile.url, "https://kyrelo.com")
         XCTAssertNotNil(ISODate.parse(campaign.createdAt))
+    }
+
+    // MARK: x-tools.json
+
+    private struct XToolsContract: Decodable {
+        struct Deleter: Decodable { let job: DeleterJob? }
+        let deleter: Deleter
+        let unfollow: UnfollowState
+        let finder: FinderState
+    }
+
+    func testDecodesTheDesktopsXTools() throws {
+        let x = try JSONDecoder().decode(XToolsContract.self, from: contract("x-tools"))
+        XCTAssertEqual(x.deleter.job?.target, .likes)
+        XCTAssertEqual(x.deleter.job?.running, true)
+
+        XCTAssertEqual(x.unfollow.rows.map(\.suggested), [true, false, false])
+        XCTAssertEqual(x.unfollow.rows[1].protectedBecause, "on your keep list")
+        XCTAssertEqual(x.unfollow.history.first?.action, "unfollowed")
+        XCTAssertEqual(x.unfollow.job?.kind, "scan")
+        // The rules go back to the desktop with its field names.
+        let rules = try JSONSerialization.jsonObject(with: JSONEncoder().encode(x.unfollow.rules)) as? [String: Any]
+        XCTAssertEqual(Set((rules ?? [:]).keys), ["dead", "inactiveDays", "neverEngage", "bots", "notFollowingBack", "protectBig"])
+
+        XCTAssertEqual(x.finder.data.suggestions.first?.group, "audience")
+        XCTAssertTrue(x.finder.aiReady)
     }
 }

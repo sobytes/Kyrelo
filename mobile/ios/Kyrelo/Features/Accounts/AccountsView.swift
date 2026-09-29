@@ -1,0 +1,158 @@
+import AuthenticationServices
+import SwiftUI
+
+/// A service's Accounts section: who's connected, and connecting another,
+/// as on the desktop. Everything is checked and stored on the computer;
+/// disconnecting stays there. X signs in through Chrome on the computer.
+struct AccountsView: View {
+    let service: ServiceSpec
+    let client: BridgeClient
+    let accounts: [Account]
+    let onChange: () async -> Void
+
+    var body: some View {
+        List {
+            Section {
+                if accounts.isEmpty {
+                    Text("None connected yet.").foregroundStyle(Theme.muted)
+                }
+                ForEach(accounts) { account in
+                    Text("@\(account.handle)").font(.inter(.body, weight: .semibold)).foregroundStyle(Theme.fg)
+                }
+            }
+            Section {
+                switch service.id.connect {
+                case .browser:
+                    Text("\(service.label) accounts connect in Kyrelo on your computer: it opens Chrome there for you to sign in once.")
+                        .foregroundStyle(Theme.muted)
+                case .oauth:
+                    MastodonConnect(client: client, onDone: onChange)
+                case let .credentials(fields):
+                    CredentialsConnect(platform: service.id, fields: fields, client: client, onDone: onChange)
+                }
+            } header: {
+                Text("Connect \(service.label)")
+            } footer: {
+                Text("Stored only on your computer. Disconnect accounts there. Kyrelo isn't affiliated with \(service.label).")
+                    .font(.inter(.caption))
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(Theme.canvas)
+    }
+}
+
+/// Bluesky (handle + app password) or Threads (token): the fields from
+/// PlatformId.connect. The desktop checks them before saving.
+private struct CredentialsConnect: View {
+    let platform: PlatformId
+    let fields: [CredentialField]
+    let client: BridgeClient
+    let onDone: () async -> Void
+    @State private var values: [String: String] = [:]
+    @State private var saving = false
+    @State private var message: String?
+    @State private var failed = false
+
+    var body: some View {
+        Text(platform == .bluesky
+             ? "Use an app password, not your main password: Bluesky → Settings → Privacy and security → App passwords."
+             : "Threads needs a token from a Meta developer app. The steps are on the Threads page in Kyrelo on your computer; paste the token here.")
+            .font(.inter(.footnote)).foregroundStyle(Theme.muted)
+        ForEach(fields, id: \.key) { field in
+            Group {
+                if field.secret {
+                    SecureField(field.placeholder, text: binding(field.key))
+                } else {
+                    TextField(field.placeholder, text: binding(field.key))
+                }
+            }
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+        }
+        Button {
+            Task { await connect() }
+        } label: {
+            Group { if saving { ProgressView() } else { Text("Connect \(platform.label)") } }.frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.primary)
+        .disabled(saving || fields.contains { (values[$0.key] ?? "").trimmingCharacters(in: .whitespaces).isEmpty })
+        if let message {
+            Text(message).font(.inter(.footnote)).foregroundStyle(failed ? Theme.error : Theme.success)
+        }
+    }
+
+    private func binding(_ key: String) -> Binding<String> {
+        Binding(get: { values[key] ?? "" }, set: { values[key] = $0 })
+    }
+
+    private func connect() async {
+        saving = true
+        defer { saving = false }
+        do {
+            let handle = try await client.connectAccount(platform, fields: values)
+            values = [:]
+            failed = false
+            message = "@\(handle) is connected."
+            await onDone()
+        } catch {
+            failed = true
+            message = error.localizedDescription
+        }
+    }
+}
+
+/// Mastodon: type the server, approve Kyrelo in a browser sheet. The
+/// server hands the code to this app, which passes it to the computer.
+private struct MastodonConnect: View {
+    let client: BridgeClient
+    let onDone: () async -> Void
+    @State private var server = ""
+    @State private var working = false
+    @State private var message: String?
+    @State private var failed = false
+    @Environment(\.webAuthenticationSession) private var webAuth
+
+    var body: some View {
+        Text("Enter the server you signed up on, then approve Kyrelo. No tokens to copy.")
+            .font(.inter(.footnote)).foregroundStyle(Theme.muted)
+        TextField("mastodon.social", text: $server)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .keyboardType(.URL)
+        Button {
+            Task { await connect() }
+        } label: {
+            Group { if working { ProgressView() } else { Text("Connect") } }.frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.primary)
+        .disabled(working || server.trimmingCharacters(in: .whitespaces).isEmpty)
+        if let message {
+            Text(message).font(.inter(.footnote)).foregroundStyle(failed ? Theme.error : Theme.success)
+        }
+    }
+
+    private func connect() async {
+        working = true
+        defer { working = false }
+        do {
+            let page = try await client.startMastodon(server: server)
+            let callback = try await webAuth.authenticate(using: page, callbackURLScheme: "kyrelo")
+            let query = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            guard let code = query.first(where: { $0.name == "code" })?.value,
+                  let state = query.first(where: { $0.name == "state" })?.value else {
+                throw BridgeError.server("Kyrelo wasn't approved. You can try again.")
+            }
+            let handle = try await client.finishMastodon(state: state, code: code)
+            server = ""
+            failed = false
+            message = "@\(handle) is connected."
+            await onDone()
+        } catch ASWebAuthenticationSessionError.canceledLogin {
+            // Closed the sheet: nothing to say.
+        } catch {
+            failed = true
+            message = error.localizedDescription
+        }
+    }
+}

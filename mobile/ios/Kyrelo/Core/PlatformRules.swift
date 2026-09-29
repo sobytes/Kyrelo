@@ -41,6 +41,19 @@ extension PlatformId {
         }
     }
 
+    /// How an account is connected, as the desktop's PLATFORMS[..].connect.
+    var connect: ConnectMethod {
+        switch self {
+        case .twitter: .browser
+        case .bluesky: .credentials([
+            CredentialField(key: "handle", placeholder: "yourname.bsky.social", secret: false),
+            CredentialField(key: "appPassword", placeholder: "App password", secret: true),
+        ])
+        case .mastodon: .oauth
+        case .threads: .credentials([CredentialField(key: "token", placeholder: "Threads access token", secret: true)])
+        }
+    }
+
     /// The longest post a campaign writes here: X's standard 280 (not X
     /// Premium's longer limit), the platform's own elsewhere. As the desktop's
     /// campaignLimit.
@@ -61,4 +74,19 @@ extension PlatformId {
             .replacingOccurrences(of: #"https?://\S+"#, with: String(repeating: "x", count: 23), options: .regularExpression)
             .replacingOccurrences(of: #"(@[\w.]+)@[\w.-]+\w"#, with: "$1", options: .regularExpression)
     }
+}
+
+/// Signing in through Chrome on the computer (so not from the phone),
+/// fields the user types, or approving Kyrelo on the platform's own page.
+enum ConnectMethod {
+    case browser
+    case credentials([CredentialField])
+    case oauth
+}
+
+struct CredentialField {
+    /// The desktop's field name (lib/platforms.ts CredentialField.key).
+    let key: String
+    let placeholder: String
+    let secret: Bool
 }

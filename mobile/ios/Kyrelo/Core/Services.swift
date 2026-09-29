@@ -4,7 +4,7 @@ import Foundation
 /// (contracts/services.json; ContractTests keeps this list in step). Sections
 /// are a service's own per-account tools; the Scheduler and its campaigns are
 /// global, since a post goes to accounts on any platform. The phone has
-/// screens for the Monitor and the Scheduler; the rest are on the computer.
+/// every screen; the desktop does the work (X's tools run in its Chrome).
 enum SectionId: String, CaseIterable {
     case monitor, deleter, unfollow, accounts
 
@@ -24,8 +24,6 @@ struct ServiceSpec: Identifiable, Hashable {
     let sections: [SectionId]
 
     var label: String { id.label }
-    /// The sections this app has screens for, in order.
-    var phoneSections: [SectionId] { sections.filter { $0 == .monitor } }
 }
 
 enum Services {

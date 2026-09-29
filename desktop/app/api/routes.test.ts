@@ -159,6 +159,16 @@ describe("unfollow route", () => {
     expect((await res.json()).error).toMatch(/wasn't unfollowed here/);
   });
 
+  it("gives the phone each account's reasons for the rules it sends", async () => {
+    const url = `http://127.0.0.1:3000/api/unfollow?accountId=acct&rules=${encodeURIComponent(JSON.stringify({ notFollowingBack: true }))}`;
+    const body = await (await unfollow.GET(new NextRequest(url))).json();
+    expect(body.rules.notFollowingBack).toBe(true);
+    const byHandle = Object.fromEntries(body.rows.map((r: { handle: string }) => [r.handle, r]));
+    expect(byHandle.ghost.reasons).toContain("doesn't follow you");
+    expect(byHandle.Pal.protectedBecause).toBe("on your keep list");
+    expect(byHandle.celeb.protectedBecause).toBe("big account");
+  });
+
   it("keeps and unkeeps", async () => {
     const res = await unfollow.POST(json("POST", { action: "keep", accountId: "acct", handle: "Ghost" }));
     expect((await res.json()).data.keep).toEqual(["pal", "ghost"]);
@@ -244,3 +254,29 @@ describe("campaigns route", () => {
   });
 });
 
+
+describe("phone account connect route", () => {
+  const phone = () => import("./accounts/phone/route");
+
+  it("adds only: no disconnecting, and X isn't connected this way", async () => {
+    const { POST } = await phone();
+    expect((await POST(json("POST", { action: "disconnect", platform: "bluesky", accountId: "a" }))).status).toBe(400);
+    expect(await (await POST(json("POST", { action: "connect", platform: "twitter", fields: {} }))).json()).toEqual({
+      error: "X doesn't connect this way.",
+    });
+  });
+
+  it("sends Mastodon's approval back to the phone app", async () => {
+    const { POST } = await phone();
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async () => Response.json({ client_id: "cid", client_secret: "cs" })) as typeof fetch;
+    try {
+      const res = await (await POST(json("POST", { action: "mastodon-start", server: "mastodon.social" }))).json();
+      expect(new URL(res.authorizeUrl).searchParams.get("redirect_uri")).toBe("kyrelo://mastodon");
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+    const finish = await POST(json("POST", { action: "mastodon-finish", state: "forged", code: "c" }));
+    expect((await finish.json()).error).toMatch(/expired/);
+  });
+});

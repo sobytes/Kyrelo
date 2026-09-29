@@ -18,8 +18,11 @@ export interface PlatformSpec {
    * images there (Threads' API only takes images from a public web address).
    */
   maxImageBytes: number;
-  /** How an account is connected: logging in through Chrome, or credentials the user pastes. */
-  connect: "browser" | "credentials";
+  /**
+   * How an account is connected: logging in through Chrome, credentials the
+   * user pastes, or approving Kyrelo on the platform's own page (OAuth).
+   */
+  connect: "browser" | "credentials" | "oauth";
   /** Where to log in (browser platforms) or create the credentials. */
   loginUrl: string;
   /** The fields a credentials connect asks for, with where to get them. */
@@ -27,7 +30,7 @@ export interface PlatformSpec {
 }
 
 export interface CredentialField {
-  key: "handle" | "appPassword" | "instance" | "token";
+  key: "handle" | "appPassword" | "token";
   label: string;
   placeholder: string;
   secret?: boolean;
@@ -72,12 +75,9 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Kyrelo's own upload limit (lib/uploads.ts); every Mastodon server takes
     // at least 8 MB.
     maxImageBytes: 5 * 1024 * 1024,
-    connect: "credentials",
-    loginUrl: "https://docs.joinmastodon.org/client/token/",
-    credentials: [
-      { key: "instance", label: "Server", placeholder: "mastodon.social" },
-      { key: "token", label: "Access token", placeholder: "Your access token", secret: true },
-    ],
+    // Type the server, approve Kyrelo there (startMastodonConnect).
+    connect: "oauth",
+    loginUrl: "https://joinmastodon.org/servers",
   },
   threads: {
     id: "threads",

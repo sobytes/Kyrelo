@@ -1,0 +1,108 @@
+{
+  "deleter": {
+    "job": {
+      "id": "7d1e0000-0000-4000-8000-000000000001",
+      "accountId": "kyreloapp",
+      "handle": "kyreloapp",
+      "target": "likes",
+      "count": 10,
+      "startingAt": 0,
+      "includeReposts": false,
+      "startedAt": "2026-09-30T09:00:00.000Z",
+      "running": true,
+      "deleted": ["2104000000000000001"],
+      "skipped": [],
+      "log": ["[2026-09-30T09:00:02.000Z] Opening @kyreloapp's likes (skip 0, remove up to 10, likes)"]
+    }
+  },
+  "unfollow": {
+    "job": {
+      "id": "7d1e0000-0000-4000-8000-000000000002",
+      "kind": "scan",
+      "accountId": "kyreloapp",
+      "handle": "kyreloapp",
+      "startedAt": "2026-09-30T08:00:00.000Z",
+      "finishedAt": "2026-09-30T08:02:00.000Z",
+      "running": false,
+      "total": 0,
+      "done": 11,
+      "failed": 0,
+      "log": ["[2026-09-30T08:02:00.000Z] Scan finished."]
+    },
+    "rules": { "dead": true, "inactiveDays": 180, "neverEngage": false, "bots": true, "notFollowingBack": false, "protectBig": true },
+    "scannedAt": "2026-09-30T08:02:00.000Z",
+    "hasStats": true,
+    "partial": false,
+    "rows": [
+      {
+        "handle": "quietone",
+        "name": "Quiet One",
+        "followers": 120,
+        "following": 4800,
+        "posts": 3,
+        "followsYou": false,
+        "lastPostAt": null,
+        "kept": false,
+        "reasons": ["has never posted", "follows 4,800, followed by 120"],
+        "protectedBecause": null,
+        "needsActivityCheck": false
+      },
+      {
+        "handle": "friend",
+        "name": "Friend",
+        "followers": 900,
+        "following": 400,
+        "posts": 3000,
+        "followsYou": true,
+        "lastPostAt": "2026-09-29T10:00:00.000Z",
+        "kept": true,
+        "reasons": [],
+        "protectedBecause": "on your keep list",
+        "needsActivityCheck": false
+      },
+      {
+        "handle": "nostats",
+        "name": "No Stats",
+        "followsYou": true,
+        "kept": false,
+        "reasons": [],
+        "protectedBecause": null,
+        "needsActivityCheck": true
+      }
+    ],
+    "history": [
+      {
+        "handle": "oldbot",
+        "name": "Old Bot",
+        "userId": "42",
+        "action": "unfollowed",
+        "at": "2026-09-29T12:00:00.000Z",
+        "reasons": ["no photo or bio"]
+      }
+    ]
+  },
+  "finder": {
+    "job": null,
+    "data": {
+      "suggestions": [
+        {
+          "handle": "levelsio",
+          "name": "@levelsio",
+          "group": "audience",
+          "reason": "The loudest indie-hacker account on X.",
+          "fromX": false,
+          "userId": "1577241403",
+          "followers": 965072,
+          "posts": 180702,
+          "lastPostAt": "2026-09-28T20:52:01.000Z",
+          "youFollow": false
+        }
+      ],
+      "dropped": [{ "handle": "IndieHackers", "why": "no posts in 97 days" }],
+      "follows": [],
+      "ranAt": "2026-09-29T13:04:04.000Z"
+    },
+    "profile": { "brief": "A free, open-source Buffer alternative.", "url": "https://kyrelo.com/", "competitors": "Buffer" },
+    "aiReady": true
+  }
+}

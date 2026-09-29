@@ -1,8 +1,7 @@
 import SwiftUI
 
 /// The home screen, as on the desktop: the Scheduler (every account), then
-/// one row per service. Services with phone screens (X's Monitor) open;
-/// the rest show their accounts, which post through the Scheduler.
+/// one row per service, each opening its sections.
 struct HomeView: View {
     let client: BridgeClient
     let onUnpair: () -> Void
@@ -27,12 +26,10 @@ struct HomeView: View {
                 .listRowBackground(Theme.canvas)
 
                 ForEach(Services.all) { service in
-                    let row = ServiceRow(service: service, accounts: accounts?.filter { $0.platform == service.id })
-                    if service.phoneSections.isEmpty {
-                        row.listRowBackground(Theme.canvas)
-                    } else {
-                        NavigationLink(value: service) { row }.listRowBackground(Theme.canvas)
+                    NavigationLink(value: service) {
+                        ServiceRow(service: service, accounts: accounts?.filter { $0.platform == service.id })
                     }
+                    .listRowBackground(Theme.canvas)
                 }
             }
             .listStyle(.plain)
@@ -77,7 +74,7 @@ private struct ServiceRow: View {
             mark: service.id.mark,
             title: service.label,
             status: status,
-            detail: service.phoneSections.isEmpty ? "Posts from the Scheduler" : service.phoneSections.map(\.label).joined(separator: " · ")
+            detail: service.sections.map(\.label).joined(separator: " · ")
         )
     }
 
@@ -115,41 +112,61 @@ private struct HomeRow: View {
     }
 }
 
-/// One service's sections on the phone. With more than one (X: Monitor and
-/// Scheduler), a switch at the top moves between them.
+/// One service's sections, as the desktop's sidebar: with more than one (X),
+/// a switch at the top moves between them.
 struct ServiceView: View {
     let service: ServiceSpec
     let client: BridgeClient
     let onUnpair: () -> Void
     @State private var section: SectionId
+    @State private var accounts: [Account] = []
+    @State private var error: String?
 
     init(service: ServiceSpec, client: BridgeClient, onUnpair: @escaping () -> Void) {
         self.service = service
         self.client = client
         self.onUnpair = onUnpair
-        _section = State(initialValue: service.phoneSections.first ?? .monitor)
+        _section = State(initialValue: service.sections.first ?? .accounts)
     }
 
     var body: some View {
         Group {
             switch section {
             case .monitor: FeedView(client: client, onUnpair: onUnpair)
-            // Deleter, Unfollow and Accounts are on the computer only.
-            case .deleter, .unfollow, .accounts: EmptyView()
+            case .deleter: DeleterView(client: client, accounts: accounts)
+            case .unfollow: UnfollowView(client: client, accounts: accounts)
+            case .accounts: AccountsView(service: service, client: client, accounts: accounts, onChange: loadAccounts)
             }
         }
+        // The account pickers start on the first account, so wait for the list.
+        .id(accounts.map(\.id))
         .navigationTitle(service.label)
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .top) {
-            if service.phoneSections.count > 1 {
-                Picker("Section", selection: $section) {
-                    ForEach(service.phoneSections, id: \.self) { Text($0.label).tag($0) }
+            VStack(alignment: .leading, spacing: 8) {
+                if service.sections.count > 1 {
+                    Picker("Section", selection: $section) {
+                        ForEach(service.sections, id: \.self) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(Theme.canvas)
+                if let error { Text(error).font(.inter(.footnote)).foregroundStyle(Theme.error) }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Theme.canvas)
+        }
+        .task { await loadAccounts() }
+    }
+
+    private func loadAccounts() async {
+        do {
+            accounts = try await client.accounts().filter { $0.platform == service.id }
+            error = nil
+        } catch BridgeError.unpaired {
+            onUnpair()
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 }

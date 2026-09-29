@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       // Mastodon: returns the server's "Authorize Kyrelo?" page; it redirects
       // back to /api/accounts/mastodon/callback.
       case "mastodon-start":
-        return NextResponse.json(await startMastodonConnect(body.server ?? "", req.nextUrl.origin));
+        return NextResponse.json(await startMastodonConnect(body.server ?? "", `${req.nextUrl.origin}/api/accounts/mastodon/callback`));
       case "disconnect":
         if (!isPlatformId(body.platform) || !body.accountId) return badRequest("platform and accountId required");
         return NextResponse.json(await disconnectAccount(body.platform, body.accountId));

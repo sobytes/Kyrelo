@@ -85,7 +85,7 @@ describe("accounts", () => {
         return new Response("{}", { status: 404 });
       }),
     );
-    const start = await accounts.startMastodonConnect("https://Mastodon.Social/@someone", "http://127.0.0.1:3000");
+    const start = await accounts.startMastodonConnect("https://Mastodon.Social/@someone", "http://127.0.0.1:3000/api/accounts/mastodon/callback");
     if (!("authorizeUrl" in start)) throw new Error(start.error);
     const url = new URL(start.authorizeUrl);
     expect(url.origin).toBe("https://mastodon.social");
@@ -107,7 +107,7 @@ describe("accounts", () => {
   });
 
   it("asks for a real Mastodon server", async () => {
-    expect(await accounts.startMastodonConnect("not a server", "http://127.0.0.1:3000")).toEqual({
+    expect(await accounts.startMastodonConnect("not a server", "http://127.0.0.1:3000/api/accounts/mastodon/callback")).toEqual({
       error: "Enter your Mastodon server, like mastodon.social.",
     });
   });

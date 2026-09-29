@@ -20,9 +20,10 @@ export const BRIDGE_PORT = Number(process.env.MOBILE_BRIDGE_PORT ?? 47771);
 const ID = "[A-Za-z0-9_.-]+";
 
 /**
- * What the phone may call: method + an exact path pattern. Everything else
- * gets 404: connecting or disconnecting accounts, API keys, the Deleter,
- * Unfollow, the handle finder and phone access itself.
+ * What the phone may call: method + an exact path pattern. The phone app
+ * does what the desktop does, through the same routes; everything else gets
+ * 404: disconnecting accounts, X's Chrome sign-in, API keys, and phone
+ * access itself.
  */
 const ALLOWED: [method: string, path: RegExp][] = [
   // Monitor + Autopilot
@@ -46,6 +47,16 @@ const ALLOWED: [method: string, path: RegExp][] = [
   ["DELETE", new RegExp(`^/api/campaigns/${ID}$`)], // discard
   ["POST", new RegExp(`^/api/campaigns/${ID}/schedule$`)],
   ["GET", /^\/api\/brand-profile$/],
+  // X's own tools. The desktop runs them in its Chrome; the phone starts
+  // them and follows along.
+  ["GET", /^\/api\/deleter$/],
+  ["POST", /^\/api\/deleter$/],
+  ["GET", /^\/api\/unfollow$/],
+  ["POST", /^\/api\/unfollow$/],
+  ["GET", /^\/api\/handle-finder$/],
+  ["POST", /^\/api\/handle-finder$/],
+  // Adding a Bluesky, Mastodon or Threads account (never removing one).
+  ["POST", /^\/api\/accounts\/phone$/],
 ];
 
 function isAllowed(method: string | undefined, path: string): boolean {
@@ -152,7 +163,8 @@ export async function handleBridgeRequest(
   if (body === null) return send(res, 413, { error: "request too large" });
 
   try {
-    const upstream = await fetch(`${localApiUrl()}${url.pathname}`, {
+    // The query goes too: some reads take the account (?accountId=).
+    const upstream = await fetch(`${localApiUrl()}${url.pathname}${url.search}`, {
       method: req.method,
       headers: { "Content-Type": contentType },
       body: body ? new Uint8Array(body) : undefined,
