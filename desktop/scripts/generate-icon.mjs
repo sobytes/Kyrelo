@@ -10,15 +10,25 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const buildDir = path.join(__dirname, "..", "build");
 
-// Flat, from the design tokens (contracts/design-tokens.json): a geometric K
-// in canvas on primary. `rounded` is Apple's macOS icon shape, which the
-// platform requires; the square one is for iOS, which masks icons itself.
+// Flat, from the design tokens (contracts/design-tokens.json): the original
+// Kyrelo mark (an X inside radar rings, with a "live" dot) in canvas on
+// primary, the dot in the accent. `rounded` is Apple's macOS icon shape,
+// which the platform requires; the square one is for iOS, which masks
+// icons itself.
 const tokens = JSON.parse(await fs.readFile(path.join(__dirname, "..", "..", "contracts", "design-tokens.json"), "utf8"));
 const iconSvg = (rounded) => `
 <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <rect width="1024" height="1024" rx="${rounded ? 224 : 0}" fill="${tokens.color.primary}"/>
-  <!-- K as one outline (no seams where parts meet), horizontal cuts. -->
-  <polygon fill="${tokens.color.canvas}" points="330,290 430,290 430,470 610,290 740,290 548,482 750,734 620,734 476,554 430,600 430,734 330,734"/>
+  <g fill="none" stroke="${tokens.color.canvas}" stroke-opacity="0.35" stroke-width="10">
+    <circle cx="512" cy="512" r="400"/>
+    <circle cx="512" cy="512" r="300"/>
+    <circle cx="512" cy="512" r="200"/>
+  </g>
+  <g stroke="${tokens.color.canvas}" stroke-width="104" stroke-linecap="round">
+    <line x1="340" y1="340" x2="684" y2="684"/>
+    <line x1="684" y1="340" x2="340" y2="684"/>
+  </g>
+  <circle cx="770" cy="254" r="46" fill="${tokens.color.accent}"/>
 </svg>
 `;
 
