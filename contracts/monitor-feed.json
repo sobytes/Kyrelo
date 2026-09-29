@@ -55,12 +55,23 @@
         "isReply": false,
         "seenAt": "2026-09-28T16:00:00.000Z",
         "skipped": "too-old"
+      },
+      {
+        "id": "2104630000000000002",
+        "handle": "SomeFounder",
+        "keyword": "buffer alternative",
+        "text": "Anyone got a Buffer alternative that doesn't charge per channel?",
+        "url": "https://x.com/SomeFounder/status/2104630000000000002",
+        "isReply": false,
+        "seenAt": "2026-09-28T17:40:10.000Z",
+        "postedAt": "2026-09-28T17:40:00.000Z"
       }
     ]
   },
   "settings": {
     "enabled": true,
     "handles": ["sama", "techcrunch", "wired", "openai"],
+    "keywords": ["buffer alternative"],
     "includeReplies": true,
     "aiProvider": "claude",
     "styleHint": "Take a sharp devil's-advocate angle.",

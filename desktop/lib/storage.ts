@@ -78,6 +78,7 @@ async function modify<T>(key: string, fallback: T, change: (value: T) => T): Pro
 const DEFAULT_GROK_SETTINGS: GrokSettings = {
   enabled: false,
   handles: [],
+  keywords: [],
   includeReplies: true,
   aiProvider: "claude",
   styleHint:

@@ -69,7 +69,7 @@ final class ContractTests: XCTestCase {
 
     func testDecodesTheDesktopsFeedAndSettings() throws {
         let feed = try JSONDecoder().decode(FeedContract.self, from: contract("monitor-feed"))
-        XCTAssertEqual(feed.state.tweets.count, 4)
+        XCTAssertEqual(feed.state.tweets.count, 5)
 
         let drafted = feed.state.tweets[0]
         XCTAssertEqual(drafted.draft?.score, 62)
@@ -81,6 +81,10 @@ final class ContractTests: XCTestCase {
         XCTAssertNotNil(feed.state.tweets[2].repliedAt)
         // No postedAt: sorted by when it was first seen.
         XCTAssertEqual(feed.state.tweets[3].sortDate, feed.state.tweets[3].seenAt)
+        // Found by a keyword search, from someone not watched.
+        XCTAssertNil(drafted.keyword)
+        XCTAssertEqual(feed.state.tweets[4].keyword, "buffer alternative")
+        XCTAssertEqual(feed.settings.keywords, ["buffer alternative"])
 
         XCTAssertEqual(feed.settings.autopilot.tone, .curious)
         XCTAssertEqual(feed.settings.autopilot.style, .grok)

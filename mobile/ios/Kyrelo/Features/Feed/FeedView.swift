@@ -72,7 +72,7 @@ struct FeedView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Toggle(isOn: Binding(get: { settings.enabled }, set: { on in Task { await model.setWatching(on) } })) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(settings.enabled ? "Watching \(settings.handles.count) handles" : "Not watching")
+                        Text(settings.enabled ? "Watching \(watchingSummary(settings))" : "Not watching")
                             .foregroundStyle(Theme.text)
                         Text(model.lastCheckedAt.map { "Last checked \(timeAgo($0))" } ?? "Not checked yet")
                             .font(.caption).foregroundStyle(Theme.muted)
@@ -96,6 +96,16 @@ struct FeedView: View {
     }
 }
 
+/// "3 handles and 2 keywords", as on the desktop's Monitor.
+private func watchingSummary(_ settings: MonitorSettings) -> String {
+    let count = { (n: Int, one: String) in "\(n) \(one)\(n == 1 ? "" : "s")" }
+    let keywords = settings.keywords?.count ?? 0
+    return [
+        settings.handles.isEmpty ? nil : count(settings.handles.count, "handle"),
+        keywords == 0 ? nil : count(keywords, "keyword"),
+    ].compactMap { $0 }.joined(separator: " and ")
+}
+
 /// Which tweet the reply sheet is for, and the draft it starts from.
 struct ReplyTarget: Identifiable {
     let tweet: SeenTweet
@@ -117,6 +127,13 @@ struct TweetRow: View {
                     Spacer()
                     Text("\(tweet.isReply ? "replied" : "posted") \(timeAgo(tweet.sortDate))")
                         .font(.caption).foregroundStyle(Theme.faint)
+                }
+                if let keyword = tweet.keyword {
+                    Text("“\(keyword)”")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                 }
                 Text(tweet.text).foregroundStyle(Theme.text)
 

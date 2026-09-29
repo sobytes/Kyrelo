@@ -4,6 +4,7 @@ import {
   saveGrokSettings,
   modifyGrokState,
 } from "@/lib/storage";
+import { normalizeKeywords } from "@/lib/keywords";
 import { AutopilotSettings, GrokSettings, REPLY_STYLES, REPLY_TONES } from "@/lib/types";
 
 function normalize(handles: string[]): string[] {
@@ -29,6 +30,9 @@ export async function PUT(req: NextRequest) {
   if (patch.handles !== undefined && !Array.isArray(patch.handles)) {
     return NextResponse.json({ error: "handles must be a list" }, { status: 400 });
   }
+  if (patch.keywords !== undefined && !Array.isArray(patch.keywords)) {
+    return NextResponse.json({ error: "keywords must be a list" }, { status: 400 });
+  }
   if (patch.aiProvider !== undefined && patch.aiProvider !== "claude" && patch.aiProvider !== "openai") {
     return NextResponse.json({ error: "aiProvider must be claude or openai" }, { status: 400 });
   }
@@ -36,6 +40,7 @@ export async function PUT(req: NextRequest) {
   const next: GrokSettings = {
     enabled: typeof patch.enabled === "boolean" ? patch.enabled : current.enabled,
     handles: patch.handles ? normalize(patch.handles.map(String)) : current.handles,
+    keywords: patch.keywords ? normalizeKeywords(patch.keywords) : current.keywords,
     includeReplies: typeof patch.includeReplies === "boolean" ? patch.includeReplies : current.includeReplies,
     aiProvider: patch.aiProvider ?? current.aiProvider,
     styleHint: typeof patch.styleHint === "string" ? patch.styleHint : current.styleHint,
@@ -53,6 +58,16 @@ export async function PUT(req: NextRequest) {
     current.handles.every((h, i) => h.toLowerCase() === next.handles[i].toLowerCase());
   if (!sameHandles) {
     await modifyGrokState(() => ({ bootstrapped: false, tweets: [] }));
+  } else {
+    // A removed keyword takes its matches out of the feed.
+    const kept = new Set(next.keywords.map((k) => k.toLowerCase()));
+    const dropped = current.keywords.some((k) => !kept.has(k.toLowerCase()));
+    if (dropped) {
+      await modifyGrokState((state) => ({
+        ...state,
+        tweets: state.tweets.filter((t) => !t.keyword || kept.has(t.keyword.toLowerCase())),
+      }));
+    }
   }
 
   return NextResponse.json({ settings: next });

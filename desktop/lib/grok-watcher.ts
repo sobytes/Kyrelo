@@ -1,5 +1,5 @@
 import { aiErrorMessage, draftReplies } from "./ai";
-import { getGrokSettings, getGrokState, modifyGrokState } from "./storage";
+import { getGrokSettings, getGrokState, listAccounts, modifyGrokState } from "./storage";
 import { defaultXAccountId } from "./accounts";
 import { connectingPlatform } from "./browser-connect";
 import { ReplyDraft, SeenTweet } from "./types";
@@ -56,12 +56,14 @@ async function runGrokWatcherOnce(): Promise<WatchResult> {
   const accountId = await defaultXAccountId();
   if (!accountId) return { skipped: "no-account" };
   const all = settings.handles.filter(Boolean);
-  if (all.length === 0) return { skipped: "no-handles" };
+  if (all.length === 0 && settings.keywords.length === 0) return { skipped: "no-handles" };
   // Start from a different handle each tick. A scrape can stop early to let a
   // scheduled post through, and rotating keeps the later handles from being
   // skipped every time.
-  const start = watcherState.offset++ % all.length;
+  const start = all.length ? watcherState.offset++ % all.length : 0;
   const handles = [...all.slice(start), ...all.slice(0, start)];
+  // Keyword searches leave out the user's own posts.
+  const ownHandles = (await listAccounts("twitter")).map((a) => a.handle);
 
   const { scrapeManyTimelines } = await import("./browser/twitter-watch");
 
@@ -72,6 +74,8 @@ async function runGrokWatcherOnce(): Promise<WatchResult> {
     scraped = await scrapeManyTimelines({
       accountId,
       handles,
+      keywords: settings.keywords,
+      ownHandles,
       includeReplies: settings.includeReplies,
       limit: 12,
     });
@@ -81,13 +85,17 @@ async function runGrokWatcherOnce(): Promise<WatchResult> {
   }
 
   // The scrape can take minutes. Settings may have changed meanwhile (a
-  // handle removed resets the feed), so keep only still-watched handles.
-  const watched = new Set((await getGrokSettings()).handles.map((h) => h.toLowerCase()));
+  // handle removed resets the feed), so keep only still-watched handles and
+  // keywords.
+  const latest = await getGrokSettings();
+  const watched = new Set(latest.handles.map((h) => h.toLowerCase()));
+  const keywords = new Set(latest.keywords.map((k) => k.toLowerCase()));
   const fresh: SeenTweet[] = scraped
-    .filter((t) => watched.has(t.handle.toLowerCase()))
+    .filter((t) => (t.keyword ? keywords.has(t.keyword.toLowerCase()) : watched.has(t.handle.toLowerCase())))
     .map((t) => ({
       id: t.id,
       handle: t.handle,
+      ...(t.keyword ? { keyword: t.keyword } : {}),
       text: t.text,
       url: t.url,
       isReply: t.isReply,
@@ -119,8 +127,10 @@ async function runGrokWatcherOnce(): Promise<WatchResult> {
 
     // The "new tweets" worth notifying on: ones we hadn't seen before this tick
     // and that weren't marked too-old at first sight.
+    // Keyword matches can come by the dozen, so only watched handles notify;
+    // matches wait in the feed (and get Autopilot drafts).
     newTweets = merged
-      .filter((t) => !existingIds.has(t.id) && !t.skipped)
+      .filter((t) => !existingIds.has(t.id) && !t.skipped && !t.keyword)
       .map((t) => ({
         id: t.id,
         handle: t.handle,

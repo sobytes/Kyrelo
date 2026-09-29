@@ -35,6 +35,8 @@ export interface AutopilotSettings {
 export interface GrokSettings {
   enabled: boolean;
   handles: string[];
+  /** Words or phrases to search X for on each check (lib/keywords.ts). */
+  keywords: string[];
   includeReplies: boolean;
   aiProvider: AiProvider;
   styleHint: string;
@@ -57,8 +59,10 @@ export interface ReplyDraft {
 
 export interface SeenTweet {
   id: string;
-  /** Handle this tweet was scraped from. */
+  /** Who posted it: a watched handle, or anyone for a keyword match. */
   handle: string;
+  /** Set when a keyword search found it (not a watched handle): the keyword it matched. */
+  keyword?: string;
   text: string;
   url: string;
   isReply: boolean;

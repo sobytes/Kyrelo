@@ -87,7 +87,7 @@ describe("contract: monitor feed sample", () => {
 
   it("uses only fields that SeenTweet and ReplyDraft define", () => {
     const known = [
-      "id", "handle", "text", "url", "isReply", "seenAt", "postedAt", "repliedAt", "replyText",
+      "id", "handle", "keyword", "text", "url", "isReply", "seenAt", "postedAt", "repliedAt", "replyText",
       "replyError", "skipped", "draft", "draft.score", "draft.reason", "draft.options", "draft.generatedAt",
     ];
     for (const key of keyPaths(sample.state.tweets)) expect(known).toContain(key);

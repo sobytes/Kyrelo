@@ -12,6 +12,8 @@ struct GrokState: Decodable {
 struct SeenTweet: Decodable, Identifiable, Hashable {
     let id: String
     let handle: String
+    /// The keyword a search matched; nil for posts from watched handles.
+    let keyword: String?
     let text: String
     let url: String
     let isReply: Bool
@@ -66,5 +68,7 @@ struct AutopilotSettings: Codable, Equatable {
 struct MonitorSettings: Decodable {
     let enabled: Bool
     let handles: [String]
+    /// Missing from desktops older than keyword monitoring.
+    let keywords: [String]?
     let autopilot: AutopilotSettings
 }

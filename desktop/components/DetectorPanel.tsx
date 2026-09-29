@@ -11,6 +11,7 @@ import {
   ReplyStyle,
   SeenTweet,
 } from "@/lib/types";
+import { MAX_KEYWORD_LENGTH, MAX_KEYWORDS } from "@/lib/keywords";
 import { HandleFinderModal } from "./HandleFinderModal";
 import { openExternal, useAccounts } from "./useAccounts";
 
@@ -220,6 +221,7 @@ export function DetectorPanel() {
             onAddGroup={addGroup}
             onFind={connected ? () => setFinding(true) : undefined}
           />
+          <KeywordsCard keywords={settings.keywords} onChange={(keywords) => save({ ...settings, keywords })} />
           <AutopilotCard
             autopilot={settings.autopilot}
             onChange={(autopilot) => save({ ...settings, autopilot })}
@@ -284,7 +286,7 @@ function Hero({
   const needsConnect = !connected && connect.phase === "idle";
   // Only an X login matters here; a LinkedIn login elsewhere isn't this page's.
   const inLogin = connect.phase !== "idle" && connect.phasePlatform === "twitter";
-  const needsHandles = settings.handles.length === 0;
+  const needsHandles = settings.handles.length === 0 && settings.keywords.length === 0;
   const watching = settings.enabled && !needsConnect && !needsHandles && !inLogin;
 
   const lastCheckAgo = state.lastCheckedAt
@@ -314,14 +316,14 @@ function Hero({
                       : "Paused"}
             </div>
             <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-zinc-100">
-              {watching && `Monitoring ${settings.handles.length} ${settings.handles.length === 1 ? "handle" : "handles"} on X`}
+              {watching && `Monitoring ${watchingSummary(settings)} on X`}
               {!watching && inLogin && connect.phase === "saving" && "Saving session…"}
               {!watching && inLogin && connect.phase === "starting" && "Opening Chrome…"}
               {!watching && inLogin && connect.phase === "connecting" &&
                 "Log in to X in the Chrome window"}
               {!watching && !inLogin && needsConnect && "Connect your X account"}
               {!watching && !inLogin && !needsConnect && needsHandles &&
-                "Add handles to watch"}
+                "Add handles or keywords to watch"}
               {!watching && !inLogin && !needsConnect && !needsHandles &&
                 "Ready to watch"}
             </h1>
@@ -337,7 +339,7 @@ function Hero({
               {!watching && !inLogin && needsConnect &&
                 "Sign in once — the session is saved for future scrapes and replies."}
               {!watching && !inLogin && !needsConnect && needsHandles &&
-                "Pick at least one handle in the sidebar to start."}
+                "Pick a handle or add a keyword in the sidebar to start."}
               {!watching && !inLogin && !needsConnect && !needsHandles &&
                 "Click Start Watching to begin polling every 90 seconds."}
             </p>
@@ -557,6 +559,83 @@ function HandlesCard({
   );
 }
 
+/** "3 handles and 2 keywords". */
+function watchingSummary(settings: GrokSettings): string {
+  const count = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
+  return [
+    settings.handles.length ? count(settings.handles.length, "handle") : null,
+    settings.keywords.length ? count(settings.keywords.length, "keyword") : null,
+  ]
+    .filter(Boolean)
+    .join(" and ");
+}
+
+/** Words or phrases the Monitor searches X for, next to the watched handles. */
+function KeywordsCard({ keywords, onChange }: { keywords: string[]; onChange: (keywords: string[]) => void }) {
+  const [input, setInput] = useState("");
+  const full = keywords.length >= MAX_KEYWORDS;
+
+  function add() {
+    const k = input.replace(/\s+/g, " ").trim();
+    setInput("");
+    if (!k || keywords.some((x) => x.toLowerCase() === k.toLowerCase())) return;
+    onChange([...keywords, k]);
+  }
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="label !mb-0">Keywords</div>
+        <span className="text-[10px] text-zinc-500">
+          {keywords.length} / {MAX_KEYWORDS}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {keywords.length === 0 ? (
+          <span className="text-xs text-zinc-500">None yet.</span>
+        ) : (
+          keywords.map((k) => (
+            <span key={k} className="chip-on">
+              {k}
+              <button
+                onClick={() => onChange(keywords.filter((x) => x !== k))}
+                className="-mr-1 ml-0.5 rounded-full px-1 text-zinc-500 hover:text-rose-400"
+                title="Remove"
+              >
+                ×
+              </button>
+            </span>
+          ))
+        )}
+      </div>
+      <div className="flex gap-2">
+        <input
+          className="input flex-1"
+          placeholder={full ? `Up to ${MAX_KEYWORDS} keywords` : "e.g. buffer alternative"}
+          value={input}
+          maxLength={MAX_KEYWORD_LENGTH}
+          disabled={full}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+        />
+        <button onClick={add} disabled={full} className="btn-ghost">
+          Add
+        </button>
+      </div>
+      <p className="text-[10px] leading-relaxed text-zinc-500">
+        Posts from anyone that mention these show in the feed, labelled, and Autopilot drafts replies for them.
+        Phrases match as written; X search syntax works too (#tag, -word, lang:en). They don&apos;t send desktop
+        notifications, since popular keywords match often.
+      </p>
+    </div>
+  );
+}
+
 // --- Feed -------------------------------------------------------------------
 
 function Feed({
@@ -578,10 +657,10 @@ function Feed({
     );
   }
 
-  if (settings.handles.length === 0) {
+  if (settings.handles.length === 0 && settings.keywords.length === 0) {
     return (
       <div className="card flex h-48 items-center justify-center text-sm text-zinc-500">
-        Add a handle to start watching.
+        Add a handle or keyword to start watching.
       </div>
     );
   }
@@ -637,6 +716,11 @@ function TweetCard({
             <span className="text-xs text-zinc-500">
               {tweet.isReply ? "replied" : "posted"} {timeAgo(when)}
             </span>
+            {tweet.keyword && (
+              <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] text-accent" title="Found by a keyword search">
+                “{tweet.keyword}”
+              </span>
+            )}
           </div>
 
           <div className="mt-1.5 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-zinc-200">
