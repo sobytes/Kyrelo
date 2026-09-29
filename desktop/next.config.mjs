@@ -9,7 +9,7 @@ const nextConfig = {
   async redirects() {
     return [
       { source: "/detector", destination: "/x/monitor", permanent: false },
-      { source: "/scheduler", destination: "/x/scheduler", permanent: false },
+      { source: "/:service/scheduler", destination: "/scheduler", permanent: false },
       { source: "/deleter", destination: "/x/deleter", permanent: false },
       { source: "/unfollow", destination: "/x/unfollow", permanent: false },
       { source: "/connected", destination: "/", permanent: false },

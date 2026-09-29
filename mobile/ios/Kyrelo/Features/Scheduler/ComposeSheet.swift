@@ -1,12 +1,10 @@
 import SwiftUI
 
-/// Writes a post to one or more accounts, like the desktop compose form: the
-/// service's own accounts, and others under "Also post to".
+/// Writes a post to one or more accounts on any platforms, like the desktop
+/// compose form.
 struct ComposeSheet: View {
     let client: BridgeClient
-    /// This service's accounts first.
     let accounts: [Account]
-    let platform: PlatformId
     let onScheduled: () -> Void
 
     @State private var text = ""
@@ -17,10 +15,9 @@ struct ComposeSheet: View {
     @State private var error: String?
     @Environment(\.dismiss) private var dismiss
 
-    init(client: BridgeClient, accounts: [Account], platform: PlatformId, defaultKey: String?, onScheduled: @escaping () -> Void) {
+    init(client: BridgeClient, accounts: [Account], defaultKey: String?, onScheduled: @escaping () -> Void) {
         self.client = client
         self.accounts = accounts
-        self.platform = platform
         self.onScheduled = onScheduled
         _targetKeys = State(initialValue: defaultKey.map { [$0] } ?? [])
     }
@@ -52,8 +49,16 @@ struct ComposeSheet: View {
                     }
                 }
                 if accounts.count > 1 {
-                    accountSection("Post to", accounts.filter { $0.platform == platform })
-                    accountSection("Also post to", accounts.filter { $0.platform != platform })
+                    Section("Post to") {
+                        ForEach(accounts) { account in
+                            Toggle(isOn: Binding(
+                                get: { targetKeys.contains(account.key) },
+                                set: { on in if on { targetKeys.insert(account.key) } else { targetKeys.remove(account.key) } }
+                            )) {
+                                Text("\(account.platform.label)  @\(account.handle)")
+                            }
+                        }
+                    }
                 }
                 Section {
                     DatePicker("When", selection: $date, in: Date()...)
@@ -70,21 +75,6 @@ struct ComposeSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(sending ? "Scheduling…" : targets.count > 1 ? "Schedule \(targets.count)" : "Schedule", action: schedule)
                         .disabled(sending || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || targets.isEmpty || overLimit)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private func accountSection(_ title: String, _ list: [Account]) -> some View {
-        if !list.isEmpty {
-            Section(title) {
-                ForEach(list) { account in
-                    Toggle(isOn: Binding(
-                        get: { targetKeys.contains(account.key) },
-                        set: { on in if on { targetKeys.insert(account.key) } else { targetKeys.remove(account.key) } }
-                    )) {
-                        Text(account.platform == platform ? "@\(account.handle)" : "\(account.platform.label)  @\(account.handle)")
-                    }
                 }
             }
         }

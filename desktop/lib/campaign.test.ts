@@ -1,4 +1,4 @@
-import { mkdtemp } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -13,11 +13,13 @@ beforeAll(async () => {
   campaign = await import("./campaign");
 });
 
-function reviewCampaign(id: string): Campaign {
+function reviewCampaign(id: string, targets: Campaign["targets"] = [{ platform: "twitter", accountId: "acct" }]): Campaign {
   const later = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
   return {
     id,
-    accountId: "acct",
+    targets,
+    accountId: targets[0].accountId,
+    maxLength: 280,
     brief: "b",
     url: "https://example.com",
     competitors: "",
@@ -59,4 +61,46 @@ describe("scheduleCampaign", () => {
     expect((await storage.getCampaign("c2"))?.status).toBe("discarded");
     await expect(campaign.discardCampaign("c1")).rejects.toThrow();
   });
+
+  it("posts to every target, with the image only where the platform takes it", async () => {
+    const { uploadsDir } = await import("./uploads");
+    await mkdir(uploadsDir(), { recursive: true });
+    const big = "aaaaaaaa-0000-4000-8000-000000000001.png";
+    await writeFile(path.join(uploadsDir(), big), Buffer.alloc(2_000_000)); // over Bluesky's 1 MB
+    const c = reviewCampaign("multi", [
+      { platform: "twitter", accountId: "x1" },
+      { platform: "bluesky", accountId: "me.bsky.social" },
+      { platform: "threads", accountId: "me" },
+    ]);
+    c.drafts = [{ ...c.drafts[0], media: { kind: "library", imagePath: big } }];
+    await storage.upsertCampaign(c);
+
+    const done = await campaign.scheduleCampaign("multi");
+    expect(done.postIds).toHaveLength(3);
+    const posts = (await storage.listScheduledPosts()).filter((p) => p.campaignId === "multi");
+    expect(posts.map((p) => [p.platform, p.imagePath ?? null])).toEqual([
+      ["twitter", big],
+      ["bluesky", null],
+      ["threads", null],
+    ]);
+  });
+
+  it("refuses an edit too long for one of the platforms", async () => {
+    const c = reviewCampaign("strict", [
+      { platform: "mastodon", accountId: "me@mastodon.social" },
+      { platform: "bluesky", accountId: "me.bsky.social" },
+    ]);
+    await storage.upsertCampaign(c);
+    const edit = (text: string) => [{ id: "d1", text, scheduledFor: c.drafts[0].scheduledFor, removeImage: false }];
+    // Fine for Mastodon (500), too long for Bluesky (300).
+    await expect(campaign.scheduleCampaign("strict", edit("x".repeat(400)))).rejects.toThrow(/too long/);
+    await expect(campaign.scheduleCampaign("strict", edit("x".repeat(290)))).resolves.toHaveProperty("status", "scheduled");
+  });
+
+  it("reads a campaign saved before targets as one X account", async () => {
+    const legacy = { ...reviewCampaign("old"), targets: undefined, maxLength: undefined } as unknown as Campaign;
+    await storage.upsertCampaign(legacy);
+    expect(await storage.getCampaign("old")).toMatchObject({ targets: [{ platform: "twitter", accountId: "acct" }], maxLength: 280 });
+  });
 });
+

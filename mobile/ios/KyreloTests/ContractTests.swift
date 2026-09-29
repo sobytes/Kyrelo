@@ -128,20 +128,21 @@ final class ContractTests: XCTestCase {
     // MARK: services.json
 
     private struct ServicesContract: Decodable {
-        struct Service: Decodable { let id: String; let slug: String; let label: String; let sections: [String]; let features: [String] }
+        struct Service: Decodable { let id: String; let slug: String; let label: String; let sections: [String] }
+        let global: [String]
         let sections: [String]
         let services: [Service]
     }
 
     func testServicesMatchTheDesktop() throws {
         let contract = try JSONDecoder().decode(ServicesContract.self, from: contract("services"))
+        XCTAssertEqual(Services.global, contract.global)
         XCTAssertEqual(SectionId.allCases.map(\.rawValue), contract.sections)
         XCTAssertEqual(Services.all.map(\.id.rawValue), contract.services.map(\.id))
         for (mine, theirs) in zip(Services.all, contract.services) {
             XCTAssertEqual(mine.slug, theirs.slug)
             XCTAssertEqual(mine.label, theirs.label)
             XCTAssertEqual(mine.sections.map(\.rawValue), theirs.sections)
-            XCTAssertEqual(mine.features, theirs.features)
         }
     }
 
@@ -197,6 +198,7 @@ final class ContractTests: XCTestCase {
 
         let campaign = try XCTUnwrap(s.campaignsInfo.campaigns.first)
         XCTAssertEqual(campaign.status, .review)
+        XCTAssertEqual(campaign.platforms, [.twitter, .bluesky])
         XCTAssertEqual(campaign.drafts.first?.media.imagePath, "0f8e7d6c-5b4a-4938-8271-605f4e3d2c1c.jpg")
         XCTAssertNil(campaign.drafts.last?.media.imagePath)
         XCTAssertTrue(s.campaignsInfo.aiReady)

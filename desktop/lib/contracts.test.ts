@@ -111,7 +111,7 @@ describe("contract: scheduler sample", () => {
   });
 
   it("uses only fields Campaign and CampaignDraft define", () => {
-    const fields = allowed(`id accountId brief url competitors count windowMinutes useAiImages autoSchedule
+    const fields = allowed(`id targets targets.platform targets.accountId accountId maxLength brief url competitors count windowMinutes useAiImages autoSchedule
       provider status progress research drafts postIds error createdAt
       drafts.id drafts.angle drafts.text drafts.media drafts.media.kind drafts.media.imagePath drafts.media.note
       drafts.sources drafts.scheduledFor`);
@@ -148,6 +148,11 @@ describe("contract: services", () => {
     const { SERVICES } = await import("./services");
     expect(SERVICES.map((s) => s.id).sort()).toEqual([...PLATFORM_IDS].sort());
     expect(new Set(SERVICES.map((s) => s.slug)).size).toBe(SERVICES.length);
+  });
+
+  it("keeps the Scheduler global, not a section of a service", () => {
+    expect(sample.global).toEqual(["scheduler"]);
+    expect(sample.sections).not.toContain("scheduler");
   });
 
   it("gives each service known sections, including a way to connect it", () => {

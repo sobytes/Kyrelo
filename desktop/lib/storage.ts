@@ -15,6 +15,7 @@ import {
   HandleFinderData,
 } from "./types";
 import { isPlatformId } from "./platforms";
+import { MAX_TWEET_LENGTH } from "./tweet";
 
 const GROK_SETTINGS_KEY = "grok-settings";
 const GROK_STATE_KEY = "grok-state";
@@ -248,7 +249,10 @@ export async function setAccountSecret(platform: PlatformId, id: string, secret:
 }
 
 export async function listCampaigns(): Promise<Campaign[]> {
-  return (await read<Campaign[]>(CAMPAIGNS_KEY)) ?? [];
+  // Campaigns from before they could post to several platforms went to one X account.
+  return ((await read<Campaign[]>(CAMPAIGNS_KEY)) ?? []).map((c) =>
+    c.targets ? c : { ...c, targets: [{ platform: "twitter", accountId: c.accountId }], maxLength: MAX_TWEET_LENGTH },
+  );
 }
 
 export async function getCampaign(id: string): Promise<Campaign | null> {

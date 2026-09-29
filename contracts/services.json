@@ -1,15 +1,48 @@
 {
-  "sections": ["monitor", "scheduler", "deleter", "unfollow", "accounts"],
+  "global": [
+    "scheduler"
+  ],
+  "sections": [
+    "monitor",
+    "deleter",
+    "unfollow",
+    "accounts"
+  ],
   "services": [
     {
       "id": "twitter",
       "slug": "x",
       "label": "X",
-      "sections": ["monitor", "scheduler", "deleter", "unfollow", "accounts"],
-      "features": ["campaigns"]
+      "sections": [
+        "monitor",
+        "deleter",
+        "unfollow",
+        "accounts"
+      ]
     },
-    { "id": "bluesky", "slug": "bluesky", "label": "Bluesky", "sections": ["scheduler", "accounts"], "features": [] },
-    { "id": "mastodon", "slug": "mastodon", "label": "Mastodon", "sections": ["scheduler", "accounts"], "features": [] },
-    { "id": "threads", "slug": "threads", "label": "Threads", "sections": ["scheduler", "accounts"], "features": [] }
+    {
+      "id": "bluesky",
+      "slug": "bluesky",
+      "label": "Bluesky",
+      "sections": [
+        "accounts"
+      ]
+    },
+    {
+      "id": "mastodon",
+      "slug": "mastodon",
+      "label": "Mastodon",
+      "sections": [
+        "accounts"
+      ]
+    },
+    {
+      "id": "threads",
+      "slug": "threads",
+      "label": "Threads",
+      "sections": [
+        "accounts"
+      ]
+    }
   ]
 }

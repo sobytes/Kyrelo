@@ -2,7 +2,7 @@
 // counters, which accounts can do what) and the server (validation). Keep this
 // file free of Node imports so client components can use it.
 
-import { tweetLength } from "./tweet";
+import { MAX_TWEET_LENGTH, tweetLength } from "./tweet";
 import { PlatformId } from "./types";
 
 export interface PlatformSpec {
@@ -90,6 +90,25 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     credentials: [{ key: "token", label: "Access token", placeholder: "Your Threads access token", secret: true }],
   },
 };
+
+/**
+ * The longest post a campaign writes for a platform. X's is the standard 280
+ * (anyone can post it), not X Premium's longer limit; the rest are the
+ * platform's own.
+ */
+export function campaignLimit(platform: PlatformId): number {
+  return platform === "twitter" ? MAX_TWEET_LENGTH : PLATFORMS[platform].maxLength;
+}
+
+/** Whether `text` fits every platform a campaign posts to, as each counts it. */
+export function fitsCampaign(text: string, platforms: PlatformId[]): boolean {
+  return platforms.every((p) => PLATFORMS[p].length(text) <= campaignLimit(p));
+}
+
+/** Shortens `text` until it fits every one of those platforms. */
+export function fitForCampaign(text: string, platforms: PlatformId[]): string {
+  return platforms.reduce((t, p) => fitText(t, campaignLimit(p), PLATFORMS[p].length), text);
+}
 
 const URL_RE = /https?:\/\/\S+/g;
 const REMOTE_MENTION_RE = /(@[\w.]+)@[\w.-]+\w/g;

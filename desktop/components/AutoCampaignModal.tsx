@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { MAX_TWEET_LENGTH, tweetLength } from "@/lib/tweet";
-import { Account, Campaign, CampaignDraft, MediaItem } from "@/lib/types";
+import { campaignLimit, fitsCampaign, PLATFORMS } from "@/lib/platforms";
+import { Account, Campaign, CampaignDraft, MediaItem, PlatformId } from "@/lib/types";
+import { PlatformBadge } from "./PlatformBadge";
 
 interface CampaignsInfo {
   provider: "claude" | "openai";
@@ -19,15 +20,26 @@ interface DraftState extends CampaignDraft {
 const UNITS = { minutes: 1, hours: 60, days: 1440 } as const;
 type Unit = keyof typeof UNITS;
 
+/**
+ * An auto campaign: posts written once and scheduled to every account picked,
+ * on any platforms, each fitting the strictest of their limits.
+ */
 export function AutoCampaignModal({
-  account,
+  accounts,
+  defaultAccount,
   onClose,
   onScheduled,
 }: {
-  account: Account;
+  /** Every connected account. */
+  accounts: Account[];
+  /** Picked to start with: the one being viewed. */
+  defaultAccount: Account;
   onClose: () => void;
   onScheduled: () => void;
 }) {
+  const key = (a: { platform: PlatformId; id: string }) => `${a.platform}:${a.id}`;
+  const [targetKeys, setTargetKeys] = useState<string[]>([key(defaultAccount)]);
+  const targets = accounts.filter((a) => targetKeys.includes(key(a)));
   const [info, setInfo] = useState<CampaignsInfo | null>(null);
   const [brief, setBrief] = useState("");
   const [url, setUrl] = useState("");
@@ -48,11 +60,9 @@ export function AutoCampaignModal({
       .then((r) => r.json())
       .then((r: CampaignsInfo & { campaigns?: Campaign[] }) => {
         setInfo(r);
-        // Pick up this account's campaign that is still running or waiting
-        // for review, e.g. after the modal was closed mid-way.
-        const open = r.campaigns?.find(
-          (c) => c.accountId === account.id && (isInFlight(c) || c.status === "review"),
-        );
+        // Pick up a campaign still running or waiting for review, e.g. after
+        // the modal was closed mid-way.
+        const open = r.campaigns?.find((c) => isInFlight(c) || c.status === "review");
         if (open) {
           setCampaign(open);
           if (open.status === "review") setDrafts(open.drafts.map(toDraftState));
@@ -99,7 +109,7 @@ export function AutoCampaignModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          accountId: account.id,
+          targets: targets.map((a) => ({ platform: a.platform, accountId: a.id })),
           brief,
           url,
           competitors,
@@ -164,7 +174,14 @@ export function AutoCampaignModal({
 
   const providerName = info?.provider === "openai" ? "OpenAI" : "Claude";
   const kept = drafts.filter((d) => !d.removed);
-  const anyOverLimit = kept.some((d) => tweetLength(d.text) > MAX_TWEET_LENGTH);
+  // The campaign's own platforms once it exists; the picked ones before.
+  const platforms = [...new Set((campaign?.targets ?? targets.map((a) => ({ platform: a.platform }))).map((t) => t.platform))];
+  const anyOverLimit = kept.some((d) => !fitsCampaign(d.text, platforms));
+  const postingTo = campaign
+    ? campaign.targets
+        .map((t) => accounts.find((a) => a.platform === t.platform && a.id === t.accountId))
+        .filter((a): a is Account => !!a)
+    : targets;
 
   return (
     <div
@@ -179,7 +196,7 @@ export function AutoCampaignModal({
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <div className="label !mb-0">Auto campaign · @{account.handle}</div>
+            <div className="label !mb-0">Auto campaign</div>
             <p className="mt-1 text-xs text-muted">
               {providerName} researches your product and competitors, writes the posts, picks media and
               spreads them naturally over the time you choose.
@@ -202,6 +219,33 @@ export function AutoCampaignModal({
           </div>
         ) : !campaign ? (
           <div className="space-y-4">
+            <div>
+              <div className="label">Post to</div>
+              <div className="flex flex-wrap gap-2">
+                {accounts.map((a) => {
+                  const on = targetKeys.includes(key(a));
+                  return (
+                    <button
+                      key={key(a)}
+                      type="button"
+                      onClick={() => setTargetKeys((ks) => (on ? ks.filter((k) => k !== key(a)) : [...ks, key(a)]))}
+                      className={
+                        "inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs transition " +
+                        (on ? "border-fg text-fg" : "border-line text-muted hover:text-fg")
+                      }
+                    >
+                      <PlatformBadge platform={a.platform} />@{a.handle}
+                    </button>
+                  );
+                })}
+              </div>
+              {platforms.length > 1 && (
+                <p className="mt-1 text-[11px] text-muted">
+                  Each post goes to every account picked, written to fit the strictest limit (
+                  {platforms.map((p) => `${PLATFORMS[p].label} ${campaignLimit(p)}`).join(", ")}).
+                </p>
+              )}
+            </div>
             <div>
               <div className="label">What are you promoting?</div>
               <textarea
@@ -292,7 +336,7 @@ export function AutoCampaignModal({
               </button>
               <button
                 onClick={start}
-                disabled={starting || !brief.trim() || !info}
+                disabled={starting || !brief.trim() || !info || targets.length === 0}
                 className="btn-primary text-xs"
               >
                 {starting ? "Starting…" : "Go"}
@@ -318,8 +362,9 @@ export function AutoCampaignModal({
           </div>
         ) : campaign.status === "review" ? (
           <div className="space-y-3">
+            <PostingTo accounts={postingTo} />
             {drafts.map((d, i) => (
-              <DraftCard key={d.id} index={i} draft={d} onChange={(p) => updateDraft(d.id, p)} />
+              <DraftCard key={d.id} index={i} draft={d} platforms={platforms} onChange={(p) => updateDraft(d.id, p)} />
             ))}
             {error && <div className="text-xs text-error">{error}</div>}
             <div className="flex items-center justify-end gap-2">
@@ -387,16 +432,32 @@ function Progress({ campaign }: { campaign: Campaign }) {
   );
 }
 
+/** Which accounts the reviewed posts will go to. */
+function PostingTo({ accounts }: { accounts: Account[] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+      Posting to
+      {accounts.map((a) => (
+        <span key={`${a.platform}:${a.id}`} className="inline-flex items-center gap-1 text-fg">
+          <PlatformBadge platform={a.platform} />@{a.handle}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function DraftCard({
   index,
   draft,
+  platforms,
   onChange,
 }: {
   index: number;
   draft: DraftState;
+  /** The campaign's platforms: the text must fit each. */
+  platforms: PlatformId[];
   onChange: (patch: Partial<DraftState>) => void;
 }) {
-  const len = tweetLength(draft.text);
   if (draft.removed) {
     return (
       <div className="card flex items-center justify-between text-xs text-muted">
@@ -423,8 +484,16 @@ function DraftCard({
         value={draft.text}
         onChange={(e) => onChange({ text: e.target.value })}
       />
-      <div className={"text-[10px] " + (len > MAX_TWEET_LENGTH ? "text-error" : "text-muted")}>
-        {len} / {MAX_TWEET_LENGTH}
+      <div className="flex gap-3 font-mono text-[11px]">
+        {platforms.map((p) => {
+          const len = PLATFORMS[p].length(draft.text);
+          return (
+            <span key={p} className={len > campaignLimit(p) ? "text-error" : "text-muted"}>
+              {platforms.length > 1 ? `${PLATFORMS[p].label} ` : ""}
+              {len} / {campaignLimit(p)}
+            </span>
+          );
+        })}
       </div>
       {image && (
         <div className="flex items-start gap-3">

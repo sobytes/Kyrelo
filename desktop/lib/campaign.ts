@@ -4,9 +4,11 @@ import { spreadTimes } from "./campaign-timing";
 import { fetchOgImage, generateAiImage, screenshotPage } from "./media";
 import { cancelScheduledPost, createScheduledPost } from "./scheduler";
 import { getCampaign, getGrokSettings, listMediaItems, upsertCampaign } from "./storage";
-import { fitText } from "./platforms";
-import { MAX_TWEET_LENGTH, tweetLength } from "./tweet";
-import { Campaign, CampaignDraft, MediaItem } from "./types";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { campaignLimit, fitForCampaign, fitsCampaign, PLATFORMS } from "./platforms";
+import { Campaign, CampaignDraft, CampaignTarget, MediaItem } from "./types";
+import { uploadsDir } from "./uploads";
 
 // Auto Campaign pipeline: research → write → media → (review) → schedule.
 // Runs in the background inside the Next server; the UI polls the stored
@@ -18,7 +20,8 @@ const running: Set<string> = ((globalThis as { __kyreloCampaigns?: Set<string> }
   new Set());
 
 export interface StartCampaignInput {
-  accountId: string;
+  /** The accounts every post goes to, on any platforms (at least one). */
+  targets: CampaignTarget[];
   brief: string;
   url: string;
   competitors: string;
@@ -33,6 +36,8 @@ export async function startCampaign(input: StartCampaignInput): Promise<Campaign
   const campaign: Campaign = {
     id: crypto.randomUUID(),
     ...input,
+    accountId: input.targets[0].accountId,
+    maxLength: Math.min(...input.targets.map((t) => campaignLimit(t.platform))),
     useAiImages: input.useAiImages && (await hasApiKey("openai")),
     provider: settings.aiProvider,
     status: "researching",
@@ -157,7 +162,7 @@ async function resolveDraft(
     console.warn(`[campaign] media ${w.media.kind} skipped: ${msg}`);
     draft.media = { kind: "none", note: `Wanted ${w.media.kind} media but skipped it: ${msg}` };
   }
-  draft.text = fitText(draft.text, MAX_TWEET_LENGTH, tweetLength);
+  draft.text = fitForCampaign(draft.text, platformsOf(c));
   return draft;
 }
 
@@ -214,7 +219,7 @@ async function scheduleCampaignOnce(id: string, edits?: DraftEdit[]): Promise<Ca
     if (!e) continue;
     const when = new Date(e.scheduledFor);
     if (Number.isNaN(when.getTime())) throw new Error("invalid time on a post");
-    if (tweetLength(e.text) > MAX_TWEET_LENGTH) throw new Error("a post is over 280 characters");
+    if (!fitsCampaign(e.text, platformsOf(c))) throw new Error("a post is too long for one of the platforms");
     drafts.push({
       ...d,
       text: e.text,
@@ -235,18 +240,25 @@ async function scheduleCampaignOnce(id: string, edits?: DraftEdit[]): Promise<Ca
     for (const d of toPost) d.scheduledFor = new Date(new Date(d.scheduledFor).getTime() + shift).toISOString();
   }
 
+  // Each post goes to every target, at the same time. An image goes where the
+  // platform can take it (Threads can't; Bluesky only up to 1 MB); the rest
+  // get the text alone.
   const postIds: string[] = [];
   try {
     for (const d of toPost) {
-      const post = await createScheduledPost({
-        platform: "twitter",
-        accountId: c.accountId,
-        text: d.text.trim(),
-        imagePath: d.media.imagePath,
-        scheduledFor: d.scheduledFor,
-        campaignId: c.id,
-      });
-      postIds.push(post.id);
+      const imageBytes = d.media.imagePath ? await fileSize(path.join(uploadsDir(), d.media.imagePath)) : 0;
+      for (const target of c.targets) {
+        const fits = imageBytes > 0 && imageBytes <= PLATFORMS[target.platform].maxImageBytes;
+        const post = await createScheduledPost({
+          platform: target.platform,
+          accountId: target.accountId,
+          text: d.text.trim(),
+          imagePath: fits ? d.media.imagePath : undefined,
+          scheduledFor: d.scheduledFor,
+          campaignId: c.id,
+        });
+        postIds.push(post.id);
+      }
     }
   } catch (err) {
     // All or nothing: a half-scheduled campaign would be duplicated on retry.
@@ -256,7 +268,19 @@ async function scheduleCampaignOnce(id: string, edits?: DraftEdit[]): Promise<Ca
   c.drafts = toPost;
   c.postIds = postIds;
   c.status = "scheduled";
-  c.progress = `Scheduled ${postIds.length} posts.`;
+  c.progress =
+    c.targets.length > 1
+      ? `Scheduled ${toPost.length} posts to ${c.targets.length} accounts.`
+      : `Scheduled ${postIds.length} posts.`;
   await upsertCampaign(c);
   return c;
 }
+
+function platformsOf(c: Campaign) {
+  return [...new Set(c.targets.map((t) => t.platform))];
+}
+
+async function fileSize(file: string): Promise<number> {
+  return (await fs.stat(file).catch(() => null))?.size ?? 0;
+}
+

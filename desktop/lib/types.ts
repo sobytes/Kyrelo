@@ -169,9 +169,20 @@ export type CampaignStatus =
   | "discarded"
   | "failed";
 
+/** An account a campaign posts to. */
+export interface CampaignTarget {
+  platform: PlatformId;
+  accountId: string;
+}
+
 export interface Campaign {
   id: string;
+  /** The accounts every post goes to, on any platforms. */
+  targets: CampaignTarget[];
+  /** The first target's account id. Kept so older phone apps still read campaigns. */
   accountId: string;
+  /** Longest post, in the strictest counting of the targets' platforms (for the AI and the UI). */
+  maxLength: number;
   brief: string;
   url: string;
   competitors: string;

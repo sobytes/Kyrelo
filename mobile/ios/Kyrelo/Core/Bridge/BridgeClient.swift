@@ -156,6 +156,9 @@ final class BridgeClient {
 
     /// What the campaign form sends (desktop: POST /api/campaigns).
     struct CampaignStart: Encodable {
+        /// Where every post goes, on any platforms.
+        let targets: [CampaignTarget]
+        /// The first target's account: desktops before multi-platform campaigns read only this.
         let accountId: String
         let brief: String
         let url: String

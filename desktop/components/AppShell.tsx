@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import pkg from "@/package.json";
 import { SERVICES, serviceBySlug } from "@/lib/services";
-import { SECTIONS, SETTINGS_ICON } from "./sections";
+import { SCHEDULER_ICON, SECTIONS, SETTINGS_ICON } from "./sections";
 import { ServiceIcon } from "./ServiceIcon";
 
 interface NavItem {
@@ -23,8 +23,8 @@ const ALL_SERVICES_ICON = (
 
 /**
  * The sidebar follows where you are: on the home screen it lists the
- * services; inside one, that service's sections (lib/services.ts). Settings
- * are global, so they're always there.
+ * services; inside one, that service's sections (lib/services.ts). The
+ * Scheduler and Settings cover every service, so they're always there.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -51,6 +51,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <nav className="flex-1 space-y-0.5 p-2">
+          <NavLink item={{ href: "/scheduler", label: "Scheduler", icon: SCHEDULER_ICON }} active={pathname === "/scheduler"} />
+          <div className="my-2 border-t border-line" />
           {service && (
             <>
               <Link href="/" className="flex items-center gap-2 px-3 py-2 text-xs text-muted hover:text-fg">
@@ -71,7 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="border-t border-line p-2">
+        <div className="space-y-0.5 border-t border-line p-2">
           <NavLink item={{ href: "/settings", label: "Settings", icon: SETTINGS_ICON }} active={pathname === "/settings"} />
           <div className="px-3 pt-2 font-mono text-[11px] text-muted">v{pkg.version}</div>
         </div>

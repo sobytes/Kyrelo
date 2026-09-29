@@ -41,6 +41,11 @@ extension PlatformId {
         }
     }
 
+    /// The longest post a campaign writes here: X's standard 280 (not X
+    /// Premium's longer limit), the platform's own elsewhere. As the desktop's
+    /// campaignLimit.
+    var campaignLimit: Int { self == .twitter ? ReplyRules.campaignMaxLength : maxLength }
+
     /// Post length as this platform counts it.
     func length(_ text: String) -> Int {
         switch self {

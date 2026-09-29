@@ -232,3 +232,15 @@ describe("deleter route", () => {
   });
 });
 
+describe("campaigns route", () => {
+  // Refused before any research starts.
+  const start = (body: object) =>
+    import("./campaigns/route").then((r) => r.POST(json("POST", { brief: "b", count: 2, windowMinutes: 60, ...body })));
+
+  it("needs at least one connected account to post to", async () => {
+    expect((await (await start({ targets: [] })).json()).error).toMatch(/at least one connected account/);
+    const stranger = await start({ targets: [{ platform: "mastodon", accountId: "nobody@example.social" }] });
+    expect(stranger.status).toBe(400);
+  });
+});
+

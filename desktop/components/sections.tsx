@@ -3,10 +3,10 @@ import { SectionId, ServiceSpec } from "@/lib/services";
 import { AccountsPanel } from "./ConnectedPanel";
 import { DeleterPanel } from "./DeleterPanel";
 import { DetectorPanel } from "./DetectorPanel";
-import { SchedulerPanel } from "./SchedulerPanel";
 import { UnfollowPanel } from "./UnfollowPanel";
 
-// The sections a service can have (lib/services.ts says which each one has).
+// The sections a service can have (lib/services.ts says which each one has):
+// its own per-account tools. The Scheduler is global (app/scheduler).
 // Each is one self-contained component; the page header, the sidebar and the
 // route all come from here, so a section is added in one place.
 
@@ -38,17 +38,6 @@ export const SECTIONS: Record<SectionId, SectionSpec> = {
     ),
     fullWidth: true,
     render: () => <DetectorPanel />,
-  },
-  scheduler: {
-    label: "Scheduler",
-    describe: (s) => `Queue posts to your ${s.label} accounts at a specific time, and to your other accounts too.`,
-    icon: icon(
-      <>
-        <rect x="3" y="4" width="18" height="18" rx="2" />
-        <path d="M16 2v4M8 2v4M3 10h18" />
-      </>,
-    ),
-    render: (s) => <SchedulerPanel service={s} />,
   },
   deleter: {
     label: "Deleter",
@@ -88,6 +77,13 @@ export const SECTIONS: Record<SectionId, SectionSpec> = {
     render: (s) => <AccountsPanel platform={s.id} />,
   },
 };
+
+export const SCHEDULER_ICON = icon(
+  <>
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4M8 2v4M3 10h18" />
+  </>,
+);
 
 export const SETTINGS_ICON = icon(
   <>

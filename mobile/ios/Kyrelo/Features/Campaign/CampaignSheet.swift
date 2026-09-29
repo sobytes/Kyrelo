@@ -28,7 +28,9 @@ struct EditableDraft: Identifiable {
 @MainActor
 final class CampaignModel {
     let client: BridgeClient
-    let account: Account
+    /// Every connected account; the campaign posts to the picked ones.
+    let accounts: [Account]
+    var targetKeys: Set<String>
 
     var info: CampaignsInfo?
     var campaign: Campaign?
@@ -46,20 +48,32 @@ final class CampaignModel {
     var useAiImages = true
     var reviewFirst = true
 
-    init(client: BridgeClient, account: Account) {
+    init(client: BridgeClient, accounts: [Account], defaultAccount: Account) {
         self.client = client
-        self.account = account
+        self.accounts = accounts
+        targetKeys = [defaultAccount.key]
     }
 
-    /// Loads AI status and the saved brand profile, and resumes this
-    /// account's campaign if one is running or waiting for review.
+    var targets: [Account] { accounts.filter { targetKeys.contains($0.key) } }
+
+    /// The platforms the posts must fit: the campaign's, or the picked ones before it starts.
+    var platforms: [PlatformId] {
+        campaign?.platforms ?? PlatformId.allCases.filter { p in targets.contains { $0.platform == p } }
+    }
+
+    func fits(_ text: String) -> Bool {
+        platforms.allSatisfy { $0.length(text) <= $0.campaignLimit }
+    }
+
+    /// Loads AI status and the saved brand profile, and resumes a campaign
+    /// that is running or waiting for review.
     func load() async {
         do {
             info = try await client.campaignsInfo()
             let profile = try await client.brandProfile()
             if brief.isEmpty { (brief, url, competitors) = (profile.brief, profile.url, profile.competitors) }
             if campaign == nil,
-               let open = info?.campaigns.first(where: { $0.accountId == account.id && ($0.status.isRunning || $0.status == .review) }) {
+               let open = info?.campaigns.first(where: { $0.status.isRunning || $0.status == .review }) {
                 show(open)
             }
         } catch {
@@ -72,7 +86,8 @@ final class CampaignModel {
         defer { busy = false }
         do {
             let started = try await client.startCampaign(.init(
-                accountId: account.id, brief: brief, url: url, competitors: competitors, count: count,
+                targets: targets.map { CampaignTarget(platform: $0.platform, accountId: $0.id) },
+                accountId: targets.first?.id ?? "", brief: brief, url: url, competitors: competitors, count: count,
                 windowMinutes: duration * unitMinutes, useAiImages: (info?.openaiKey ?? false) && useAiImages,
                 autoSchedule: !reviewFirst
             ))
@@ -122,9 +137,9 @@ struct CampaignSheet: View {
     @State private var model: CampaignModel
     @Environment(\.dismiss) private var dismiss
 
-    init(client: BridgeClient, account: Account, onScheduled: @escaping () -> Void) {
+    init(client: BridgeClient, accounts: [Account], defaultAccount: Account, onScheduled: @escaping () -> Void) {
         self.onScheduled = onScheduled
-        _model = State(initialValue: CampaignModel(client: client, account: account))
+        _model = State(initialValue: CampaignModel(client: client, accounts: accounts, defaultAccount: defaultAccount))
     }
 
     var body: some View {
@@ -133,7 +148,7 @@ struct CampaignSheet: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .background(Theme.canvas)
-                .navigationTitle("Auto campaign · @\(model.account.handle)")
+                .navigationTitle("Auto campaign")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
         }
@@ -165,6 +180,22 @@ struct CampaignSheet: View {
 
     private var form: some View {
         List {
+            Section {
+                ForEach(model.accounts) { account in
+                    Toggle(isOn: Binding(
+                        get: { model.targetKeys.contains(account.key) },
+                        set: { on in if on { model.targetKeys.insert(account.key) } else { model.targetKeys.remove(account.key) } }
+                    )) {
+                        Text("\(account.platform.label)  @\(account.handle)")
+                    }
+                }
+            } header: {
+                Text("Post to")
+            } footer: {
+                if model.platforms.count > 1 {
+                    Text("Each post goes to every account picked, written to fit the strictest limit.")
+                }
+            }
             Section("What are you promoting?") {
                 TextEditor(text: $model.brief).frame(minHeight: 110)
             }
@@ -193,7 +224,7 @@ struct CampaignSheet: View {
             Section {
                 Button(model.busy ? "Starting…" : "Go") { Task { await model.start() } }
                     .frame(maxWidth: .infinity)
-                    .disabled(model.busy || model.brief.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(model.busy || model.targets.isEmpty || model.brief.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
     }
@@ -241,9 +272,14 @@ struct CampaignSheet: View {
                 } else {
                     Section(draft.angle.capitalized) {
                         TextEditor(text: $draft.text).frame(minHeight: 100)
-                        let length = ReplyRules.length(draft.text)
-                        Text("\(length) / \(ReplyRules.campaignMaxLength)").font(.inter(.caption))
-                            .foregroundStyle(length > ReplyRules.campaignMaxLength ? Theme.error : Theme.muted)
+                        HStack(spacing: 12) {
+                            ForEach(model.platforms, id: \.self) { p in
+                                let length = p.length(draft.text)
+                                Text("\(model.platforms.count > 1 ? "\(p.label) " : "")\(length) / \(p.campaignLimit)")
+                                    .font(.mono(.caption))
+                                    .foregroundStyle(length > p.campaignLimit ? Theme.error : Theme.muted)
+                            }
+                        }
                         if let image = draft.imagePath, !draft.removeImage {
                             BridgeImage(client: model.client, filename: image).frame(maxHeight: 160)
                             Button("Remove image", role: .destructive) { draft.removeImage = true }
@@ -260,7 +296,7 @@ struct CampaignSheet: View {
                 Button(model.busy ? "Scheduling…" : "Schedule \(kept.count) post\(kept.count == 1 ? "" : "s")") {
                     Task { await model.schedule() }
                 }
-                .disabled(model.busy || kept.isEmpty || kept.contains { ReplyRules.length($0.text) > ReplyRules.campaignMaxLength })
+                .disabled(model.busy || kept.isEmpty || kept.contains { !model.fits($0.text) })
                 Button("Discard", role: .destructive) {
                     Task {
                         do { try await model.discard(); dismiss() } catch { model.error = error.localizedDescription }

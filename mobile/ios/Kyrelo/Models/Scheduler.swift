@@ -66,9 +66,22 @@ enum CampaignStatus: String, Decodable {
     var isRunning: Bool { self == .researching || self == .writing || self == .media }
 }
 
+/// An account a campaign posts to.
+struct CampaignTarget: Codable, Hashable {
+    let platform: PlatformId
+    let accountId: String
+}
+
 struct Campaign: Decodable, Identifiable {
     let id: String
     let accountId: String
+    /// Where every post goes. Missing from desktops before campaigns could
+    /// post to several platforms: those posted to one X account.
+    let targets: [CampaignTarget]?
+    var platforms: [PlatformId] {
+        let list = targets?.map(\.platform) ?? [.twitter]
+        return PlatformId.allCases.filter(list.contains)
+    }
     let count: Int
     let autoSchedule: Bool
     let status: CampaignStatus

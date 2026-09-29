@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hasApiKey } from "@/lib/ai";
 import { startCampaign } from "@/lib/campaign";
-import { getGrokSettings, listCampaigns, saveBrandProfile } from "@/lib/storage";
+import { getGrokSettings, listAccounts, listCampaigns, saveBrandProfile } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
+    /** Where the posts go: accounts on any platforms. */
+    targets?: { platform?: unknown; accountId?: unknown }[];
+    /** Older phone apps: one X account. */
     accountId?: string;
     brief?: string;
     url?: string;
@@ -41,7 +44,17 @@ export async function POST(req: NextRequest) {
   const count = Math.floor(Number(body.count));
   const windowMinutes = Math.floor(Number(body.windowMinutes));
 
-  if (!body.accountId) return NextResponse.json({ error: "pick an account" }, { status: 400 });
+  const wanted = Array.isArray(body.targets)
+    ? body.targets
+    : body.accountId
+      ? [{ platform: "twitter", accountId: body.accountId }]
+      : [];
+  // Only connected accounts, each once.
+  const connected = await listAccounts();
+  const targets = connected
+    .filter((a) => wanted.some((t) => t.platform === a.platform && t.accountId === a.id))
+    .map((a) => ({ platform: a.platform, accountId: a.id }));
+  if (targets.length === 0) return NextResponse.json({ error: "pick at least one connected account" }, { status: 400 });
   if (!brief) return NextResponse.json({ error: "describe what you're promoting" }, { status: 400 });
   if (url && !/^https?:\/\//i.test(url)) {
     return NextResponse.json({ error: "link must start with http:// or https://" }, { status: 400 });
@@ -55,7 +68,7 @@ export async function POST(req: NextRequest) {
 
   await saveBrandProfile({ brief, url, competitors });
   const campaign = await startCampaign({
-    accountId: body.accountId,
+    targets,
     brief,
     url,
     competitors,

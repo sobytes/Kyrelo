@@ -23,7 +23,7 @@ Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared inf
 
 | Folder | What it is |
 |---|---|
-| [`desktop/`](./desktop) | The Electron + Next.js + Playwright app, organised by service (X, Bluesky, Mastodon, Threads), each with its own sections: Scheduler, auto campaigns, Monitor + Autopilot, Deleter and Unfollow. Built for macOS first. |
+| [`desktop/`](./desktop) | The Electron + Next.js + Playwright app, with a Scheduler and auto campaigns across every platform, and each service's own tools (X: Monitor + Autopilot, Deleter, Unfollow). Built for macOS first. |
 | [`mobile/ios/`](./mobile/ios) | Native iPhone app (SwiftUI), paired with the desktop app, which does the work: the Monitor feed and reply drafts, the Scheduler with photos, and auto campaigns. Xcode project generated from `project.yml` by XcodeGen and committed. |
 | [`contracts/`](./contracts) | Rules the desktop and iOS apps must agree on, as test fixtures both apps' tests read. |
 | [`website/`](./website) | The marketing site at [kyrelo.com](https://kyrelo.com). Plain Next.js + Tailwind, deploys to Vercel with **Root Directory = `website`**. |
@@ -40,7 +40,7 @@ cd Kyrelo
 
 The first run installs dependencies and downloads Playwright's Chromium, so give it a minute. The app window opens on its own.
 
-The app opens on a home screen of services: X, Bluesky, Mastodon and Threads. Pick one to use its sections; Settings are shared by all of them. In the app:
+The app opens on a home screen: the **Scheduler**, which posts to all your accounts, and the services (X, Bluesky, Mastodon, Threads), each with its own tools. Settings are shared by all of them. In the app:
 
 1. **A service → Accounts** → connect it:
    - **X**: log in through a normal Chrome window.
@@ -48,9 +48,9 @@ The app opens on a home screen of services: X, Bluesky, Mastodon and Threads. Pi
    - **Mastodon**: just your server's name; your browser asks you to approve Kyrelo.
    - **Threads**: a token from a Meta developer app (Meta requires it; the screen walks you through it, about five minutes, once). Threads posts are text only.
 2. **Settings → API keys** → add a Claude or OpenAI key for AI replies, rewrites and auto campaigns. The page has step-by-step instructions for getting one.
-3. **A service → Scheduler** → write and schedule posts, to that service and your other accounts too. On X, **Auto-generate campaign** plans a whole series.
+3. **Scheduler** → write and schedule posts to any of your accounts at once. **Auto-generate campaign** plans a whole series and posts it to every account you pick, written to fit the strictest platform's limit.
 
-Which sections each service has is set in [`contracts/services.json`](./contracts/services.json): X has Monitor, Scheduler, Deleter, Unfollow and Accounts; the others Scheduler and Accounts for now.
+The Scheduler and campaigns cover every platform; a service's own tools are set in [`contracts/services.json`](./contracts/services.json): X has Monitor, Deleter, Unfollow and Accounts, the others Accounts for now.
 
 Your data (keys, X session, scheduled posts, uploads) stays on your machine in the app's data folder and is never committed.
 

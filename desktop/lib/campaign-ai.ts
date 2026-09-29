@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { OpenAiChatResponse, openAiPost, resolveAnthropicKey } from "./ai";
 import { jsonCompletion, RESEARCH_MODELS, webResearch } from "./ai-web";
-import { AiProvider, CampaignMediaKind, MediaItem } from "./types";
+import { PLATFORMS } from "./platforms";
+import { AiProvider, CampaignMediaKind, CampaignTarget, MediaItem } from "./types";
 
 // Research + writing for Auto Campaigns, on the shared calls in lib/ai-web.ts:
 //   1. research — live web search/fetch over the user's site, competitors and
@@ -32,6 +33,10 @@ export interface WriteInput {
   research: ResearchResult;
   count: number;
   windowMinutes: number;
+  /** Where the posts go. */
+  targets: CampaignTarget[];
+  /** Longest post, in the strictest of the targets' counts. */
+  maxLength: number;
   library: MediaItem[];
   allowAiImages: boolean;
   provider: AiProvider;
@@ -50,7 +55,7 @@ export interface WrittenDraft {
   sources: string[];
 }
 
-const RESEARCH_SYSTEM = `You are the research lead on a small marketing team preparing a burst of posts on X (Twitter) for a product.
+const RESEARCH_SYSTEM = `You are the research lead on a small marketing team preparing a burst of social media posts for a product.
 
 Work like a marketer would before writing anything:
 1. Read the product's own site (fetch the URL you are given) — what it is, who it's for, key features, pricing, proof points.
@@ -129,12 +134,12 @@ const DRAFTS_SCHEMA = {
   },
 } as const;
 
-const WRITE_SYSTEM = `You are the copywriter on a small marketing team. Using the research brief, write a burst of posts for X (Twitter) promoting the product.
+const WRITE_SYSTEM = `You are the copywriter on a small marketing team. Using the research brief, write a burst of social media posts promoting the product. Each post goes out as written on every platform you're told about, so it must read naturally on all of them.
 
 Angles: give every post a DIFFERENT angle from this set — pain point, feature highlight, comparison with a competitor, practical tip / how-to, question to the audience, social proof, timely hook. Name the angle in "angle".
 
 Writing rules:
-- Each post must be 270 characters or fewer (a URL counts as 23 characters).
+- Keep each post within the length you're given (the prompt says how links count).
 - Vary openings, sentence structure and length. Posts must not read like templates of each other.
 - Sound like a founder talking, not an ad. No em dashes. At most one hashtag per post, usually none. At most one emoji per post, usually none.
 - Include the product URL in roughly half of the posts, not all of them.
@@ -157,7 +162,9 @@ function writePrompt(input: WriteInput): string {
       : input.library.map((m) => `- id=${m.id}: ${m.description || "(no description)"}`).join("\n");
   const youtube = input.research.youtube.length ? input.research.youtube.join("\n") : "(none)";
   return (
-    `Write exactly ${input.count} posts. They'll go out over the next ${formatWindow(input.windowMinutes)}.\n\n` +
+    `Write exactly ${input.count} posts. They'll go out over the next ${formatWindow(input.windowMinutes)}, ` +
+    `each on ${platformList(input.targets)}.\n` +
+    `Each post must be ${input.maxLength - 10} characters or fewer. ${linkRule(input.targets)}\n\n` +
     `Product URL: ${input.url || "(none)"}\n` +
     `Competitors: ${input.competitors || "(see research)"}\n\n` +
     `Founder's brief:\n"""\n${input.brief}\n"""\n\n` +
@@ -166,6 +173,17 @@ function writePrompt(input: WriteInput): string {
     `YouTube videos found:\n${youtube}\n\n` +
     `AI-generated images allowed: ${input.allowAiImages ? "yes" : "no"}`
   );
+}
+
+function platformList(targets: CampaignTarget[]): string {
+  const labels = [...new Set(targets.map((t) => PLATFORMS[t.platform].label))];
+  return labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`;
+}
+
+/** X and Mastodon count every link as 23 characters; Bluesky and Threads count it in full. */
+function linkRule(targets: CampaignTarget[]): string {
+  const full = targets.some((t) => t.platform === "bluesky" || t.platform === "threads");
+  return full ? "Links count at their full length, so keep them short." : "A link counts as 23 characters.";
 }
 
 function formatWindow(minutes: number): string {

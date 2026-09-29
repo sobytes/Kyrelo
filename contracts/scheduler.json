@@ -1,7 +1,17 @@
 {
   "accounts": [
-    { "platform": "twitter", "id": "kyreloapp", "handle": "KyreloApp", "addedAt": "2026-09-20T10:00:00.000Z" },
-    { "platform": "bluesky", "id": "kyrelo.bsky.social", "handle": "kyrelo.bsky.social", "addedAt": "2026-09-28T10:00:00.000Z" }
+    {
+      "platform": "twitter",
+      "id": "kyreloapp",
+      "handle": "KyreloApp",
+      "addedAt": "2026-09-20T10:00:00.000Z"
+    },
+    {
+      "platform": "bluesky",
+      "id": "kyrelo.bsky.social",
+      "handle": "kyrelo.bsky.social",
+      "addedAt": "2026-09-28T10:00:00.000Z"
+    }
   ],
   "posts": [
     {
@@ -76,26 +86,49 @@
             "id": "d1",
             "angle": "pain point",
             "text": "Every scheduler I used eventually had a bad morning.",
-            "media": { "kind": "screenshot", "imagePath": "0f8e7d6c-5b4a-4938-8271-605f4e3d2c1c.jpg", "note": "Screenshot of https://kyrelo.com" },
-            "sources": ["https://status.buffer.com"],
+            "media": {
+              "kind": "screenshot",
+              "imagePath": "0f8e7d6c-5b4a-4938-8271-605f4e3d2c1c.jpg",
+              "note": "Screenshot of https://kyrelo.com"
+            },
+            "sources": [
+              "https://status.buffer.com"
+            ],
             "scheduledFor": "2026-09-28T19:07:22.000Z"
           },
           {
             "id": "d2",
             "angle": "question",
             "text": "How far back does your X history go?",
-            "media": { "kind": "none" },
+            "media": {
+              "kind": "none"
+            },
             "sources": [],
             "scheduledFor": "2026-09-28T19:38:10.000Z"
           }
         ],
         "postIds": [],
-        "createdAt": "2026-09-28T19:00:00.000Z"
+        "createdAt": "2026-09-28T19:00:00.000Z",
+        "targets": [
+          {
+            "platform": "twitter",
+            "accountId": "kyreloapp"
+          },
+          {
+            "platform": "bluesky",
+            "accountId": "kyrelo.bsky.social"
+          }
+        ],
+        "maxLength": 280
       }
     ],
     "provider": "claude",
     "aiReady": true,
     "openaiKey": false
   },
-  "brandProfile": { "brief": "Kyrelo is a free, open-source Buffer alternative.", "url": "https://kyrelo.com", "competitors": "Buffer" }
+  "brandProfile": {
+    "brief": "Kyrelo is a free, open-source Buffer alternative.",
+    "url": "https://kyrelo.com",
+    "competitors": "Buffer"
+  }
 }

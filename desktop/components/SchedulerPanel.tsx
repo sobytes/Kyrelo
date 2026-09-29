@@ -1,10 +1,9 @@
 "use client";
 import Link from "next/link";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AutoCampaignModal } from "@/components/AutoCampaignModal";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { PLATFORMS } from "@/lib/platforms";
-import { hasFeature, ServiceSpec } from "@/lib/services";
 import { Account, GrokSettings, PlatformId, ScheduledPost } from "@/lib/types";
 
 interface ConnectStatus {
@@ -42,7 +41,11 @@ function isOverLimit(text: string, platforms: PlatformId[]): boolean {
   return platforms.some((p) => PLATFORMS[p].length(text) > PLATFORMS[p].maxLength);
 }
 
-export function SchedulerPanel({ service }: { service: ServiceSpec }) {
+/**
+ * The Scheduler: every connected account, on every platform. A post goes to
+ * whichever accounts are picked, and an auto campaign to all of them.
+ */
+export function SchedulerPanel() {
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   // Until the first load, show "Loading" rather than the "connect an account" prompt.
@@ -72,17 +75,12 @@ export function SchedulerPanel({ service }: { service: ServiceSpec }) {
 
   async function loadConnect() {
     const r = (await fetch("/api/accounts").then((r) => r.json())) as ConnectStatus;
-    // This service's accounts first: they're the tabs and the default target;
-    // the rest can be added to a post ("Also post to").
-    const list = [...(r.accounts ?? [])].sort(
-      (a, b) => Number(b.platform === service.id) - Number(a.platform === service.id),
-    );
+    const list = r.accounts ?? [];
     setAccounts(list);
     setAccountsLoaded(true);
-    const own = list.filter((a) => a.platform === service.id);
     setSelectedKey((curr) => {
-      if (curr && own.some((a) => accountKey(a) === curr)) return curr;
-      return own[0] ? accountKey(own[0]) : "";
+      if (curr && list.some((a) => accountKey(a) === curr)) return curr;
+      return list[0] ? accountKey(list[0]) : "";
     });
   }
 
@@ -153,8 +151,7 @@ export function SchedulerPanel({ service }: { service: ServiceSpec }) {
     setReschedulingPost(post);
   }
 
-  const own = accounts.filter((a) => a.platform === service.id);
-  const selected = own.find((a) => accountKey(a) === selectedKey);
+  const selected = accounts.find((a) => accountKey(a) === selectedKey);
   const targets = accounts.filter((a) => targetKeys.includes(accountKey(a)));
   const forAccount = selected ? posts.filter((p) => postAccountKey(p) === selectedKey) : [];
   const sorted = [...forAccount].sort((a, b) =>
@@ -172,13 +169,13 @@ export function SchedulerPanel({ service }: { service: ServiceSpec }) {
     return <div className="py-6 text-sm text-muted">Loading…</div>;
   }
 
-  if (own.length === 0) {
+  if (accounts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 border-y border-line py-12 text-center">
-        <div className="text-sm text-fg">No {service.label} accounts connected yet.</div>
-        <div className="text-xs text-muted">Connect one to start scheduling posts.</div>
-        <Link href={`/${service.slug}/accounts`} className="btn-primary mt-2 text-sm">
-          Connect {service.label}
+        <div className="text-sm text-fg">No accounts connected yet.</div>
+        <div className="text-xs text-muted">Pick a service on the home screen and connect an account to start scheduling.</div>
+        <Link href="/" className="btn-primary mt-2 text-sm">
+          All services
         </Link>
       </div>
     );
@@ -189,12 +186,12 @@ export function SchedulerPanel({ service }: { service: ServiceSpec }) {
 
   return (
     <div className="space-y-5">
-      <AccountTabs accounts={own} selectedKey={selectedKey} onSelect={setSelectedKey} addHref={`/${service.slug}/accounts`} />
+      <AccountTabs accounts={accounts} selectedKey={selectedKey} onSelect={setSelectedKey} addHref="/" />
 
       <section className="card space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="label !mb-0">Schedule a post</div>
-          {hasFeature(service, "campaigns") && selected && (
+          {selected && (
             <button type="button" onClick={() => setCampaignOpen(true)} className="btn-ghost text-xs">
               Auto-generate campaign
             </button>
@@ -217,13 +214,12 @@ export function SchedulerPanel({ service }: { service: ServiceSpec }) {
             <div>
               <div className="label">Post to</div>
               <div className="flex flex-wrap items-center gap-2">
-                {accounts.map((a, i) => {
+                {accounts.map((a) => {
                   const key = accountKey(a);
                   const on = targetKeys.includes(key);
                   return (
-                    <Fragment key={key}>
-                    {i === own.length && <span className="text-xs text-muted">Also post to</span>}
                     <button
+                      key={key}
                       type="button"
                       onClick={() =>
                         setTargetKeys((keys) => (on ? keys.filter((k) => k !== key) : [...keys, key]))
@@ -235,7 +231,6 @@ export function SchedulerPanel({ service }: { service: ServiceSpec }) {
                     >
                       <PlatformBadge platform={a.platform} />@{a.handle}
                     </button>
-                    </Fragment>
                   );
                 })}
               </div>
@@ -350,9 +345,10 @@ export function SchedulerPanel({ service }: { service: ServiceSpec }) {
         />
       )}
 
-      {campaignOpen && selected && hasFeature(service, "campaigns") && (
+      {campaignOpen && selected && (
         <AutoCampaignModal
-          account={selected}
+          accounts={accounts}
+          defaultAccount={selected}
           onClose={() => setCampaignOpen(false)}
           onScheduled={loadPosts}
         />
