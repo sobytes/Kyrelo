@@ -91,13 +91,30 @@ const STEALTH_INIT = `
 // Chrome's SingletonLock. This chain queues all consumers (worker crons,
 // UI-triggered routes, and the connect flow when it replaces a profile dir)
 // inside a single Node process.
-const browserLocks: Record<string, Promise<void>> = {};
-// How many callers are queued behind the current holder, per lock key, and
-// how many of those are posts.
-const lockWaiters: Record<string, number> = {};
-const postWaiters: Record<string, number> = {};
-// What currently holds each lock, for the "waited for the browser" log.
-const lockHolders: Record<string, string> = {};
+//
+// All of it lives on globalThis: Next's dev server reloads modules after an
+// edit, and a second copy of this state would let two Chromes open the same
+// profile, or count no open browsers and sweep away one in use.
+const shared = ((globalThis as { __kyreloBrowserState?: BrowserState }).__kyreloBrowserState ??= {
+  browserLocks: {},
+  lockWaiters: {},
+  postWaiters: {},
+  lockHolders: {},
+  openBrowserCount: 0,
+});
+
+interface BrowserState {
+  browserLocks: Record<string, Promise<void>>;
+  /** How many callers are queued behind the current holder, per lock key… */
+  lockWaiters: Record<string, number>;
+  /** …and how many of those are posts. */
+  postWaiters: Record<string, number>;
+  /** What currently holds each lock, for the "waited for the browser" log. */
+  lockHolders: Record<string, string>;
+  /** Our browsers open right now, on any profile. */
+  openBrowserCount: number;
+}
+const { browserLocks, lockWaiters, postWaiters, lockHolders } = shared;
 
 export async function acquireBrowserLock(platform: string, purpose = "unknown"): Promise<() => void> {
   const prev = browserLocks[platform] ?? Promise.resolve();
@@ -179,7 +196,6 @@ async function clearStaleProfileLocks(dir: string) {
 // Only when none of our own browsers are open: the lock is per account, so a
 // screenshot or a second account can launch while another browser is mid-job,
 // and the sweep would kill it.
-let openBrowserCount = 0;
 
 function killStrayHeadlessShells(): Promise<void> {
   return new Promise((resolve) => {
@@ -215,7 +231,7 @@ export async function openBrowser(
   let context: BrowserContext | undefined;
   try {
     await fs.mkdir(dir, { recursive: true });
-    if (openBrowserCount === 0) await killStrayHeadlessShells();
+    if (shared.openBrowserCount === 0) await killStrayHeadlessShells();
     await clearStaleProfileLocks(dir);
 
     // launchPersistentContext = the browser thinks it's "your normal Chrome with
@@ -255,7 +271,7 @@ export async function openBrowser(
       context = await chromium.launchPersistentContext(dir, { ...launchOptions, channel });
     }
 
-    openBrowserCount++;
+    shared.openBrowserCount++;
     // Non-optional alias: close() below runs later, where `context` isn't narrowed.
     const launched = context;
     await launched.addInitScript({ content: STEALTH_INIT });
@@ -297,7 +313,7 @@ export async function openBrowser(
         try {
           await launched.close();
         } finally {
-          openBrowserCount--;
+          shared.openBrowserCount--;
           release();
         }
       },
@@ -307,7 +323,7 @@ export async function openBrowser(
     // lock and keeps the profile dir busy.
     if (context) {
       await context.close().catch(() => {});
-      openBrowserCount--;
+      shared.openBrowserCount--;
     }
     release();
     throw err;
