@@ -1,4 +1,4 @@
-import { hasApiKey } from "./ai";
+import { aiErrorMessage, hasApiKey } from "./ai";
 import { researchCampaign, writeCampaignDrafts, WrittenDraft } from "./campaign-ai";
 import { spreadTimes } from "./campaign-timing";
 import { fetchOgImage, generateAiImage, screenshotPage } from "./media";
@@ -94,7 +94,7 @@ async function runCampaign(c: Campaign): Promise<void> {
     await save({ drafts, status: "review", progress: "Ready for review." });
     if (c.autoSchedule) await scheduleCampaign(c.id);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = aiErrorMessage(err);
     console.error(`[campaign] ${c.id} failed: ${msg}`);
     await save({ status: "failed", error: msg });
   }

@@ -1,5 +1,6 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { draftReplies, DraftRepliesInput } from "./ai";
+import { aiErrorMessage, draftReplies, DraftRepliesInput, OpenAiError } from "./ai";
 import { tweetLength } from "./tweet";
 
 // The OpenAI path, with the API mocked to return a fixed model answer.
@@ -88,3 +89,32 @@ describe("draftReplies", () => {
     expect(body.temperature).toBe(0.2);
   });
 });
+
+describe("AI error messages", () => {
+  const claude = (status: number, message: string) =>
+    Anthropic.APIError.generate(status, { type: "error", error: { type: "api_error", message } }, message, new Headers());
+
+  it("says a provider hiccup is temporary, not a bad key", () => {
+    // What Anthropic answered during a short outage on 29 September 2026.
+    expect(aiErrorMessage(claude(503, "credential validation failed"))).toBe(
+      "Claude is having a temporary problem (error 503 from their servers). Try again in a minute.",
+    );
+    expect(aiErrorMessage(claude(529, "Overloaded"))).toMatch(/temporary problem \(error 529/);
+    expect(aiErrorMessage(new OpenAiError(502, "OpenAI 502: bad gateway"))).toMatch(/^OpenAI is having a temporary problem/);
+  });
+
+  it("points a rejected key at Settings, and explains rate limits", () => {
+    expect(aiErrorMessage(claude(401, "invalid x-api-key"))).toBe(
+      "Claude rejected your API key. Check it under Settings → API keys.",
+    );
+    expect(aiErrorMessage(new OpenAiError(429, "OpenAI 429: slow down"))).toMatch(/OpenAI's rate limit/);
+  });
+
+  it("passes other errors through", () => {
+    expect(aiErrorMessage(new Error("X session expired. Reconnect under Connected accounts."))).toBe(
+      "X session expired. Reconnect under Connected accounts.",
+    );
+    expect(aiErrorMessage("plain")).toBe("plain");
+  });
+});
+

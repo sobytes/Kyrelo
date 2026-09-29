@@ -1,4 +1,4 @@
-import { draftReplies } from "./ai";
+import { aiErrorMessage, draftReplies } from "./ai";
 import { getGrokSettings, getGrokState, modifyGrokState } from "./storage";
 import { defaultXAccountId } from "./accounts";
 import { connectingPlatform } from "./browser-connect";
@@ -196,7 +196,7 @@ export async function draftForTweet(
     });
     draft = { ...r, generatedAt: new Date().toISOString() };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : String(err) };
+    return { error: aiErrorMessage(err) };
   }
   await modifyGrokState((state) => ({
     ...state,

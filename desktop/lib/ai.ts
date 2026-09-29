@@ -45,9 +45,46 @@ export async function openAiPost<T>(endpoint: string, body: object, timeoutMs = 
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`OpenAI ${res.status}: ${text.slice(0, 300)}`);
+    throw new OpenAiError(res.status, `OpenAI ${res.status}: ${text.slice(0, 300)}`);
   }
   return (await res.json()) as T;
+}
+
+/** An OpenAI API error, with its status for aiErrorMessage. */
+export class OpenAiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+/**
+ * What went wrong, for the user. The providers' own messages are written for
+ * developers: Anthropic's "503 credential validation failed" (a hiccup on
+ * their side) reads like a bad key. Anything that isn't an AI error passes
+ * through as it is.
+ */
+export function aiErrorMessage(err: unknown): string {
+  const [name, status] =
+    err instanceof Anthropic.APIError
+      ? ["Claude", err.status]
+      : err instanceof OpenAiError
+        ? ["OpenAI", err.status]
+        : [null, undefined];
+  if (err instanceof Anthropic.APIConnectionError) {
+    return "Couldn't reach Claude. Check your internet connection and try again.";
+  }
+  if (name && status !== undefined) {
+    if (status === 401 || status === 403) return `${name} rejected your API key. Check it under Settings → API keys.`;
+    if (status === 429) return `You've hit ${name}'s rate limit. Wait a minute and try again.`;
+    if (status >= 500) return `${name} is having a temporary problem (error ${status} from their servers). Try again in a minute.`;
+  }
+  if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
+    return "The AI took too long to answer. Try again.";
+  }
+  return err instanceof Error ? err.message : String(err);
 }
 
 /** Response shape of chat/completions, as far as we read it. */

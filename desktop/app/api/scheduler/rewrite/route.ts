@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { rewritePost } from "@/lib/ai";
+import { aiErrorMessage, rewritePost } from "@/lib/ai";
 import { isPlatformId } from "@/lib/platforms";
 import { getGrokSettings } from "@/lib/storage";
 
@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ ok: true, text, provider: settings.aiProvider });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: aiErrorMessage(err) }, { status: 500 });
   }
 }
