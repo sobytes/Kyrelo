@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getJob, startJob } from "@/lib/deleter";
+import type { DeleteTarget } from "@/lib/browser/twitter-delete";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
     accountId?: string;
+    target?: string;
     count?: number;
     startingAt?: number;
     includeReposts?: boolean;
@@ -19,6 +21,8 @@ export async function POST(req: NextRequest) {
   }
   const result = await startJob({
     accountId: body.accountId,
+    // Posts unless asked otherwise, as before there was a choice.
+    target: (body.target ?? "posts") as DeleteTarget,
     count: Number(body.count ?? 0),
     startingAt: Number(body.startingAt ?? 0),
     includeReposts: Boolean(body.includeReposts ?? false),

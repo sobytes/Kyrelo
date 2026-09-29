@@ -10,6 +10,7 @@ let postById: typeof import("./scheduler/posts/[id]/route");
 let settings: typeof import("./grok-settings/route");
 let unfollow: typeof import("./unfollow/route");
 let finder: typeof import("./handle-finder/route");
+let deleter: typeof import("./deleter/route");
 beforeAll(async () => {
   process.env.STORAGE_DIR = await mkdtemp(path.join(os.tmpdir(), "kyrelo-routes-"));
   posts = await import("./scheduler/posts/route");
@@ -17,6 +18,7 @@ beforeAll(async () => {
   settings = await import("./grok-settings/route");
   unfollow = await import("./unfollow/route");
   finder = await import("./handle-finder/route");
+  deleter = await import("./deleter/route");
   // Posts must belong to a connected account.
   const { saveAccount } = await import("@/lib/browser-connect");
   const addedAt = new Date().toISOString();
@@ -218,6 +220,15 @@ describe("handle finder route", () => {
       await find({});
       expect(await getBrandProfile()).toEqual(saved);
     });
+  });
+});
+
+describe("deleter route", () => {
+  // Refused before a browser opens.
+  it("only deletes posts, replies or likes", async () => {
+    const res = await deleter.POST(json("POST", { accountId: "acct", target: "dms", count: 5, startingAt: 0 }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/posts, replies or likes/);
   });
 });
 

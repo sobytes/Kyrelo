@@ -3,7 +3,7 @@ import { Footer, GITHUB_URL, Nav, RELEASES_URL, SITE_URL } from "../site";
 
 const title = "Free, Open-Source TweetDelete Alternative — Kyrelo";
 const description =
-  "Kyrelo is a free, open-source TweetDelete alternative. Bulk delete your X (Twitter) posts and undo reposts from your own computer. No subscription.";
+  "Kyrelo is a free, open-source TweetDelete alternative. Bulk delete your X (Twitter) posts, replies and reposts, and unlike your likes, from your own computer. No subscription.";
 
 export const metadata: Metadata = {
   title,
@@ -17,6 +17,9 @@ export const metadata: Metadata = {
     "bulk delete tweets",
     "delete reposts",
     "undo retweets",
+    "delete replies on X",
+    "delete all likes on X",
+    "unlike all tweets",
     "X post deleter",
   ],
   openGraph: {
@@ -74,13 +77,23 @@ const COMPARISON: { feature: string; kyrelo: Cell; tweetdelete: Cell }[] = [
     tweetdelete: { text: "Yes, with date filters", good: true },
   },
   {
-    feature: "Delete likes, replies and DMs",
-    kyrelo: { text: "Not yet" },
+    feature: "Delete your replies",
+    kyrelo: { text: "Yes, replies to others (your threads are kept)", good: true },
+    tweetdelete: { text: "Yes", good: true },
+  },
+  {
+    feature: "Unlike your likes",
+    kyrelo: { text: "Yes, newest first, up to 100 per run", good: true },
+    tweetdelete: { text: "Yes", good: true },
+  },
+  {
+    feature: "Delete DMs",
+    kyrelo: { text: "No: X's new Chat is end-to-end encrypted behind a passcode" },
     tweetdelete: { text: "Yes", good: true },
   },
   {
     feature: "Also schedules posts",
-    kyrelo: { text: "Yes, plus handle monitoring and AI replies", good: true },
+    kyrelo: { text: "Yes, plus monitoring, reply drafts and Unfollow", good: true },
     tweetdelete: { text: "No" },
   },
 ];
@@ -107,8 +120,8 @@ const REASONS = [
 const STEPS = [
   "Download Kyrelo for macOS or Windows from GitHub releases.",
   "Connect your X account. Kyrelo opens X in Chrome so you can sign in normally.",
-  "Open the Deleter, pick the account, and choose how many posts to remove (up to 100 per run).",
-  "Turn on “Include reposts” to undo retweets too, and set “Starting at” to keep your newest posts.",
+  "Open the Deleter, pick the account, and choose what to remove: posts, replies or likes.",
+  "Choose how many (up to 100 per run) and set “Starting at” to keep your newest ones. For posts, turn on “Include reposts” to undo retweets too.",
   "Press delete and watch it work. Run it again until your timeline is as clean as you want.",
 ];
 
@@ -126,8 +139,12 @@ const FAQ = [
     a: "Kyrelo deletes your posts in runs of up to 100 at a time, starting from your newest (or from any point you choose). Run it repeatedly to work back through your timeline. Pinned tweets are always skipped so you don't lose them by accident.",
   },
   {
-    q: "Does Kyrelo delete likes or DMs?",
-    a: "Not yet. Kyrelo currently deletes your own posts and undoes reposts. If you need to remove likes, replies or direct messages, TweetDelete and similar services cover those today.",
+    q: "Can Kyrelo delete my likes and replies?",
+    a: "Yes. Choose Likes in the Deleter to unlike posts, newest first, or Replies to delete your replies to other people. Replies in your own threads are kept so your threads stay intact. Unliking can be undone by liking the post again; deleted replies can't be recovered.",
+  },
+  {
+    q: "Can Kyrelo delete my DMs?",
+    a: "No. X has moved direct messages to its new Chat, which is end-to-end encrypted and unlocked with a passcode on each device, so Kyrelo can't reach them the way it reaches your posts. If you need to clear DMs, delete conversations in X Chat, or check whether TweetDelete supports the new Chat.",
   },
   {
     q: "Is Kyrelo affiliated with TweetDelete?",
@@ -173,8 +190,8 @@ export default function TweetDeleteAlternative() {
             The free, open-source TweetDelete alternative
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted">
-            Bulk delete your old X (Twitter) posts and undo your reposts without paying for a
-            subscription or handing your account to a third-party app. Kyrelo runs on your own
+            Bulk delete your old X (Twitter) posts and replies, undo your reposts and unlike your
+            likes without paying for a subscription or handing your account to a third-party app. Kyrelo runs on your own
             computer, and its code is open for anyone to read.
           </p>
           <div id="download" className="mt-8 flex flex-wrap items-center gap-3">
@@ -199,7 +216,8 @@ export default function TweetDeleteAlternative() {
             </h2>
             <p className="mt-4 text-base leading-relaxed text-muted">
               TweetDelete is a popular web service for clearing out your X history. Kyrelo does
-              the core job, deleting posts and reposts in bulk, for free and without the cloud.
+              the core jobs, deleting posts, replies and reposts and unliking likes in bulk, for
+              free and without the cloud.
             </p>
           </div>
           <dl className="mt-10 grid gap-x-12 gap-y-8 sm:grid-cols-2">
@@ -218,8 +236,8 @@ export default function TweetDeleteAlternative() {
           <div className="max-w-2xl">
             <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">Kyrelo vs TweetDelete</h2>
             <p className="mt-4 text-sm text-muted">
-              An honest side-by-side. TweetDelete covers more types of content today; Kyrelo is
-              free, open source and keeps your account on your machine.
+              An honest side-by-side. TweetDelete also covers DMs; Kyrelo is free, open source and
+              keeps your account on your machine.
             </p>
           </div>
           <div className="mt-8 overflow-x-auto">

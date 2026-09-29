@@ -1,14 +1,21 @@
 import { Page } from "playwright";
 import { assertLoggedIn, postWaitingForBrowser, jitter, openBrowser, warmup } from "./session";
 
+/**
+ * What a run removes: your own posts (and, optionally, reposts), your
+ * replies to other people, or your likes.
+ */
+export type DeleteTarget = "posts" | "replies" | "likes";
+
 export interface DeleteOptions {
   accountId: string;
   handle: string;
+  target: DeleteTarget;
   /** How many items to remove after skipping. */
   count: number;
   /** Skip this many items at the top of the timeline before deleting. */
   startingAt: number;
-  /** When true, reposts (retweets) are also removed via "Undo repost". */
+  /** Posts only: reposts (retweets) are also removed via "Undo repost". */
   includeReposts?: boolean;
   headless?: boolean;
   onProgress?: (event: DeleteEvent) => void;
@@ -24,7 +31,7 @@ export interface DeleteResult {
   skipped: string[];
 }
 
-type ItemKind = "tweet" | "repost";
+type ItemKind = "tweet" | "repost" | "reply" | "like";
 
 interface CandidateTweet {
   id: string;
@@ -88,6 +95,7 @@ async function collectUpTo(
   handleLower: string,
   target: number,
   includeReposts: boolean,
+  keep: (t: CandidateTweet) => boolean = () => true,
 ): Promise<CandidateTweet[]> {
   const seen = new Map<string, CandidateTweet>();
   let stagnantRounds = 0;
@@ -97,6 +105,7 @@ async function collectUpTo(
     const before = seen.size;
     for (const t of batch) {
       if (t.itemKind === "repost" && !includeReposts) continue;
+      if (!keep(t)) continue;
       if (!seen.has(t.id)) seen.set(t.id, t);
     }
     if (seen.size >= target) break;
@@ -111,6 +120,41 @@ async function collectUpTo(
   }
 
   return Array.from(seen.values());
+}
+
+/**
+ * Ids of the user's replies to other people in X's data for the Replies tab
+ * (UserRepliesTimeline). The tab also shows the posts replied to, and only
+ * some replies carry a "Replying to" label, so the page alone can't tell.
+ * Replies to the user's own posts (their threads) aren't included.
+ */
+export function repliesToOthersIn(json: unknown, userId: string): string[] {
+  const ids: string[] = [];
+  const walk = (node: unknown) => {
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (typeof node !== "object" || node === null) return;
+    const legacy = (node as { legacy?: Record<string, unknown> }).legacy;
+    if (
+      legacy &&
+      legacy.user_id_str === userId &&
+      typeof legacy.id_str === "string" &&
+      typeof legacy.in_reply_to_user_id_str === "string" &&
+      legacy.in_reply_to_user_id_str !== userId
+    ) {
+      ids.push(legacy.id_str);
+    }
+    for (const value of Object.values(node)) walk(value);
+  };
+  walk(json);
+  return ids;
+}
+
+/** The signed-in user's id, from X's `twid` cookie ("u=<id>"). */
+async function signedInUserId(page: Page): Promise<string> {
+  const twid = (await page.context().cookies("https://x.com")).find((c) => c.name === "twid")?.value ?? "";
+  const id = decodeURIComponent(twid).replace(/^u=/, "");
+  if (!/^\d+$/.test(id)) throw new Error("Couldn't tell which X account is signed in. Reconnect it under Connected.");
+  return id;
 }
 
 // Remove one item. For a tweet the caret menu offers "Delete" then a confirm
@@ -220,16 +264,16 @@ async function deleteOne(
 }
 
 export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
-  const { accountId, handle, count, startingAt } = opts;
-  const includeReposts = opts.includeReposts ?? false;
+  const { accountId, handle, count, startingAt, target: what } = opts;
+  const includeReposts = what === "posts" && (opts.includeReposts ?? false);
   const emit = opts.onProgress ?? (() => {});
   const handleLower = handle.toLowerCase();
 
+  const scope =
+    what === "likes" ? "likes" : what === "replies" ? "replies to others" : includeReposts ? "tweets + reposts" : "tweets only";
   emit({
     kind: "log",
-    message:
-      `Opening @${handle}'s timeline (skip ${startingAt}, remove up to ${count}, ` +
-      `${includeReposts ? "tweets + reposts" : "tweets only"})`,
+    message: `Opening @${handle}'s ${what === "likes" ? "likes" : "timeline"} (skip ${startingAt}, remove up to ${count}, ${scope})`,
   });
 
   const browser = await openBrowser("twitter", {
@@ -250,7 +294,19 @@ export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
     }
     assertLoggedIn(page);
 
-    await page.goto(`https://x.com/${handle}`, { waitUntil: "domcontentloaded" });
+    if (what === "likes") return await unlikeLikes(page, opts, emit);
+
+    // Replies: X's data for the tab says which posts are replies to others.
+    const replyIds = new Set<string>();
+    if (what === "replies") {
+      const userId = await signedInUserId(page);
+      page.on("response", (res) => {
+        if (!/\/graphql\/[^/]+\/(UserRepliesTimeline|UserTweetsAndReplies)\?/.test(res.url()) || !res.ok()) return;
+        res.json().then((json) => repliesToOthersIn(json, userId).forEach((id) => replyIds.add(id)), () => {});
+      });
+    }
+
+    await page.goto(`https://x.com/${handle}${what === "replies" ? "/with_replies" : ""}`, { waitUntil: "domcontentloaded" });
     await jitter(2000, 3500);
     assertLoggedIn(page);
 
@@ -299,12 +355,13 @@ export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
         handleLower,
         startingAt + 1,
         includeReposts,
+        what === "replies" ? (t) => replyIds.has(t.id) : undefined,
       );
       const target = collected[startingAt];
       if (!target) {
         emit({
           kind: "log",
-          message: `No tweet at index ${startingAt} (timeline has ${collected.length}). Stopping.`,
+          message: `No ${what === "replies" ? "reply" : "tweet"} at index ${startingAt} (found ${collected.length}). Stopping.`,
         });
         consecutiveNoTarget++;
         if (consecutiveNoTarget >= 2) break;
@@ -315,7 +372,7 @@ export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
       emit({
         kind: "log",
         message:
-          `(${attempted}/${count}) ${target.itemKind === "repost" ? "un-reposting" : "deleting"} ${target.url}`,
+          `(${attempted}/${count}) ${target.itemKind === "repost" ? "un-reposting" : what === "replies" ? "deleting reply" : "deleting"} ${target.url}`,
       });
       const result = await deleteOne(page, target);
       if (result.ok) {
@@ -325,7 +382,7 @@ export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
           kind: "deleted",
           id: target.id,
           url: target.url,
-          itemKind: target.itemKind,
+          itemKind: what === "replies" ? "reply" : target.itemKind,
         });
       } else {
         consecutiveFailures++;
@@ -353,3 +410,91 @@ export async function deleteTweets(opts: DeleteOptions): Promise<DeleteResult> {
     await browser.close();
   }
 }
+
+/**
+ * Unlikes the user's likes, newest first, from X's likes history (the old
+ * x.com/<handle>/likes now redirects there). Each liked post has an Unlike
+ * button; a like can be given again, so this is the one reversible target.
+ */
+async function unlikeLikes(
+  page: Page,
+  opts: DeleteOptions,
+  emit: (event: DeleteEvent) => void,
+): Promise<DeleteResult> {
+  const deleted: string[] = [];
+  const skipped: string[] = [];
+  await page.goto("https://x.com/i/history/likes", { waitUntil: "domcontentloaded" });
+  await jitter(2000, 3500);
+  assertLoggedIn(page);
+  try {
+    await page.locator('article[data-testid="tweet"], [data-testid="emptyState"]').first().waitFor({ timeout: 15_000 });
+  } catch {
+    throw new Error("Couldn't load your likes.");
+  }
+
+  // Likes already handled (unliked, kept by "Starting at", or failed) stay on
+  // the page with a Like button or are skipped, so track them by id.
+  const handled = new Set<string>();
+  let kept = 0;
+  let stalled = 0;
+  let failuresInARow = 0;
+  while (deleted.length < opts.count) {
+    if (postWaitingForBrowser("twitter", opts.accountId)) {
+      emit({ kind: "log", message: "Stopping early so a scheduled post can go out. Run the job again to continue." });
+      break;
+    }
+    const liked = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('article[data-testid="tweet"]'))
+        .filter((a) => a.querySelector('[data-testid="unlike"]'))
+        .map((a) => a.querySelector("a[href*='/status/']")?.getAttribute("href")?.match(/^\/([^/]+)\/status\/(\d+)/))
+        .filter((m): m is RegExpMatchArray => !!m)
+        .map((m) => ({ id: m[2], url: `https://x.com${m[0]}` })),
+    );
+    const next = liked.find((l) => !handled.has(l.id));
+    if (!next) {
+      // Load older likes; stop once scrolling brings nothing new.
+      stalled++;
+      if (stalled >= 6) {
+        emit({ kind: "log", message: "No more likes found." });
+        break;
+      }
+      await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+      await jitter(1800, 2800);
+      continue;
+    }
+    stalled = 0;
+    handled.add(next.id);
+    if (kept < opts.startingAt) {
+      kept++;
+      continue;
+    }
+
+    emit({ kind: "log", message: `(${deleted.length + 1}/${opts.count}) unliking ${next.url}` });
+    const article = page
+      .locator('article[data-testid="tweet"]')
+      .filter({ has: page.locator(`a[href*="/status/${next.id}"]`) })
+      .first();
+    try {
+      await article.scrollIntoViewIfNeeded({ timeout: 5_000 });
+      await jitter(300, 700);
+      await article.locator('[data-testid="unlike"]').first().click({ timeout: 4_000 });
+      await article.locator('[data-testid="like"]').first().waitFor({ state: "visible", timeout: 6_000 });
+      failuresInARow = 0;
+      deleted.push(next.id);
+      emit({ kind: "deleted", id: next.id, url: next.url, itemKind: "like" });
+    } catch {
+      failuresInARow++;
+      skipped.push(next.id);
+      emit({ kind: "skipped", id: next.id, reason: "X didn't confirm the unlike" });
+      if (failuresInARow >= 3) {
+        emit({ kind: "log", message: "Stopping after 3 consecutive failures." });
+        break;
+      }
+    }
+    await jitter(1200, 2400);
+  }
+
+  emit({ kind: "log", message: `Done. Unliked ${deleted.length}, skipped ${skipped.length}.` });
+  return { deleted, skipped };
+}
+

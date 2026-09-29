@@ -1,10 +1,13 @@
-import { deleteTweets, DeleteEvent } from "./browser/twitter-delete";
+import { deleteTweets, DeleteEvent, DeleteTarget } from "./browser/twitter-delete";
+
+export const DELETE_TARGETS: DeleteTarget[] = ["posts", "replies", "likes"];
 import { listAccounts } from "./storage";
 
 export interface DeleterJob {
   id: string;
   accountId: string;
   handle: string;
+  target: DeleteTarget;
   count: number;
   startingAt: number;
   includeReposts: boolean;
@@ -32,6 +35,7 @@ export function getJob(): DeleterJob | null {
 
 export interface StartOptions {
   accountId: string;
+  target: DeleteTarget;
   count: number;
   startingAt: number;
   includeReposts: boolean;
@@ -44,6 +48,7 @@ export async function startJob(opts: StartOptions): Promise<{ job: DeleterJob } 
   const account = accounts.find((a) => a.id === opts.accountId);
   if (!account) return { error: "Account not found." };
 
+  if (!DELETE_TARGETS.includes(opts.target)) return { error: "Choose posts, replies or likes." };
   if (!Number.isInteger(opts.count) || opts.count < 1 || opts.count > 100) {
     return { error: "Count must be an integer between 1 and 100." };
   }
@@ -55,6 +60,7 @@ export async function startJob(opts: StartOptions): Promise<{ job: DeleterJob } 
     id: crypto.randomUUID(),
     accountId: account.id,
     handle: account.handle,
+    target: opts.target,
     count: opts.count,
     startingAt: opts.startingAt,
     includeReposts: opts.includeReposts,
@@ -78,7 +84,7 @@ export async function startJob(opts: StartOptions): Promise<{ job: DeleterJob } 
     if (event.kind === "log") record(event.message);
     else if (event.kind === "deleted") {
       job.deleted.push(event.id);
-      const verb = event.itemKind === "repost" ? "un-reposted" : "deleted";
+      const verb = { tweet: "deleted", reply: "deleted reply", repost: "un-reposted", like: "unliked" }[event.itemKind];
       record(`${verb} ${event.url}`);
     } else if (event.kind === "skipped") {
       // A failed item is retried in place, so the same id can be skipped twice.
@@ -93,6 +99,7 @@ export async function startJob(opts: StartOptions): Promise<{ job: DeleterJob } 
       await deleteTweets({
         accountId: account.id,
         handle: account.handle,
+        target: opts.target,
         count: opts.count,
         startingAt: opts.startingAt,
         includeReposts: opts.includeReposts,

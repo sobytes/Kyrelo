@@ -4,10 +4,38 @@ import { useEffect, useRef, useState } from "react";
 import { Account } from "@/lib/types";
 import { JobLog, JobStatus } from "./JobLog";
 
+type DeleteTarget = "posts" | "replies" | "likes";
+
+// Wording for each kind of thing the Deleter removes.
+const TARGETS: Record<DeleteTarget, { label: string; noun: string; button: string; keep: string; how: string }> = {
+  posts: {
+    label: "Posts",
+    noun: "posts",
+    button: "Delete posts",
+    keep: "Keep this many of your newest posts. 0 starts from the newest.",
+    how: "Kyrelo opens your X profile in Chrome, scrolls to load enough posts to cover your skip + count, then picks Delete from each post's menu. Pinned posts are always skipped. Reposts are skipped unless Include reposts is on.",
+  },
+  replies: {
+    label: "Replies",
+    noun: "replies",
+    button: "Delete replies",
+    keep: "Keep this many of your newest replies. 0 starts from the newest.",
+    how: "Kyrelo opens your Replies tab and deletes only your replies to other people, going by X's own data for the page. Replies in your own threads are kept, so your threads stay intact.",
+  },
+  likes: {
+    label: "Likes",
+    noun: "likes",
+    button: "Unlike",
+    keep: "Keep this many of your most recent likes. 0 starts from the newest.",
+    how: "Kyrelo opens your likes history and presses Unlike on each post, newest first. Unliking can be undone by liking the post again.",
+  },
+};
+
 interface DeleterJob {
   id: string;
   accountId: string;
   handle: string;
+  target?: DeleteTarget;
   count: number;
   startingAt: number;
   includeReposts: boolean;
@@ -31,6 +59,7 @@ export function DeleterPanel() {
   const [accountId, setAccountId] = useState<string>("");
   const [count, setCount] = useState(10);
   const [startingAt, setStartingAt] = useState(0);
+  const [target, setTarget] = useState<DeleteTarget>("posts");
   const [includeReposts, setIncludeReposts] = useState(false);
   const [job, setJob] = useState<DeleterJob | null>(null);
   const [starting, setStarting] = useState(false);
@@ -75,10 +104,14 @@ export function DeleterPanel() {
   async function start() {
     if (!accountId) return;
     const acct = accounts.find((a) => a.id === accountId);
-    const scopeLabel = includeReposts ? "tweets and reposts" : "tweets";
+    const scopeLabel = target === "posts" && includeReposts ? "posts and reposts" : TARGETS[target].noun;
+    const warning =
+      target === "likes"
+        ? "You can like any of them again later."
+        : "Deleted posts and replies can't be recovered." +
+          (target === "posts" && includeReposts ? " Undone reposts can be reposted from the original." : "");
     const ok = confirm(
-      `Remove up to ${count} ${scopeLabel} from @${acct?.handle}, skipping the first ${startingAt}?\n\n` +
-        `Deleted tweets cannot be recovered. Un-reposted tweets can be reposted again from the original.`,
+      `${target === "likes" ? "Unlike" : "Remove"} up to ${count} ${scopeLabel} from @${acct?.handle}, skipping the ${startingAt} newest?\n\n${warning}`,
     );
     if (!ok) return;
     setStarting(true);
@@ -86,7 +119,7 @@ export function DeleterPanel() {
       const r = await fetch("/api/deleter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountId, count, startingAt, includeReposts }),
+        body: JSON.stringify({ accountId, target, count, startingAt, includeReposts: target === "posts" && includeReposts }),
       }).then((r) => r.json());
       if (r.error) {
         alert(r.error);
@@ -139,9 +172,25 @@ export function DeleterPanel() {
           </select>
         </div>
 
+        <div>
+          <div className="label">What to delete</div>
+          <div className="flex gap-2">
+            {(Object.keys(TARGETS) as DeleteTarget[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTarget(t)}
+                disabled={disabled}
+                className={"btn-ghost " + (target === t ? "border-fg font-semibold" : "text-muted")}
+              >
+                {TARGETS[t].label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <div className="label">How many to delete</div>
+            <div className="label">How many {target === "likes" ? "to unlike" : "to delete"}</div>
             <input
               type="number"
               min={1}
@@ -152,7 +201,7 @@ export function DeleterPanel() {
               onChange={(e) => setCount(clampInt(e.target.value, 1, 100, 10))}
               disabled={disabled}
             />
-            <div className="mt-1 text-[10px] text-muted">1 – 100 tweets.</div>
+            <div className="mt-1 text-[10px] text-muted">1 – 100 {TARGETS[target].noun}.</div>
           </div>
 
           <div>
@@ -168,11 +217,12 @@ export function DeleterPanel() {
               disabled={disabled}
             />
             <div className="mt-1 text-[10px] text-muted">
-              Keep this many items at the top of your timeline. 0 removes from the newest.
+              {TARGETS[target].keep}
             </div>
           </div>
         </div>
 
+        {target === "posts" && (
         <label className="flex items-start gap-2 text-xs text-fg">
           <input
             type="checkbox"
@@ -189,6 +239,7 @@ export function DeleterPanel() {
             </span>
           </span>
         </label>
+        )}
 
         <div className="flex items-center gap-3">
           <button
@@ -200,13 +251,12 @@ export function DeleterPanel() {
               ? "Running…"
               : starting
                 ? "Starting…"
-                : includeReposts
-                  ? "Remove tweets & reposts"
-                  : "Delete tweets"}
+                : target === "posts" && includeReposts
+                  ? "Delete posts & reposts"
+                  : TARGETS[target].button}
           </button>
           <span className="text-[11px] text-muted">
-            Opens Chrome to x.com/{accounts.find((a) => a.id === accountId)?.handle ?? ""},
-            scrolls, and removes items one at a time.
+            Opens Chrome and removes them one at a time, a second or two apart.
           </span>
         </div>
       </section>
@@ -222,10 +272,8 @@ export function DeleterPanel() {
       )}
 
       <div className="section text-xs leading-relaxed text-muted">
-        <strong className="text-fg">How this works.</strong> Kyrelo opens the
-        account&apos;s own X profile in Chrome, scrolls to load enough tweets to cover
-        your skip + count, then walks each one and picks Delete from the tweet menu.
-        Pinned tweets are always skipped. Reposts are skipped unless Include reposts is on.
+        <strong className="text-fg">How this works.</strong> {TARGETS[target].how} DMs
+        aren&apos;t covered: X now keeps them in its end-to-end encrypted Chat, behind a passcode.
       </div>
     </div>
   );
@@ -238,12 +286,12 @@ function JobPanel({ job, onDismiss }: { job: DeleterJob; onDismiss: () => void }
         <div className="flex items-center gap-2 text-sm">
           <JobStatus running={job.running} error={job.error} />
           <span className="text-fg">
-            @{job.handle} · skip {job.startingAt} · up to {job.count}
+            @{job.handle} · {TARGETS[job.target ?? "posts"].noun} · skip {job.startingAt} · up to {job.count}
           </span>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-[11px] tabular-nums text-muted">
-            {job.deleted.length} deleted · {job.skipped.length} skipped
+            {job.deleted.length} {job.target === "likes" ? "unliked" : "deleted"} · {job.skipped.length} skipped
           </div>
           {!job.running && (
             <button

@@ -18,22 +18,26 @@ body {
   font-feature-settings: "cv11", "ss01";
 }
 
-.btn {
-  @apply inline-flex h-10 items-center justify-center gap-2 rounded px-4 text-sm font-medium transition-colors;
-}
-.btn-primary {
-  @apply btn bg-primary text-surface hover:bg-primary-hover;
-}
-.btn-ghost {
-  @apply btn border border-line bg-surface text-fg hover:border-muted;
-}
+/* In the components layer, so a utility on an element (text-xs, border-fg)
+   overrides the component's own. */
+@layer components {
+  .btn {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded px-4 text-sm font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply btn bg-primary text-surface hover:bg-primary-hover;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-surface text-fg hover:border-muted;
+  }
 
-/* Small uppercase label above a section heading, in the mono face. */
-.eyebrow {
-  @apply font-mono text-xs uppercase tracking-[0.08em] text-muted;
-}
+  /* Small uppercase label above a section heading, in the mono face. */
+  .eyebrow {
+    @apply font-mono text-xs uppercase tracking-[0.08em] text-muted;
+  }
 
-/* A page section: whitespace and a rule, not a box. */
-.section {
-  @apply border-t border-line py-16;
+  /* A page section: whitespace and a rule, not a box. */
+  .section {
+    @apply border-t border-line py-16;
+  }
 }

@@ -4,7 +4,7 @@ A local desktop app, iPhone companion and marketing site for **Kyrelo**, the ope
 
 - **Publish:** schedule posts to X and Bluesky, or let an AI auto campaign research, write and space out a series of X posts.
 - **Engage:** watch X handles in the Monitor; Autopilot drafts replies under new posts for you to pick, edit and send yourself.
-- **Clean up:** bulk delete tweets and reposts, and unfollow dead, bot-like or never-engaging accounts with a reason for each.
+- **Clean up:** bulk delete posts, replies and reposts, unlike likes, and unfollow dead, bot-like or never-engaging accounts with a reason for each.
 
 **Website:** [kyrelo.com](https://kyrelo.com/)
 **Download the app here:** [GitHub Releases](https://github.com/sobytes/Kyrelo/releases/)

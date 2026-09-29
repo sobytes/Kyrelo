@@ -191,8 +191,8 @@ const FEATURE_GROUPS = [
     heading: "Clean up",
     features: [
       {
-        title: "Bulk delete tweets & reposts",
-        body: "Delete old posts and undo reposts up to 100 at a time, keep your newest ones, and never touch your pinned tweet.",
+        title: "Bulk delete posts, replies & likes",
+        body: "Delete old posts and replies, undo reposts and unlike likes, up to 100 at a time. Keep your newest ones, and your pinned tweet is never touched.",
         icon: "trash",
       },
       {
@@ -267,8 +267,8 @@ const CLEANUP_POINTS = [
     body: "Pick an account, choose how many posts to remove (up to 100 per run) and press go. Run it again to keep going until your timeline is as clean as you want it.",
   },
   {
-    title: "Undo reposts, keep what matters",
-    body: "Undo old reposts as you go, and set “Starting at” to keep your most recent posts. Pinned tweets are always left alone.",
+    title: "Replies, reposts and likes too",
+    body: "Delete your replies to other people (your own threads are kept), undo old reposts, or unlike your likes. Set “Starting at” to keep your most recent ones. Pinned tweets are always left alone.",
   },
   {
     title: "Unfollow with reasons",
@@ -286,8 +286,8 @@ const CLEANUP_FAQ = [
     a: "Download Kyrelo, connect your X account, open the Deleter and choose how many posts to remove. Each run deletes up to 100 posts. Run it as many times as you need to clear your whole timeline. It costs nothing and needs no X API plan.",
   },
   {
-    q: "Can I delete reposts (retweets) as well?",
-    a: "Yes. Turn on “Include reposts” and Kyrelo will undo your reposts alongside deleting your own posts. Leave it off to delete only your own tweets.",
+    q: "Can I delete reposts, replies and likes as well?",
+    a: "Yes. When deleting posts, turn on “Include reposts” to undo retweets too. Choose Replies to delete your replies to other people, or Likes to unlike posts, newest first. DMs aren't covered: X now keeps them in its end-to-end encrypted Chat.",
   },
   {
     q: "Can I keep my newest tweets and only delete old ones?",

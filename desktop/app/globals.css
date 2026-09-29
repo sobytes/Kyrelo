@@ -33,81 +33,85 @@ a {
   -webkit-app-region: no-drag;
 }
 
-/* --- Buttons: rectangular, one primary per view --- */
-.btn {
-  @apply inline-flex h-8 items-center justify-center gap-2 rounded px-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
-}
-.btn-primary {
-  @apply btn bg-primary text-surface hover:bg-primary-hover;
-}
-.btn-ghost {
-  @apply btn border border-line bg-surface text-fg hover:border-muted;
-}
-.btn-danger {
-  @apply btn border border-error/40 bg-surface text-error hover:border-error;
-}
-.btn-live {
-  @apply btn border border-success/40 bg-surface text-success hover:border-success;
-}
+/* In the components layer, so a utility on an element (text-xs, border-fg)
+   overrides the component's own. */
+@layer components {
+  /* --- Buttons: rectangular, one primary per view --- */
+  .btn {
+    @apply inline-flex h-8 items-center justify-center gap-2 rounded px-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-primary text-surface hover:bg-primary-hover;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-surface text-fg hover:border-muted;
+  }
+  .btn-danger {
+    @apply btn border border-error/40 bg-surface text-error hover:border-error;
+  }
+  .btn-live {
+    @apply btn border border-success/40 bg-surface text-success hover:border-success;
+  }
 
-/* --- Surfaces: for things that are objects (a post, a dialog, a log), not
-   for grouping a page into sections; sections use .section. --- */
-.card {
-  @apply rounded-lg border border-line bg-surface p-4;
-}
-.card-tight {
-  @apply rounded-lg border border-line bg-surface p-3;
-}
-/* A page section: separated by whitespace and a rule, not a box. */
-.section {
-  @apply border-t border-line pt-6;
-}
+  /* --- Surfaces: for things that are objects (a post, a dialog, a log), not
+     for grouping a page into sections; sections use .section. --- */
+  .card {
+    @apply rounded-lg border border-line bg-surface p-4;
+  }
+  .card-tight {
+    @apply rounded-lg border border-line bg-surface p-3;
+  }
+  /* A page section: separated by whitespace and a rule, not a box. */
+  .section {
+    @apply border-t border-line pt-6;
+  }
 
-/* --- Form controls --- */
-.input,
-.textarea,
-.select {
-  @apply w-full rounded border border-line bg-surface px-3 py-2 text-sm text-fg outline-none transition-colors placeholder:text-muted focus:border-fg;
-}
-input[type="checkbox"],
-input[type="radio"],
-input[type="range"] {
-  @apply accent-primary;
-}
+  /* --- Form controls --- */
+  .input,
+  .textarea,
+  .select {
+    @apply w-full rounded border border-line bg-surface px-3 py-2 text-sm text-fg outline-none transition-colors placeholder:text-muted focus:border-fg;
+  }
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    @apply accent-primary;
+  }
 
-.label {
-  @apply mb-2 block text-[13px] font-semibold text-fg;
-}
-.badge {
-  @apply inline-flex items-center rounded-sm border border-line px-1 font-mono text-[11px] text-muted;
-}
+  .label {
+    @apply mb-2 block text-[13px] font-semibold text-fg;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-sm border border-line px-1 font-mono text-[11px] text-muted;
+  }
 
-/* --- Tags: watched handles, keywords, suggestions --- */
-.chip {
-  @apply inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-2 py-1 text-xs text-fg transition-colors;
-}
-.chip-on {
-  @apply chip border-fg/30;
-}
-.chip-suggest {
-  @apply chip border-dashed text-muted hover:border-muted hover:text-fg;
-}
+  /* --- Tags: watched handles, keywords, suggestions --- */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-2 py-1 text-xs text-fg transition-colors;
+  }
+  .chip-on {
+    @apply chip border-fg/30;
+  }
+  .chip-suggest {
+    @apply chip border-dashed text-muted hover:border-muted hover:text-fg;
+  }
 
-.live-dot {
-  @apply inline-block h-2 w-2 rounded-full bg-success;
-}
+  .live-dot {
+    @apply inline-block h-2 w-2 rounded-full bg-success;
+  }
 
-/* Initial for a handle. */
-.avatar {
-  @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line bg-canvas text-sm font-medium text-fg;
-}
+  /* Initial for a handle. */
+  .avatar {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line bg-canvas text-sm font-medium text-fg;
+  }
 
-.feed::-webkit-scrollbar {
-  width: 8px;
-}
-.feed::-webkit-scrollbar-track {
-  background: transparent;
-}
-.feed::-webkit-scrollbar-thumb {
-  @apply rounded bg-line;
+  .feed::-webkit-scrollbar {
+    width: 8px;
+  }
+  .feed::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .feed::-webkit-scrollbar-thumb {
+    @apply rounded bg-line;
+  }
 }
