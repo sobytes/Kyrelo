@@ -34,19 +34,18 @@ export interface WatchResult {
   newTweets?: NotifyTweet[];
 }
 
-// One scrape at a time in this process. The worker already avoids overlap,
-// but the Monitor page's manual run hits the same code path.
-const watcherState = ((globalThis as { __kyreloWatcher?: { running: boolean; offset: number } })
-  .__kyreloWatcher ??= { running: false, offset: 0 });
+// One scrape at a time in this process. The worker's checks and the Monitor
+// page's "Check now" share it: a call while one runs waits for that one's
+// result instead of starting another (or answering "busy", which made
+// "Check now" look like it did nothing).
+const watcherState = ((globalThis as { __kyreloWatcher?: { inFlight?: Promise<WatchResult>; offset: number } })
+  .__kyreloWatcher ??= { offset: 0 });
 
-export async function runGrokWatcher(): Promise<WatchResult> {
-  if (watcherState.running) return { skipped: "busy" };
-  watcherState.running = true;
-  try {
-    return await runGrokWatcherOnce();
-  } finally {
-    watcherState.running = false;
-  }
+export function runGrokWatcher(): Promise<WatchResult> {
+  watcherState.inFlight ??= runGrokWatcherOnce().finally(() => {
+    watcherState.inFlight = undefined;
+  });
+  return watcherState.inFlight;
 }
 
 async function runGrokWatcherOnce(): Promise<WatchResult> {
@@ -110,19 +109,18 @@ async function runGrokWatcherOnce(): Promise<WatchResult> {
     const existingIds = new Set(state.tweets.map((t) => t.id));
     const merged = mergeSeen(state.tweets, fresh);
 
-    // "Too old" guard for bootstrap: tweets posted before today minus
-    // (notifyWindowMin) shouldn't surface as notifications. We use the real
-    // postedAt from <time datetime>. This protects against time-traveling
-    // when first enabling a handle.
-    const notifyWindowMin = 60; // tweets older than 1 hour at first-sight are skipped
+    // "Too old" guard: a tweet already older than its window when first seen
+    // (a handle's backlog, a keyword's old matches) stays out of the feed and
+    // notifications. Uses the real postedAt from <time datetime>.
     for (const t of merged) {
-      if (t.skipped || t.repliedAt) continue;
-      if (!t.postedAt) continue;
-      const ageMin = (now.getTime() - new Date(t.postedAt).getTime()) / 60_000;
-      // Only mark as too-old if this is the FIRST time we see it AND it's already old.
-      if (!existingIds.has(t.id) && ageMin > notifyWindowMin) {
+      if (t.repliedAt || !t.postedAt) continue;
+      const age = now.getTime() - new Date(t.postedAt).getTime();
+      if (!t.skipped && !existingIds.has(t.id) && age > maxAgeMs(t)) {
         t.skipped = "too-old";
       }
+      // Keyword matches hidden under the handles' 1-hour window, before they
+      // had their own, come back while they're still inside it.
+      if (t.keyword && t.skipped === "too-old" && age <= maxAgeMs(t)) delete t.skipped;
     }
 
     // The "new tweets" worth notifying on: ones we hadn't seen before this tick
@@ -159,8 +157,16 @@ async function runGrokWatcherOnce(): Promise<WatchResult> {
 
 // Drafts per check. Each is one AI call; the rest are picked up next check.
 const AUTOPILOT_MAX_PER_CHECK = 5;
-// Replies to older tweets are rarely seen, so don't spend AI calls on them.
-const AUTOPILOT_MAX_AGE_MS = 60 * 60_000;
+
+/**
+ * How old a tweet may be to show in the feed and get Autopilot drafts. A
+ * watched account posts often and a reply is seen only while the post is
+ * fresh: an hour. Keyword matches are rarer, and someone asking about a
+ * keyword this morning is still worth an answer: a day.
+ */
+function maxAgeMs(t: SeenTweet): number {
+  return t.keyword ? 24 * 60 * 60_000 : 60 * 60_000;
+}
 
 /** Drafts replies for recent tweets that don't have a draft yet, newest first. */
 async function runAutopilot(): Promise<void> {
@@ -168,7 +174,7 @@ async function runAutopilot(): Promise<void> {
   const now = Date.now();
   const candidates = (await getGrokState()).tweets
     .filter((t) => !t.draft && !t.repliedAt && !t.skipped)
-    .filter((t) => now - new Date(t.postedAt ?? t.seenAt).getTime() <= AUTOPILOT_MAX_AGE_MS)
+    .filter((t) => now - new Date(t.postedAt ?? t.seenAt).getTime() <= maxAgeMs(t))
     .sort((a, b) => (b.postedAt ?? b.seenAt).localeCompare(a.postedAt ?? a.seenAt))
     .slice(0, AUTOPILOT_MAX_PER_CHECK);
   for (const t of candidates) {

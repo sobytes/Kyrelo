@@ -221,7 +221,11 @@ export function DetectorPanel() {
             onAddGroup={addGroup}
             onFind={connected ? () => setFinding(true) : undefined}
           />
-          <KeywordsCard keywords={settings.keywords} onChange={(keywords) => save({ ...settings, keywords })} />
+          <KeywordsCard
+            keywords={settings.keywords}
+            tweets={state.tweets}
+            onChange={(keywords) => save({ ...settings, keywords })}
+          />
           <AutopilotCard
             autopilot={settings.autopilot}
             onChange={(autopilot) => save({ ...settings, autopilot })}
@@ -571,9 +575,26 @@ function watchingSummary(settings: GrokSettings): string {
 }
 
 /** Words or phrases the Monitor searches X for, next to the watched handles. */
-function KeywordsCard({ keywords, onChange }: { keywords: string[]; onChange: (keywords: string[]) => void }) {
+function KeywordsCard({
+  keywords,
+  tweets,
+  onChange,
+}: {
+  keywords: string[];
+  /** Everything the Monitor has seen, including matches too old to show. */
+  tweets: SeenTweet[];
+  onChange: (keywords: string[]) => void;
+}) {
   const [input, setInput] = useState("");
   const full = keywords.length >= MAX_KEYWORDS;
+
+  // So a quiet keyword visibly works: when X last had a post mentioning it.
+  function latestMatch(keyword: string): string | null {
+    const dates = tweets
+      .filter((t) => t.keyword?.toLowerCase() === keyword.toLowerCase())
+      .map((t) => t.postedAt ?? t.seenAt);
+    return dates.length ? dates.reduce((a, b) => (a > b ? a : b)) : null;
+  }
 
   function add() {
     const k = input.replace(/\s+/g, " ").trim();
@@ -608,6 +629,18 @@ function KeywordsCard({ keywords, onChange }: { keywords: string[]; onChange: (k
           ))
         )}
       </div>
+      {keywords.length > 0 && (
+        <ul className="space-y-0.5 text-[10px] text-zinc-500">
+          {keywords.map((k) => {
+            const latest = latestMatch(k);
+            return (
+              <li key={k}>
+                “{k}”: {latest ? `latest post ${timeAgo(latest)}` : "no posts found yet"}
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <div className="flex gap-2">
         <input
           className="input flex-1"
@@ -628,9 +661,9 @@ function KeywordsCard({ keywords, onChange }: { keywords: string[]; onChange: (k
         </button>
       </div>
       <p className="text-[10px] leading-relaxed text-zinc-500">
-        Posts from anyone that mention these show in the feed, labelled, and Autopilot drafts replies for them.
-        Phrases match as written; X search syntax works too (#tag, -word, lang:en). They don&apos;t send desktop
-        notifications, since popular keywords match often.
+        Posts from anyone that mention these show in the feed for a day, labelled, and Autopilot drafts replies
+        for them. Phrases match as written; X search syntax works too (#tag, -word, lang:en). They don&apos;t send
+        desktop notifications, since popular keywords match often.
       </p>
     </div>
   );
