@@ -25,6 +25,7 @@ export default function Home() {
       />
       <Nav />
       <Hero />
+      <Demo />
       <Why />
       <Features />
       <CleanUp />
@@ -73,6 +74,9 @@ function Hero() {
           <a href={GITHUB_URL} className="btn-ghost" target="_blank" rel="noreferrer">
             View on GitHub
           </a>
+          <a href="#demo" className="btn-ghost">
+            ▶ Watch the demo
+          </a>
         </div>
         <p className="mt-3 text-xs text-zinc-500">
           macOS (Apple Silicon &amp; Intel, signed &amp; notarized) · Windows 10/11 x64 · Free, open source
@@ -89,6 +93,35 @@ function Hero() {
               priority
             />
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const DEMO_VIDEO_ID = "zgzbSPSTf_A";
+
+function Demo() {
+  return (
+    <section id="demo" className="border-t border-line bg-ink py-20">
+      <div className="mx-auto max-w-4xl px-6">
+        <div className="mb-8 text-center">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Demo</span>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
+            See it in action.
+          </h2>
+        </div>
+        <div className="glow-purple relative aspect-video overflow-hidden rounded-2xl border border-line bg-panel">
+          {/* youtube-nocookie: no tracking cookies until the visitor presses play. */}
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${DEMO_VIDEO_ID}?rel=0`}
+            title="Kyrelo is a free, open-source alternative to Buffer, TweetDelete etc"
+            className="absolute inset-0 h-full w-full"
+            loading="lazy"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          />
         </div>
       </div>
     </section>
