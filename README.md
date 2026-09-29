@@ -1,6 +1,10 @@
 # Kyrelo — Community Driven Buffer Alternative
 
-A local desktop app and marketing site for **Kyrelo** — the open-source, community-driven Buffer alternative for X.
+A local desktop app, iPhone companion and marketing site for **Kyrelo**, the open-source, community-driven Buffer alternative for X, Bluesky and LinkedIn.
+
+- **Publish:** schedule posts to X, Bluesky and LinkedIn, or let an AI auto campaign research, write and space out a series of X posts.
+- **Engage:** watch X handles in the Monitor; Autopilot drafts replies under new posts for you to pick, edit and send yourself.
+- **Clean up:** bulk delete tweets and reposts, and unfollow dead, bot-like or never-engaging accounts with a reason for each.
 
 **Website:** [kyrelo.com](https://kyrelo.com/)
 **Download the app here:** [GitHub Releases](https://github.com/sobytes/Kyrelo/releases/)
@@ -19,8 +23,8 @@ Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared inf
 
 | Folder | What it is |
 |---|---|
-| [`desktop/`](./desktop) | The Electron + Next.js + Playwright app. Schedule X posts, watch handles, generate AI replies. Built for macOS first. |
-| [`mobile/ios/`](./mobile/ios) | Native iPhone app (SwiftUI). Your Monitor feed and Autopilot's draft replies, paired with the desktop app, which does the watching. Xcode project generated from `project.yml` by XcodeGen and committed. |
+| [`desktop/`](./desktop) | The Electron + Next.js + Playwright app: Scheduler, auto campaigns, Monitor + Autopilot, Deleter and Unfollow. Built for macOS first. |
+| [`mobile/ios/`](./mobile/ios) | Native iPhone app (SwiftUI), paired with the desktop app, which does the work: the Monitor feed and reply drafts, the Scheduler with photos, and auto campaigns. Xcode project generated from `project.yml` by XcodeGen and committed. |
 | [`contracts/`](./contracts) | Rules the desktop and iOS apps must agree on, as test fixtures both apps' tests read. |
 | [`website/`](./website) | The marketing site at [kyrelo.com](https://kyrelo.com). Plain Next.js + Tailwind, deploys to Vercel with **Root Directory = `website`**. |
 
@@ -64,7 +68,7 @@ On Windows, run `build.sh` from Git Bash.
 
 ### iPhone app
 
-Turn on **Settings → Phone app** in the desktop app, then scan the code in the iPhone app. The phone shows your Monitor feed and Autopilot's drafts; tap a draft, and it copies the reply and opens the tweet in X for you to send. Your computer keeps doing the watching and drafting, so Kyrelo has to be running there. It works on the same Wi-Fi, or anywhere with [Tailscale](https://tailscale.com) on both devices (use Tailscale on public Wi-Fi: the plain-Wi-Fi connection isn't encrypted).
+Turn on **Settings → Phone app** in the desktop app, then scan the code in the iPhone app. The phone shows your Monitor feed and Autopilot's drafts; tap a draft, and it copies the reply and opens the tweet in X for you to send. You can also schedule posts (with photos) and run auto campaigns. Your computer keeps doing the work, so Kyrelo has to be running there. It works on the same Wi-Fi, or anywhere with [Tailscale](https://tailscale.com) on both devices (use Tailscale on public Wi-Fi: the plain-Wi-Fi connection isn't encrypted).
 
 ### Releasing (maintainers)
 

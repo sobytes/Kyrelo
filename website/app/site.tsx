@@ -14,7 +14,7 @@ export function Nav() {
         </a>
         <nav className="hidden items-center gap-6 text-sm text-zinc-400 sm:flex">
           <a href="/#features" className="hover:text-zinc-100">Features</a>
-          <a href="/#delete-tweets" className="hover:text-zinc-100">Delete tweets</a>
+          <a href="/#delete-tweets" className="hover:text-zinc-100">Clean up</a>
           <a href="/#how" className="hover:text-zinc-100">How it works</a>
           <a href={GITHUB_URL} className="hover:text-zinc-100" target="_blank" rel="noreferrer">
             GitHub

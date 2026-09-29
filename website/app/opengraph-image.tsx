@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ImageResponse } from "next/og";
 
-export const alt = "Kyrelo — free, open-source X scheduler and tweet deleter";
+export const alt = "Kyrelo — free, open-source Buffer alternative for X, Bluesky and LinkedIn";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -54,12 +54,12 @@ export default async function Image() {
               color: "#fafafa",
             }}
           >
-            <span>Schedule &amp; delete</span>
-            <span>your X posts</span>
-            <span style={{ color: "#7c5cff" }}>on your computer.</span>
+            <span>Run your socials</span>
+            <span>from your</span>
+            <span style={{ color: "#7c5cff" }}>own computer.</span>
           </div>
           <div style={{ display: "flex", marginTop: 28, fontSize: 26, color: "#a1a1aa" }}>
-            Free Buffer &amp; TweetDelete alternative
+            Buffer alternative for X, Bluesky &amp; LinkedIn
           </div>
           <div style={{ display: "flex", gap: 12, marginTop: 36 }}>
             {["Free", "Open source", "macOS & Windows"].map((t) => (
