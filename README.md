@@ -1,8 +1,8 @@
 # Kyrelo — Community Driven Buffer Alternative
 
-A local desktop app, iPhone companion and marketing site for **Kyrelo**, the open-source, community-driven Buffer alternative for X, Bluesky and LinkedIn.
+A local desktop app, iPhone companion and marketing site for **Kyrelo**, the open-source, community-driven Buffer alternative for X and Bluesky.
 
-- **Publish:** schedule posts to X, Bluesky and LinkedIn, or let an AI auto campaign research, write and space out a series of X posts.
+- **Publish:** schedule posts to X and Bluesky, or let an AI auto campaign research, write and space out a series of X posts.
 - **Engage:** watch X handles in the Monitor; Autopilot drafts replies under new posts for you to pick, edit and send yourself.
 - **Clean up:** bulk delete tweets and reposts, and unfollow dead, bot-like or never-engaging accounts with a reason for each.
 
@@ -30,7 +30,7 @@ Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared inf
 
 ## Running it
 
-You need **Node.js 20+**, **npm** and **Google Chrome**. You log in to X and LinkedIn through Chrome, and Kyrelo drives it to post and scrape. Bluesky connects with an app password.
+You need **Node.js 20+**, **npm** and **Google Chrome**. You log in to X through Chrome, and Kyrelo drives it to post and scrape. Bluesky connects with an app password.
 
 ```bash
 git clone https://github.com/sobytes/Kyrelo.git
@@ -42,7 +42,7 @@ The first run installs dependencies and downloads Playwright's Chromium, so give
 
 Then, in the app:
 
-1. **Connected** → connect your X and LinkedIn accounts (you log in through a normal Chrome window) and Bluesky (with an app password).
+1. **Connected** → connect your X accounts (you log in through a normal Chrome window) and Bluesky (with an app password).
 2. **Settings → API keys** → add a Claude or OpenAI key for AI replies, rewrites and auto campaigns. The page has step-by-step instructions for getting one.
 3. **Scheduler** → write and schedule posts, or use **✨ Auto-generate campaign**.
 
@@ -82,3 +82,10 @@ See `desktop/.env.example` for every variable.
 ### Website
 
 Plain Next.js + Tailwind. Vercel deploys it from `main` with **Root Directory = `website`**. See [`website/README.md`](./website/README.md).
+
+## Disclaimer
+
+Kyrelo is an independent, open-source experiment, provided as is under the [MIT license](./LICENSE). It isn't affiliated with, endorsed by or sponsored by X Corp., Bluesky, Buffer, TweetDelete, Anthropic or OpenAI; their names are used only to describe what Kyrelo works with or compares to, and remain their owners' trademarks.
+
+You're responsible for how you use it, including following each platform's terms and automation rules. Kyrelo drives your own logged-in browser to post, delete, follow and read X, which X's terms restrict, and X may limit or suspend accounts it thinks are automated. Kyrelo never sends replies for you, and paces bulk actions, but use it at your own risk.
+

@@ -127,6 +127,18 @@ final class ContractTests: XCTestCase {
 
     // MARK: scheduler.json
 
+    func testSkipsAccountsOnPlatformsThisAppDoesntSupport() throws {
+        // An older desktop, from before LinkedIn was removed.
+        let json = Data("""
+        [{"platform":"twitter","id":"a","handle":"a","addedAt":"2026-09-20T10:00:00.000Z"},
+         {"platform":"linkedin","id":"b","handle":"b","addedAt":"2026-09-20T10:00:00.000Z"},
+         {"platform":"bluesky","id":"c","handle":"c","addedAt":"2026-09-20T10:00:00.000Z"}]
+        """.utf8)
+        let accounts = try JSONDecoder().decode(LossyList<Account>.self, from: json).items
+        XCTAssertEqual(accounts.map(\.id), ["a", "c"])
+    }
+
+
     private struct SchedulerContract: Decodable {
         let accounts: [Account]
         let posts: [ScheduledPost]
@@ -136,7 +148,7 @@ final class ContractTests: XCTestCase {
 
     func testDecodesTheDesktopsSchedulerAndCampaigns() throws {
         let s = try JSONDecoder().decode(SchedulerContract.self, from: contract("scheduler"))
-        XCTAssertEqual(s.accounts.map(\.platform), [.twitter, .bluesky, .linkedin])
+        XCTAssertEqual(s.accounts.map(\.platform), [.twitter, .bluesky])
         XCTAssertEqual(s.posts.map(\.status), [.pending, .posting, .posted, .failed, .posted])
         XCTAssertNil(s.posts[4].accountId) // legacy post
         XCTAssertNotNil(s.posts[1].sendingStartedAt)

@@ -75,11 +75,11 @@ final class BridgeClient {
     // MARK: - Scheduler
 
     func accounts() async throws -> [Account] {
-        try await request(AccountsResponse.self, "GET", "/api/accounts").accounts
+        try await request(AccountsResponse.self, "GET", "/api/accounts").accounts.items
     }
 
     func posts() async throws -> [ScheduledPost] {
-        try await request(PostsResponse.self, "GET", "/api/scheduler/posts").posts
+        try await request(PostsResponse.self, "GET", "/api/scheduler/posts").posts.items
     }
 
     /// One post per account: the desktop sends, tracks and retries each on its own.
@@ -227,8 +227,8 @@ final class BridgeClient {
     private struct CheckResponse: Decodable { let error: String? }
     private struct DraftResponse: Decodable { let draft: ReplyDraft?; let error: String? }
     private struct AutopilotPatch: Encodable { let autopilot: AutopilotSettings }
-    private struct AccountsResponse: Decodable { let accounts: [Account] }
-    private struct PostsResponse: Decodable { let posts: [ScheduledPost] }
+    private struct AccountsResponse: Decodable { let accounts: LossyList<Account> }
+    private struct PostsResponse: Decodable { let posts: LossyList<ScheduledPost> }
     private struct CampaignResponse: Decodable { let campaign: Campaign }
     private struct BrandProfileResponse: Decodable { let profile: BrandProfile }
     private struct NewPost: Encodable {

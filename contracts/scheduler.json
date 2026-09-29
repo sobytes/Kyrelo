@@ -1,8 +1,7 @@
 {
   "accounts": [
     { "platform": "twitter", "id": "kyreloapp", "handle": "KyreloApp", "addedAt": "2026-09-20T10:00:00.000Z" },
-    { "platform": "bluesky", "id": "kyrelo.bsky.social", "handle": "kyrelo.bsky.social", "addedAt": "2026-09-28T10:00:00.000Z" },
-    { "platform": "linkedin", "id": "samuel-east", "handle": "samuel-east", "addedAt": "2026-09-28T11:00:00.000Z" }
+    { "platform": "bluesky", "id": "kyrelo.bsky.social", "handle": "kyrelo.bsky.social", "addedAt": "2026-09-28T10:00:00.000Z" }
   ],
   "posts": [
     {
@@ -39,13 +38,13 @@
     },
     {
       "id": "44444444-4444-4444-8444-444444444444",
-      "platform": "linkedin",
-      "accountId": "samuel-east",
+      "platform": "bluesky",
+      "accountId": "kyrelo.bsky.social",
       "text": "A post that didn't make it.",
       "scheduledFor": "2026-09-28T12:00:00.000Z",
       "createdAt": "2026-09-28T11:30:00.000Z",
       "status": "failed",
-      "error": "Couldn't find LinkedIn's Post button"
+      "error": "Bluesky: Invalid identifier or password"
     },
     {
       "id": "55555555-5555-4555-8555-555555555555",

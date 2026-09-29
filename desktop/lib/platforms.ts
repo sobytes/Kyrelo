@@ -46,15 +46,6 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     connect: "app-password",
     loginUrl: "https://bsky.app/settings/app-passwords",
   },
-  linkedin: {
-    id: "linkedin",
-    label: "LinkedIn",
-    maxLength: 3000,
-    length: (text) => text.length,
-    maxImageBytes: 5 * 1024 * 1024,
-    connect: "browser",
-    loginUrl: "https://www.linkedin.com/login",
-  },
 };
 
 export const PLATFORM_IDS = Object.keys(PLATFORMS) as PlatformId[];

@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ImageResponse } from "next/og";
 
-export const alt = "Kyrelo — free, open-source Buffer alternative for X, Bluesky and LinkedIn";
+export const alt = "Kyrelo — free, open-source Buffer alternative for X and Bluesky";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -59,7 +59,7 @@ export default async function Image() {
             <span style={{ color: "#7c5cff" }}>own computer.</span>
           </div>
           <div style={{ display: "flex", marginTop: 28, fontSize: 26, color: "#a1a1aa" }}>
-            Buffer alternative for X, Bluesky &amp; LinkedIn
+            Buffer alternative for X &amp; Bluesky
           </div>
           <div style={{ display: "flex", gap: 12, marginTop: 36 }}>
             {["Free", "Open source", "macOS & Windows"].map((t) => (

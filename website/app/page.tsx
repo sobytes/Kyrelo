@@ -6,7 +6,7 @@ const APP_JSON_LD = {
   "@type": "SoftwareApplication",
   name: "Kyrelo",
   description:
-    "Free, open-source desktop app to schedule posts to X, Bluesky and LinkedIn, plan AI campaigns, draft replies you send yourself, bulk delete tweets and unfollow inactive accounts.",
+    "Free, open-source desktop app to schedule posts to X and Bluesky, plan AI campaigns, draft replies you send yourself, bulk delete tweets and unfollow inactive accounts.",
   applicationCategory: "SocialNetworkingApplication",
   operatingSystem: "macOS, Windows",
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
@@ -49,13 +49,13 @@ function Hero() {
           No SaaS. No outages.
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-400">
-          Kyrelo is a free, open-source Buffer alternative. Schedule posts to X, Bluesky and
-          LinkedIn, let AI plan a whole campaign, get reply drafts under the posts you care about,
+          Kyrelo is a free, open-source Buffer alternative. Schedule posts to X and Bluesky, let
+          AI plan a whole campaign, get reply drafts under the posts you care about,
           and clean up old tweets and dead follows. It all runs on your machine with your own
           accounts and your own AI key.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-400">
-          {["X", "Bluesky", "LinkedIn"].map((network) => (
+          {["X", "Bluesky"].map((network) => (
             <span key={network} className="rounded-full border border-line bg-panel px-3 py-1">
               {network}
             </span>
@@ -138,7 +138,7 @@ const FEATURE_GROUPS = [
     heading: "Publish",
     features: [
       {
-        title: "Schedule to X, Bluesky and LinkedIn",
+        title: "Schedule to X and Bluesky",
         body: "Write once and post to any of your connected accounts, with each network's character limit checked as you type. Attach an image, pick a time, and Kyrelo posts it for you. Connect as many accounts as you like.",
         icon: "calendar",
       },
@@ -374,7 +374,7 @@ const STEPS = [
   {
     n: 2,
     title: "Connect your accounts",
-    body: "Sign in to X and LinkedIn in a real Chrome window, including Google or Apple sign-in, and your session is saved on your computer. Bluesky connects with an app password. Add a Claude or OpenAI key if you want the AI features.",
+    body: "Sign in to X in a real Chrome window, including Google or Apple sign-in, and your session is saved on your computer. Bluesky connects with an app password. Add a Claude or OpenAI key if you want the AI features.",
   },
   {
     n: 3,

@@ -48,15 +48,6 @@ const LOGINS: Partial<Record<PlatformId, BrowserLogin>> = {
       return typeof json.screen_name === "string" ? json.screen_name : null;
     },
   },
-  linkedin: {
-    isSignedIn: (cookies) => cookies.some((c) => c.name === "li_at" && !!c.value && /linkedin\.com$/.test(c.domain)),
-    async readHandle(chrome) {
-      // /in/me redirects to the member's own profile: /in/<public-id>/.
-      await chrome.page.goto("https://www.linkedin.com/in/me/", { waitUntil: "domcontentloaded", timeout: 10_000 });
-      const m = chrome.page.url().match(/linkedin\.com\/in\/([^/?#]+)/);
-      return m && m[1] !== "me" ? decodeURIComponent(m[1]) : null;
-    },
-  },
 };
 
 interface ActiveConnect {

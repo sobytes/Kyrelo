@@ -24,14 +24,6 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
       onBrowserReady: opts.onSendingStarted,
     });
   },
-  async linkedin(account, text, opts) {
-    const { postLinkedInBrowser } = await import("./browser/linkedin-post");
-    return postLinkedInBrowser(account.id, text, {
-      headless: opts.headless,
-      imagePath: opts.imagePath,
-      onBrowserReady: opts.onSendingStarted,
-    });
-  },
   async bluesky(account, text, opts) {
     const secret = await getAccountSecret("bluesky", account.id);
     if (!secret) throw new Error("No app password saved for this Bluesky account. Reconnect it under Connected.");

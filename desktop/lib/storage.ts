@@ -14,6 +14,7 @@ import {
   UnfollowData,
   HandleFinderData,
 } from "./types";
+import { isPlatformId } from "./platforms";
 
 const GROK_SETTINGS_KEY = "grok-settings";
 const GROK_STATE_KEY = "grok-state";
@@ -159,8 +160,13 @@ export async function saveApiKeys(keys: ApiKeys): Promise<void> {
   await write(API_KEYS_KEY, keys);
 }
 
+/**
+ * Posts and accounts on a platform Kyrelo no longer supports (LinkedIn, until
+ * September 2026) stay in the files but aren't listed, so nothing tries to
+ * post to or show a platform it has no rules for.
+ */
 export async function listScheduledPosts(): Promise<ScheduledPost[]> {
-  return (await read<ScheduledPost[]>(SCHEDULED_POSTS_KEY)) ?? [];
+  return ((await read<ScheduledPost[]>(SCHEDULED_POSTS_KEY)) ?? []).filter((p) => isPlatformId(p.platform));
 }
 
 export async function insertScheduledPost(post: ScheduledPost): Promise<void> {
@@ -194,7 +200,7 @@ export async function deleteScheduledPost(id: string): Promise<void> {
 
 /** All connected accounts, or only those on `platform`. */
 export async function listAccounts(platform?: PlatformId): Promise<Account[]> {
-  const all = (await read<Account[]>(ACCOUNTS_KEY)) ?? (await legacyXAccounts());
+  const all = ((await read<Account[]>(ACCOUNTS_KEY)) ?? (await legacyXAccounts())).filter((a) => isPlatformId(a.platform));
   return platform ? all.filter((a) => a.platform === platform) : all;
 }
 

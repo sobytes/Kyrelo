@@ -114,3 +114,24 @@ describe("reply drafts", () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe("platforms Kyrelo no longer supports", () => {
+  it("hides their accounts and posts, and leaves them in the files", async () => {
+    const addedAt = new Date().toISOString();
+    // As saved by a version that still had LinkedIn.
+    await storage.modifyAccounts(() => [
+      { platform: "twitter", id: "x-acct", handle: "x-acct", addedAt },
+      { platform: "linkedin" as never, id: "li-acct", handle: "li-acct", addedAt },
+    ]);
+    await storage.insertScheduledPost(post("old-linkedin", { platform: "linkedin" as never, accountId: "li-acct" }));
+
+    expect((await storage.listAccounts()).map((a) => a.id)).toEqual(["x-acct"]);
+    expect((await storage.listScheduledPosts()).some((p) => p.id === "old-linkedin")).toBe(false);
+    // Still stored: a change to another post keeps it rather than dropping it.
+    const raw = JSON.parse(
+      await (await import("node:fs/promises")).readFile(path.join(process.env.STORAGE_DIR!, "scheduled-posts.json"), "utf8"),
+    ) as ScheduledPost[];
+    expect(raw.some((p) => p.id === "old-linkedin")).toBe(true);
+  });
+});
+

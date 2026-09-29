@@ -25,11 +25,11 @@ export function ConnectedPanel() {
       ))}
 
       <div className="card text-xs leading-relaxed text-zinc-500">
-        <strong className="text-zinc-300">How this works.</strong> X and LinkedIn accounts each get
-        their own Chrome profile on this computer; you sign in once and Kyrelo posts through that
-        session. Bluesky uses an app password, stored only on this computer. Nothing is sent
+        <strong className="text-zinc-300">How this works.</strong> Each X account gets its own
+        Chrome profile on this computer; you sign in once and Kyrelo posts through that session. Bluesky uses an app password, stored only on this computer. Nothing is sent
         anywhere except the platform itself. The Monitor, Deleter and auto campaigns work with X
-        accounts.
+        accounts. Kyrelo isn&apos;t affiliated with X or Bluesky: using it is at your own risk, and
+        it&apos;s up to you to stay within their terms.
       </div>
     </div>
   );
@@ -116,12 +116,6 @@ function BrowserConnectCard({
       {busyHere && (
         <p className="text-[10px] text-zinc-500">
           Connecting in progress — the Monitor and scheduled posts pause until it finishes.
-        </p>
-      )}
-      {platform === "linkedin" && (
-        <p className="text-[10px] leading-relaxed text-zinc-500">
-          LinkedIn is strict about automation. Kyrelo posts at a human pace, but keep LinkedIn posts
-          to a few a day.
         </p>
       )}
     </div>

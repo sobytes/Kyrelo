@@ -48,6 +48,13 @@ export function Footer() {
           </a>
         </div>
       </div>
+      <p className="mx-auto mt-6 max-w-6xl px-6 text-[11px] leading-relaxed text-zinc-600">
+        Kyrelo is an independent, open-source experiment, provided as is under the MIT license. It
+        isn&apos;t affiliated with, endorsed by or sponsored by X Corp., Bluesky, Buffer,
+        TweetDelete, Anthropic or OpenAI; their names are used only to describe what Kyrelo works
+        with or compares to, and remain their owners&apos; trademarks. You&apos;re responsible for
+        how you use it, including following each platform&apos;s terms and automation rules.
+      </p>
     </footer>
   );
 }

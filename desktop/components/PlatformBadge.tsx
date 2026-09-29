@@ -1,7 +1,7 @@
 import { PLATFORMS } from "@/lib/platforms";
 import { PlatformId } from "@/lib/types";
 
-const MARKS: Record<PlatformId, string> = { twitter: "𝕏", bluesky: "🦋", linkedin: "in" };
+const MARKS: Record<PlatformId, string> = { twitter: "𝕏", bluesky: "🦋" };
 
 /** The platform's mark, for account tabs, rows and posts. */
 export function PlatformBadge({ platform, size = "sm" }: { platform: PlatformId; size?: "sm" | "lg" }) {

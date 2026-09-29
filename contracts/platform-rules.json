@@ -11,12 +11,6 @@
       "label": "Bluesky",
       "maxLength": 300,
       "maxImageBytes": 1000000
-    },
-    {
-      "id": "linkedin",
-      "label": "LinkedIn",
-      "maxLength": 3000,
-      "maxImageBytes": 5242880
     }
   ],
   "lengthCases": [
@@ -31,11 +25,6 @@
       "length": 52
     },
     {
-      "platform": "linkedin",
-      "text": "hi https://example.com/a/very/long/path/that/goes/on",
-      "length": 52
-    },
-    {
       "platform": "twitter",
       "text": "👨‍👩‍👧 family",
       "length": 15
@@ -44,11 +33,6 @@
       "platform": "bluesky",
       "text": "👨‍👩‍👧 family",
       "length": 8
-    },
-    {
-      "platform": "linkedin",
-      "text": "👨‍👩‍👧 family",
-      "length": 15
     },
     {
       "platform": "bluesky",

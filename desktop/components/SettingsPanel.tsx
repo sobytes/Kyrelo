@@ -270,6 +270,20 @@ export function SettingsPanel() {
           Wipes the seen-tweet history so the next scrape starts fresh.
         </p>
       </section>
+
+      <section className="card space-y-2 text-[11px] leading-relaxed text-zinc-500">
+        <div className="label">About Kyrelo</div>
+        <p>
+          Kyrelo is an independent, open-source experiment, provided as is under the MIT license. It
+          isn&apos;t affiliated with, endorsed by or sponsored by X Corp., Bluesky, Buffer, TweetDelete,
+          Anthropic or OpenAI; their names are used only to say what Kyrelo works with or compares
+          to.
+        </p>
+        <p>
+          You&apos;re responsible for how you use it, including following each platform&apos;s terms and
+          automation rules. X in particular may limit or suspend accounts it thinks are automated.
+        </p>
+      </section>
     </div>
   );
 }

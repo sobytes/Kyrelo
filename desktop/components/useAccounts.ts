@@ -44,7 +44,7 @@ async function post(body: object): Promise<{ error?: string; chromeMissing?: boo
 
 /**
  * Connected accounts on every platform (/api/accounts), plus connecting and
- * disconnecting them. Browser platforms (X, LinkedIn) connect in three steps:
+ * disconnecting them. Browser platforms (X) connect in three steps:
  * start opens Chrome for the user to log in, done saves the session, cancel
  * abandons it. Bluesky connects in one step with an app password. `status` is
  * null until the first load.

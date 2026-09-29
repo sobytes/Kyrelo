@@ -288,7 +288,7 @@ function Hero({
   // Decide phase
   const connected = hasXAccount(connect);
   const needsConnect = !connected && connect.phase === "idle";
-  // Only an X login matters here; a LinkedIn login elsewhere isn't this page's.
+  // Only an X login matters here, not another platform's elsewhere.
   const inLogin = connect.phase !== "idle" && connect.phasePlatform === "twitter";
   const needsHandles = settings.handles.length === 0 && settings.keywords.length === 0;
   const watching = settings.enabled && !needsConnect && !needsHandles && !inLogin;

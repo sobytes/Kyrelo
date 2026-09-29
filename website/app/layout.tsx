@@ -3,9 +3,9 @@ import "./globals.css";
 import { SITE_URL } from "./site";
 
 const url = SITE_URL;
-const title = "Kyrelo — Free, Open-Source Buffer Alternative for X, Bluesky & LinkedIn";
+const title = "Kyrelo — Free, Open-Source Buffer Alternative for X & Bluesky";
 const description =
-  "Schedule posts to X, Bluesky and LinkedIn, plan AI campaigns, get reply drafts, bulk delete tweets and unfollow inactive accounts. Free and open source for Mac and Windows, running on your own computer.";
+  "Schedule posts to X and Bluesky, plan AI campaigns, get reply drafts, bulk delete tweets and unfollow inactive accounts. Free and open source for Mac and Windows, running on your own computer.";
 
 export const metadata: Metadata = {
   title,
@@ -18,7 +18,6 @@ export const metadata: Metadata = {
     "X scheduler",
     "schedule tweets",
     "Bluesky scheduler",
-    "LinkedIn scheduler",
     "AI tweet generator",
     "unfollow inactive accounts",
     "delete all tweets",

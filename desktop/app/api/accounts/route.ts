@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   };
   try {
     switch (body.action) {
-      // Browser login (X, LinkedIn): start opens Chrome, done saves the session.
+      // Browser login (X): start opens Chrome, done saves the session.
       case "start":
         if (!isPlatformId(body.platform)) return badRequest("unknown platform");
         return NextResponse.json(await startBrowserConnect(body.platform));

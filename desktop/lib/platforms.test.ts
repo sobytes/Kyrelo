@@ -13,13 +13,15 @@ describe("platform rules", () => {
   it("explains why text can't be posted", () => {
     expect(postTextError("bluesky", "  ")).toMatch(/empty/);
     expect(postTextError("bluesky", "x".repeat(301))).toMatch(/Bluesky.*300/);
-    expect(postTextError("linkedin", "x".repeat(3000))).toBeNull();
-    expect(postTextError("linkedin", "x".repeat(3001))).toMatch(/LinkedIn/);
+    expect(postTextError("twitter", "x".repeat(4000))).toBeNull(); // X Premium length
+    expect(postTextError("twitter", "x".repeat(4001))).toMatch(/X/);
   });
 
   it("recognises platform ids", () => {
     expect(isPlatformId("bluesky")).toBe(true);
     expect(isPlatformId("mastodon")).toBe(false);
+    // Removed in September 2026.
+    expect(isPlatformId("linkedin")).toBe(false);
     expect(isPlatformId(undefined)).toBe(false);
   });
 });

@@ -8,7 +8,6 @@ extension PlatformId {
         switch self {
         case .twitter: "X"
         case .bluesky: "Bluesky"
-        case .linkedin: "LinkedIn"
         }
     }
 
@@ -17,7 +16,6 @@ extension PlatformId {
         switch self {
         case .twitter: "𝕏"
         case .bluesky: "🦋"
-        case .linkedin: "in"
         }
     }
 
@@ -25,14 +23,13 @@ extension PlatformId {
         switch self {
         case .twitter: 4000
         case .bluesky: 300
-        case .linkedin: 3000
         }
     }
 
     /// Largest image file the platform accepts on a post.
     var maxImageBytes: Int {
         switch self {
-        case .twitter, .linkedin: 5 * 1024 * 1024
+        case .twitter: 5 * 1024 * 1024
         case .bluesky: 1_000_000
         }
     }
@@ -42,7 +39,6 @@ extension PlatformId {
         switch self {
         case .twitter: ReplyRules.length(text) // links count 23
         case .bluesky: text.count // what a person sees; links in full
-        case .linkedin: text.utf16.count // as JavaScript's length does
         }
     }
 }
