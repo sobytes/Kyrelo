@@ -65,7 +65,7 @@ export async function fetchOgImage(pageUrl: string): Promise<string> {
   if (!res.ok || !ext) throw new Error(`og:image isn't a usable image (${res.status} ${type})`);
   const data = Buffer.from(await res.arrayBuffer());
   if (data.length > MAX_IMAGE_BYTES) throw new Error("og:image is too large");
-  return saveImage(data, ext);
+  return saveImage(data);
 }
 
 /**
@@ -100,7 +100,7 @@ export async function screenshotPage(pageUrl: string, productUrl: string): Promi
     // Let fonts, lazy images and entrance animations settle.
     await handle.page.waitForTimeout(2_500);
     const data = await handle.page.screenshot({ type: "jpeg", quality: 85 });
-    return saveImage(data, ".jpg");
+    return saveImage(data);
   } finally {
     await handle.close();
   }
@@ -121,5 +121,5 @@ export async function generateAiImage(prompt: string): Promise<string> {
   );
   const b64 = json.data?.[0]?.b64_json;
   if (!b64) throw new Error("OpenAI returned no image");
-  return saveImage(Buffer.from(b64, "base64"), ".png");
+  return saveImage(Buffer.from(b64, "base64"));
 }

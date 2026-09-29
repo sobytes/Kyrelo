@@ -21,8 +21,8 @@ const ID = "[A-Za-z0-9_.-]+";
 
 /**
  * What the phone may call: method + an exact path pattern. Everything else
- * gets 404: connecting or disconnecting accounts, API keys, the Deleter
- * and phone access itself.
+ * gets 404: connecting or disconnecting accounts, API keys, the Deleter,
+ * Unfollow and phone access itself.
  */
 const ALLOWED: [method: string, path: RegExp][] = [
   // Monitor + Autopilot
@@ -99,6 +99,10 @@ function isLockedOut(ip: string): boolean {
 }
 
 function recordFailure(ip: string) {
+  // Forget expired entries so addresses that stopped trying don't pile up.
+  for (const [addr, entry] of state.failures) {
+    if (Date.now() - entry.since > FAILURE_WINDOW_MS) state.failures.delete(addr);
+  }
   const f = state.failures.get(ip);
   if (f && Date.now() - f.since <= FAILURE_WINDOW_MS) f.count++;
   else state.failures.set(ip, { count: 1, since: Date.now() });

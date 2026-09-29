@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { IMAGE_EXT_BY_TYPE, imageUploadError, saveImage } from "@/lib/uploads";
+import { imageTypeFromBytes, imageUploadError, saveImage } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,6 +18,10 @@ export async function POST(req: NextRequest) {
   }
   const invalid = imageUploadError(file);
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
-  const filename = await saveImage(Buffer.from(await file.arrayBuffer()), IMAGE_EXT_BY_TYPE[file.type]);
+  const data = Buffer.from(await file.arrayBuffer());
+  if (!imageTypeFromBytes(data)) {
+    return NextResponse.json({ error: "that file isn't a PNG, JPEG, GIF or WebP image" }, { status: 400 });
+  }
+  const filename = await saveImage(data);
   return NextResponse.json({ ok: true, filename });
 }

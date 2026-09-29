@@ -3,6 +3,8 @@ import SwiftUI
 @main
 struct KyreloApp: App {
     @State private var pairing: Pairing? = PairingStore.load()
+    /// A pairing link that was opened, waiting for the user to confirm it.
+    @State private var linkPairing: Pairing?
 
     var body: some Scene {
         WindowGroup {
@@ -22,12 +24,18 @@ struct KyreloApp: App {
             }
             .preferredColorScheme(.dark)
             .tint(Theme.accent)
-            // Tapping a kyrelo://pair link (e.g. sent to yourself) pairs directly.
-            .onOpenURL { url in
-                guard let next = Pairing(link: url.absoluteString) else { return }
-                Task {
-                    if (try? await BridgeClient(pairing: next).ping()) != nil { setPairing(next) }
+            // Any web page or app can open a kyrelo://pair link, so ask first:
+            // pairing with someone else's server would send it your posts.
+            .onOpenURL { url in linkPairing = Pairing(link: url.absoluteString) }
+            .alert("Pair with this computer?", isPresented: Binding(
+                get: { linkPairing != nil }, set: { if !$0 { linkPairing = nil } }
+            ), presenting: linkPairing) { next in
+                Button("Pair") {
+                    Task { if (try? await BridgeClient(pairing: next).ping()) != nil { setPairing(next) } }
                 }
+                Button("Cancel", role: .cancel) {}
+            } message: { next in
+                Text("Kyrelo at \(next.hosts.joined(separator: ", ")). Only pair if this link came from Kyrelo's Settings on your own computer.")
             }
         }
     }

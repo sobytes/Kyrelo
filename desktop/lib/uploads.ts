@@ -42,13 +42,32 @@ export function imageUploadError(file: File): string | null {
   return null;
 }
 
+/**
+ * The image type the bytes actually are, from their signature. The type an
+ * upload declares is the sender's claim; this is what gets stored and served.
+ */
+export function imageTypeFromBytes(data: Buffer): string | undefined {
+  const starts = (sig: number[], at = 0) => sig.every((b, i) => data[at + i] === b);
+  if (starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "image/png";
+  if (starts([0xff, 0xd8, 0xff])) return "image/jpeg";
+  if (starts([0x47, 0x49, 0x46, 0x38])) return "image/gif"; // GIF8
+  if (starts([0x52, 0x49, 0x46, 0x46]) && starts([0x57, 0x45, 0x42, 0x50], 8)) return "image/webp"; // RIFF….WEBP
+  return undefined;
+}
+
 export function uploadsDir(): string {
   return path.join(dataDir, "uploads");
 }
 
-/** Stores image bytes under a fresh random name; returns the filename. */
-export async function saveImage(data: Buffer, ext: string): Promise<string> {
-  const filename = `${randomUUID()}${ext}`;
+/**
+ * Stores image bytes under a fresh random name; returns the filename. The
+ * extension comes from the bytes, so whatever is stored is served as what it
+ * really is, whoever sent it.
+ */
+export async function saveImage(data: Buffer): Promise<string> {
+  const type = imageTypeFromBytes(data);
+  if (!type) throw new Error("that file isn't a PNG, JPEG, GIF or WebP image");
+  const filename = `${randomUUID()}${IMAGE_EXT_BY_TYPE[type]}`;
   await fs.mkdir(uploadsDir(), { recursive: true });
   await fs.writeFile(path.join(uploadsDir(), filename), data);
   return filename;

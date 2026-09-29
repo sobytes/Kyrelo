@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { describeImage } from "@/lib/campaign-ai";
-import { IMAGE_EXT_BY_TYPE, imageUploadError, saveImage } from "@/lib/uploads";
+import { imageTypeFromBytes, imageUploadError, saveImage } from "@/lib/uploads";
 import { getGrokSettings, listMediaItems, modifyMediaItems } from "@/lib/storage";
 import { MediaItem } from "@/lib/types";
 
@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
   const invalid = imageUploadError(file);
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
   const data = Buffer.from(await file.arrayBuffer());
-  const filename = await saveImage(data, IMAGE_EXT_BY_TYPE[file.type]);
+  if (!imageTypeFromBytes(data)) {
+    return NextResponse.json({ error: "that file isn't a PNG, JPEG, GIF or WebP image" }, { status: 400 });
+  }
+  const filename = await saveImage(data);
 
   // No caption given: have the AI write one so the campaign writer knows what
   // the image shows. Best-effort — without a key the user can still type one.

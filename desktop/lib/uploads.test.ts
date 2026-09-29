@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { IMAGE_EXT_BY_TYPE, imageTypeForFilename, imageUploadError, SAFE_IMAGE_FILENAME } from "./uploads";
+import { IMAGE_EXT_BY_TYPE, imageTypeForFilename, imageTypeFromBytes, imageUploadError, SAFE_IMAGE_FILENAME } from "./uploads";
 
 describe("image upload rules", () => {
   it("accepts filenames the upload routes produce", () => {
@@ -37,5 +37,16 @@ describe("imageTypeForFilename", () => {
     expect(imageTypeForFilename("x.jpg")).toBe("image/jpeg");
     expect(imageTypeForFilename("x.jpeg")).toBe("image/jpeg");
     expect(imageTypeForFilename("x.txt")).toBeUndefined();
+  });
+
+  it("knows an image by its bytes, not by what the sender says it is", () => {
+    const bytes = (...b: number[]) => Buffer.from([...b, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(imageTypeFromBytes(bytes(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))).toBe("image/png");
+    expect(imageTypeFromBytes(bytes(0xff, 0xd8, 0xff, 0xe0))).toBe("image/jpeg");
+    expect(imageTypeFromBytes(Buffer.from("GIF89a"))).toBe("image/gif");
+    expect(imageTypeFromBytes(Buffer.from("RIFF\0\0\0\0WEBPVP8 "))).toBe("image/webp");
+    for (const notImage of ["<html><script>alert(1)</script>", "<svg xmlns='http://www.w3.org/2000/svg'/>", "RIFF\0\0\0\0WAVEfmt ", ""]) {
+      expect(imageTypeFromBytes(Buffer.from(notImage))).toBeUndefined();
+    }
   });
 });

@@ -28,6 +28,8 @@ export async function GET(
   return new Response(new Uint8Array(data), {
     headers: {
       "Content-Type": type,
+      // Never let a browser guess the type from the bytes.
+      "X-Content-Type-Options": "nosniff",
       "Cache-Control": "private, max-age=300",
     },
   });
