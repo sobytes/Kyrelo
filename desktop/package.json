@@ -1,6 +1,6 @@
 {
   "name": "kyrelo",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "private": true,
   "description": "Local desktop app that watches X handles, generates AI-written @grok replies, and schedules posts across multiple X accounts.",
   "author": "SoBytes",
