@@ -184,6 +184,7 @@ export function SchedulerPanel({ service }: { service: ServiceSpec }) {
     );
   }
 
+  const canAttachImage = targets.some((a) => PLATFORMS[a.platform].maxImageBytes > 0);
   const imagesDropped = imagePath ? targets.filter((a) => PLATFORMS[a.platform].maxImageBytes === 0) : [];
 
   return (
@@ -241,6 +242,7 @@ export function SchedulerPanel({ service }: { service: ServiceSpec }) {
             </div>
           )}
 
+          {canAttachImage && (
           <div>
             <div className="label">Image (optional)</div>
             {imagePreviewUrl ? (
@@ -276,6 +278,7 @@ export function SchedulerPanel({ service }: { service: ServiceSpec }) {
               </label>
             )}
           </div>
+          )}
 
           {imagesDropped.length > 0 && (
             <p className="text-xs text-muted">
@@ -736,6 +739,8 @@ function EditPostModal({
           {error && <span className="text-error">{error}</span>}
         </div>
 
+        {/* Threads posts are text only (PLATFORMS[..].maxImageBytes 0). */}
+        {PLATFORMS[post.platform].maxImageBytes > 0 && (
         <div className="mt-3">
           <div className="label">Image</div>
           {previewSrc ? (
@@ -767,6 +772,7 @@ function EditPostModal({
             </label>
           )}
         </div>
+        )}
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>

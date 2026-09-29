@@ -152,12 +152,15 @@ struct EditPostSheet: View {
                     Text("\(length) / \(post.platform.maxLength)")
                         .font(.inter(.caption)).foregroundStyle(length > post.platform.maxLength ? Theme.error : Theme.muted)
                 }
-                Section("Photo") {
-                    PhotoField(
-                        photo: $photo,
-                        existing: post.imagePath.flatMap { removeExisting ? nil : (client, $0) },
-                        onRemoveExisting: { removeExisting = true }
-                    )
+                // Threads posts are text only (PlatformRules.maxImageBytes 0).
+                if post.platform.maxImageBytes > 0 {
+                    Section("Photo") {
+                        PhotoField(
+                            photo: $photo,
+                            existing: post.imagePath.flatMap { removeExisting ? nil : (client, $0) },
+                            onRemoveExisting: { removeExisting = true }
+                        )
+                    }
                 }
                 Section { DatePicker("When", selection: $date) }
                 Section {
