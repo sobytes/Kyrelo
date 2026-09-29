@@ -37,6 +37,7 @@ struct AccountsView: View {
                     .font(.inter(.caption))
             }
         }
+        .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Theme.canvas)
     }

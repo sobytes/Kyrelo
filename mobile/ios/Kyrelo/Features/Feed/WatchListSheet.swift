@@ -55,6 +55,7 @@ struct WatchListSheet: View {
                 }
                 if let error { Text(error).foregroundStyle(Theme.error) }
             }
+            .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Theme.canvas)
             .navigationTitle("Watching")

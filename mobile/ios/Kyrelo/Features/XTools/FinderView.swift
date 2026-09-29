@@ -53,6 +53,7 @@ struct FinderView: View {
                 }
             }
         }
+        .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Theme.canvas)
         .navigationTitle("Find accounts")

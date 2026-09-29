@@ -51,6 +51,7 @@ struct UnfollowView: View {
                 if let history = state?.history, !history.isEmpty { historySection(history) }
             }
         }
+        .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Theme.canvas)
         .safeAreaInset(edge: .bottom) {

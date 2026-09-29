@@ -119,7 +119,8 @@ struct ServiceView: View {
     let client: BridgeClient
     let onUnpair: () -> Void
     @State private var section: SectionId
-    @State private var accounts: [Account] = []
+    /// nil until loaded: the sections' account pickers start on the first one.
+    @State private var accounts: [Account]?
     @State private var error: String?
 
     init(service: ServiceSpec, client: BridgeClient, onUnpair: @escaping () -> Void) {
@@ -131,15 +132,17 @@ struct ServiceView: View {
 
     var body: some View {
         Group {
-            switch section {
-            case .monitor: FeedView(client: client, onUnpair: onUnpair)
-            case .deleter: DeleterView(client: client, accounts: accounts)
-            case .unfollow: UnfollowView(client: client, accounts: accounts)
-            case .accounts: AccountsView(service: service, client: client, accounts: accounts, onChange: loadAccounts)
+            if let accounts {
+                switch section {
+                case .monitor: FeedView(client: client, onUnpair: onUnpair)
+                case .deleter: DeleterView(client: client, accounts: accounts)
+                case .unfollow: UnfollowView(client: client, accounts: accounts)
+                case .accounts: AccountsView(service: service, client: client, accounts: accounts, onChange: loadAccounts)
+                }
+            } else {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity).background(Theme.canvas)
             }
         }
-        // The account pickers start on the first account, so wait for the list.
-        .id(accounts.map(\.id))
         .navigationTitle(service.label)
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .top) {
