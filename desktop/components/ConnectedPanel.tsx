@@ -10,7 +10,7 @@ export function ConnectedPanel() {
   const { status } = accounts;
 
   if (!status) {
-    return <div className="card text-sm text-zinc-500">Loading…</div>;
+    return <div className="py-6 text-sm text-muted">Loading…</div>;
   }
 
   return (
@@ -24,8 +24,8 @@ export function ConnectedPanel() {
         />
       ))}
 
-      <div className="card text-xs leading-relaxed text-zinc-500">
-        <strong className="text-zinc-300">How this works.</strong> Each X account gets its own
+      <div className="section text-xs leading-relaxed text-muted">
+        <strong className="text-fg">How this works.</strong> Each X account gets its own
         Chrome profile on this computer; you sign in once and Kyrelo posts through that session. Bluesky uses an app password, stored only on this computer. Nothing is sent
         anywhere except the platform itself. The Monitor, Deleter and auto campaigns work with X
         accounts. Kyrelo isn&apos;t affiliated with X or Bluesky: using it is at your own risk, and
@@ -76,10 +76,10 @@ function BrowserConnectCard({
   const host = new URL(spec.loginUrl).host;
 
   return (
-    <div className="card space-y-3">
+    <div className="section space-y-3">
       <div>
-        <div className="text-sm font-semibold text-zinc-100">Add a {spec.label} account</div>
-        <div className="mt-0.5 text-xs text-zinc-500">
+        <div className="text-sm font-semibold text-fg">Add a {spec.label} account</div>
+        <div className="mt-0.5 text-xs text-muted">
           {phase === "starting"
             ? "Opening Chrome…"
             : phase === "connecting"
@@ -114,7 +114,7 @@ function BrowserConnectCard({
       </div>
 
       {busyHere && (
-        <p className="text-[10px] text-zinc-500">
+        <p className="text-[10px] text-muted">
           Connecting in progress — the Monitor and scheduled posts pause until it finishes.
         </p>
       )}
@@ -146,15 +146,15 @@ function BlueskyConnectCard({ connect }: { connect: ReturnType<typeof useAccount
   }
 
   return (
-    <form onSubmit={submit} className="card space-y-3">
+    <form onSubmit={submit} className="space-y-3">
       <div>
-        <div className="text-sm font-semibold text-zinc-100">Add a Bluesky account</div>
-        <div className="mt-0.5 text-xs text-zinc-500">
+        <div className="text-sm font-semibold text-fg">Add a Bluesky account</div>
+        <div className="mt-0.5 text-xs text-muted">
           Use an <strong>app password</strong>, not your main password. Create one in Bluesky under{" "}
           <button
             type="button"
             onClick={() => openExternal(PLATFORMS.bluesky.loginUrl)}
-            className="text-accent underline hover:text-zinc-200"
+            className="text-primary underline hover:text-fg"
           >
             Settings → Privacy and security → App passwords
           </button>
@@ -178,7 +178,7 @@ function BlueskyConnectCard({ connect }: { connect: ReturnType<typeof useAccount
           autoComplete="off"
         />
       </div>
-      {error && <div className="text-xs text-rose-400">{error}</div>}
+      {error && <div className="text-xs text-error">{error}</div>}
       <button type="submit" disabled={saving || !handle.trim() || !appPassword.trim()} className="btn-primary text-sm">
         {saving ? "Checking…" : "Connect Bluesky"}
       </button>
@@ -192,8 +192,8 @@ function AccountRow({ account, onDisconnect }: { account: Account; onDisconnect:
       <div className="flex items-center gap-3">
         <PlatformBadge platform={account.platform} size="lg" />
         <div>
-          <div className="text-sm font-semibold text-zinc-100">@{account.handle}</div>
-          <div className="text-[11px] text-zinc-500">Added {new Date(account.addedAt).toLocaleDateString()}</div>
+          <div className="text-sm font-semibold text-fg">@{account.handle}</div>
+          <div className="text-[11px] text-muted">Added {new Date(account.addedAt).toLocaleDateString()}</div>
         </div>
       </div>
       <button onClick={onDisconnect} className="btn-danger text-xs">

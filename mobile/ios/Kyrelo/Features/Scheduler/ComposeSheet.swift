@@ -27,14 +27,14 @@ struct ComposeSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            List {
                 Section {
                     TextEditor(text: $text).frame(minHeight: 140)
                     HStack(spacing: 12) {
                         ForEach(platforms, id: \.self) { p in
                             Text("\(platforms.count > 1 || p != .twitter ? "\(p.label) " : "")\(p.length(text)) / \(p.maxLength)")
-                                .font(.caption)
-                                .foregroundStyle(p.length(text) > p.maxLength ? Theme.danger : Theme.faint)
+                                .font(.inter(.caption))
+                                .foregroundStyle(p.length(text) > p.maxLength ? Theme.error : Theme.muted)
                         }
                     }
                 }
@@ -54,10 +54,11 @@ struct ComposeSheet: View {
                 Section {
                     DatePicker("When", selection: $date, in: Date()...)
                 }
-                if let error { Section { Text(error).foregroundStyle(Theme.danger) } }
+                if let error { Section { Text(error).foregroundStyle(Theme.error) } }
             }
+            .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Theme.ink)
+            .background(Theme.canvas)
             .navigationTitle("New post")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -125,11 +126,11 @@ struct EditPostSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            List {
                 Section {
                     TextEditor(text: $text).frame(minHeight: 140)
                     Text("\(length) / \(post.platform.maxLength)")
-                        .font(.caption).foregroundStyle(length > post.platform.maxLength ? Theme.danger : Theme.faint)
+                        .font(.inter(.caption)).foregroundStyle(length > post.platform.maxLength ? Theme.error : Theme.muted)
                 }
                 Section("Photo") {
                     PhotoField(
@@ -142,10 +143,11 @@ struct EditPostSheet: View {
                 Section {
                     Button("Cancel this post", role: .destructive) { run { try await client.cancelPost(id: post.id) } }
                 }
-                if let error { Section { Text(error).foregroundStyle(Theme.danger) } }
+                if let error { Section { Text(error).foregroundStyle(Theme.error) } }
             }
+            .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Theme.ink)
+            .background(Theme.canvas)
             .navigationTitle("Edit \(post.platform.label) post")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -76,7 +76,7 @@ export function SettingsPanel() {
   }
 
   if (!settings) {
-    return <div className="card text-sm text-zinc-500">Loading…</div>;
+    return <div className="py-6 text-sm text-muted">Loading…</div>;
   }
 
   const activeKeySet = status
@@ -87,17 +87,17 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-4">
-      <section className="card space-y-3">
+      <section className="section space-y-3">
         <div className="flex items-center justify-between">
           <div className="label !mb-0">AI provider</div>
           {!activeKeySet && (
-            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+            <span className="rounded-sm bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning">
               API key required
             </span>
           )}
         </div>
         <select
-          className="rounded-md border border-line bg-ink px-2 py-1.5 text-sm"
+          className="rounded-md border border-line bg-canvas px-2 py-1.5 text-sm"
           value={settings.aiProvider}
           onChange={(e) =>
             save({ ...settings, aiProvider: e.target.value as GrokSettings["aiProvider"] })
@@ -108,10 +108,10 @@ export function SettingsPanel() {
         </select>
       </section>
 
-      <section className="card space-y-4">
+      <section className="section space-y-4">
         <div>
           <div className="label">API keys</div>
-          <p className="text-[11px] leading-relaxed text-zinc-500">
+          <p className="text-[11px] leading-relaxed text-muted">
             Kyrelo uses your own AI key, so you only pay the provider for what you use, usually a few
             cents per reply and well under $1 per auto campaign. You need at least one key: Claude or
             OpenAI, matching the provider picked above. Add an OpenAI key too if you want AI-generated
@@ -200,12 +200,12 @@ export function SettingsPanel() {
             {savingKeys ? "Saving…" : "Save keys"}
           </button>
         )}
-        <p className="text-[10px] leading-relaxed text-zinc-500">
+        <p className="text-[10px] leading-relaxed text-muted">
           Keys are stored locally, and each key is only ever sent to its own provider.
         </p>
       </section>
 
-      <section className="card space-y-3">
+      <section className="section space-y-3">
         <div className="label">Reply tone</div>
         <textarea
           className="textarea h-28 resize-none"
@@ -213,15 +213,15 @@ export function SettingsPanel() {
           value={settings.styleHint}
           onChange={(e) => save({ ...settings, styleHint: e.target.value })}
         />
-        <p className="text-[10px] leading-relaxed text-zinc-500">
+        <p className="text-[10px] leading-relaxed text-muted">
           Fed to the AI when you click Generate reply. Be specific — &ldquo;contrarian on AI
           hype&rdquo; works better than &ldquo;edgy&rdquo;.
         </p>
       </section>
 
-      <section className="card space-y-3">
+      <section className="section space-y-3">
         <div className="label">Notifications & scraping</div>
-        <label className="flex items-center justify-between gap-2 text-sm text-zinc-300">
+        <label className="flex items-center justify-between gap-2 text-sm text-fg">
           Include replies
           <input
             type="checkbox"
@@ -229,7 +229,7 @@ export function SettingsPanel() {
             onChange={(e) => save({ ...settings, includeReplies: e.target.checked })}
           />
         </label>
-        <label className="flex items-center justify-between gap-2 text-sm text-zinc-300">
+        <label className="flex items-center justify-between gap-2 text-sm text-fg">
           Desktop notifications
           <input
             type="checkbox"
@@ -239,12 +239,12 @@ export function SettingsPanel() {
         </label>
       </section>
 
-      <section className="card space-y-3">
+      <section className="section space-y-3">
         <div className="label">Posting</div>
-        <label className="flex items-center justify-between gap-3 text-sm text-zinc-300">
+        <label className="flex items-center justify-between gap-3 text-sm text-fg">
           <div>
             <div>Run scheduled posts headless</div>
-            <div className="mt-0.5 text-[11px] text-zinc-500">
+            <div className="mt-0.5 text-[11px] text-muted">
               When off, a Chrome window pops up so you can watch each post being typed and
               submitted (useful for testing). Turn on once you trust it.
             </div>
@@ -261,17 +261,17 @@ export function SettingsPanel() {
 
       <PhoneAccess />
 
-      <section className="card space-y-2">
+      <section className="section space-y-2">
         <div className="label">Danger zone</div>
         <button onClick={resetState} className="btn-danger w-full text-xs">
           Reset seen tweets
         </button>
-        <p className="text-[10px] leading-relaxed text-zinc-500">
+        <p className="text-[10px] leading-relaxed text-muted">
           Wipes the seen-tweet history so the next scrape starts fresh.
         </p>
       </section>
 
-      <section className="card space-y-2 text-[11px] leading-relaxed text-zinc-500">
+      <section className="section space-y-2 text-[11px] leading-relaxed text-muted">
         <div className="label">About Kyrelo</div>
         <p>
           Kyrelo is an independent, open-source experiment, provided as is under the MIT license. It
@@ -308,13 +308,13 @@ function KeyRow({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-zinc-200">{label}</span>
+        <span className="text-fg">{label}</span>
         {set ? (
-          <span className="text-[10px] text-emerald-400">
+          <span className="text-[10px] text-success">
             ✓ {fromEnv ? "from env" : "saved"}
           </span>
         ) : (
-          <span className="text-[10px] text-zinc-500">not set</span>
+          <span className="text-[10px] text-muted">not set</span>
         )}
       </div>
       {!fromEnv && (
@@ -326,11 +326,11 @@ function KeyRow({
           onChange={(e) => onChange(e.target.value)}
         />
       )}
-      <details open={!set} className="group text-[11px] leading-relaxed text-zinc-400">
-        <summary className="cursor-pointer select-none text-zinc-500 hover:text-zinc-300">
+      <details open={!set} className="group text-[11px] leading-relaxed text-muted">
+        <summary className="cursor-pointer select-none text-muted hover:text-fg">
           How do I get this key?
         </summary>
-        <div className="mt-2 space-y-2 rounded-md border border-line bg-ink p-3">{help}</div>
+        <div className="mt-2 space-y-2 rounded-md border border-line bg-canvas p-3">{help}</div>
       </details>
     </div>
   );
@@ -340,7 +340,7 @@ function KeyRow({
 // window-open handler (electron/main.cjs).
 function ExtLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="text-accent underline hover:text-zinc-200">
+    <a href={href} target="_blank" rel="noreferrer" className="text-primary underline hover:text-fg">
       {children}
     </a>
   );

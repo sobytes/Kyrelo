@@ -1,34 +1,56 @@
 import type { Config } from "tailwindcss";
+import tokens from "../contracts/design-tokens.json";
+
+// The design system (contracts/design-tokens.json, shared with the website
+// and the iPhone app). Colours, radii and shadows REPLACE Tailwind's
+// defaults rather than extend them, so only the tokens exist: a stray
+// zinc-500 or rounded-2xl does nothing instead of drifting from the system.
+const c = tokens.color;
 
 export default {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
+    colors: {
+      transparent: "transparent",
+      current: "currentColor",
+      canvas: c.canvas,
+      surface: c.surface,
+      fg: c.fg,
+      muted: c.muted,
+      line: c.line,
+      primary: { DEFAULT: c.primary, hover: c.primaryHover },
+      accent: c.accent,
+      success: c.success,
+      warning: c.warning,
+      error: c.error,
+    },
+    borderRadius: {
+      none: "0",
+      sm: `${tokens.radius.sm}px`,
+      DEFAULT: `${tokens.radius.sm}px`,
+      md: `${tokens.radius.md}px`,
+      lg: `${tokens.radius.lg}px`,
+      // Status dots only; anything bigger stays within 12px.
+      full: "9999px",
+    },
+    boxShadow: {
+      none: "none",
+      // Borders and contrast first; shadows only to lift a dialog off the page.
+      sm: "0 1px 2px rgba(23, 23, 23, 0.06)",
+      md: "0 12px 32px rgba(23, 23, 23, 0.12)",
+    },
+    fontFamily: {
+      sans: ["var(--font-sans)", tokens.font.sans, "system-ui", "sans-serif"],
+      mono: ["var(--font-mono)", tokens.font.mono, "ui-monospace", "monospace"],
+    },
     extend: {
-      colors: {
-        ink: "#0b0d12",
-        panel: "#11141b",
-        panel2: "#161a23",
-        line: "#1f2430",
-        line2: "#2a3142",
-        accent: "#7c5cff",
-        live: "#10b981",
-      },
       animation: {
-        "live-pulse": "live-pulse 2.2s ease-out infinite",
-        "fade-in": "fade-in 200ms ease-out",
+        "fade-in": "fade-in 150ms ease-out",
       },
       keyframes: {
-        "live-pulse": {
-          "0%, 100%": {
-            boxShadow: "0 0 0 0 rgba(16, 185, 129, 0.55)",
-          },
-          "70%": {
-            boxShadow: "0 0 0 9px rgba(16, 185, 129, 0)",
-          },
-        },
         "fade-in": {
-          from: { opacity: "0", transform: "translateY(2px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
+          from: { opacity: "0" },
+          to: { opacity: "1" },
         },
       },
     },

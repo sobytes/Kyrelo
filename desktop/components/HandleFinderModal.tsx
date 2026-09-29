@@ -109,29 +109,29 @@ export function HandleFinderModal({
   const disabled = busy || running;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-fade-in" onClick={running ? undefined : onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-fg/40 p-4 animate-fade-in" onClick={running ? undefined : onClose}>
       <div
-        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-line bg-panel p-5 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-line bg-surface p-5 shadow-md"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <div className="label !mb-0">Find accounts for my brand</div>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-muted">
               AI researches your niche and reads X&apos;s own suggestions for you, then every account is checked on X,
               so only real, active ones are listed. Watch the ones you want to reply to, follow the ones you want to
               know.
             </p>
           </div>
-          <button onClick={onClose} className="rounded-full px-2 py-0.5 text-zinc-500 hover:bg-panel2 hover:text-zinc-200">
+          <button onClick={onClose} className="rounded-sm px-2 py-0.5 text-muted hover:bg-canvas hover:text-fg">
             ✕
           </button>
         </div>
 
         {!state ? (
-          <div className="text-sm text-zinc-500">Loading…</div>
+          <div className="text-sm text-muted">Loading…</div>
         ) : !state.aiReady ? (
-          <div className="card space-y-2 text-sm text-zinc-300">
+          <div className="space-y-2 text-sm text-fg">
             <div>Finding accounts needs an AI key for the research.</div>
             <Link href="/settings" className="btn-primary inline-block text-xs">
               Add a key in Settings
@@ -142,7 +142,7 @@ export function HandleFinderModal({
             <div className="space-y-3">
               {accounts.length > 1 && (
                 <select
-                  className="w-full rounded-md border border-line bg-ink px-2 py-2 text-sm"
+                  className="w-full rounded-md border border-line bg-canvas px-2 py-2 text-sm"
                   value={accountId}
                   onChange={(e) => setAccountId(e.target.value)}
                   disabled={disabled}
@@ -182,7 +182,7 @@ export function HandleFinderModal({
                 >
                   {running && job?.kind === "find" ? "Finding…" : suggestions.length ? "Find again" : "Find accounts"}
                 </button>
-                <span className="text-[11px] text-zinc-500">
+                <span className="text-[11px] text-muted">
                   Takes a few minutes: research, then a quick look at each account on X in Chrome. Saved as your brand
                   profile for auto campaigns too.
                 </span>
@@ -194,10 +194,10 @@ export function HandleFinderModal({
                 <div className="flex items-center justify-between gap-2 text-sm">
                   <div className="flex items-center gap-2">
                     <JobStatus running={job.running} error={job.error} />
-                    <span className="text-zinc-300">{job.kind === "find" ? "Finding accounts" : "Following"}</span>
+                    <span className="text-fg">{job.kind === "find" ? "Finding accounts" : "Following"}</span>
                   </div>
                   {job.total > 0 && (
-                    <span className="text-[11px] tabular-nums text-zinc-500">
+                    <span className="text-[11px] tabular-nums text-muted">
                       {job.done + job.failed} / {job.total}
                     </span>
                   )}
@@ -208,7 +208,7 @@ export function HandleFinderModal({
 
             {suggestions.length > 0 && (
               <>
-                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-500">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted">
                   <span>
                     Watching {watched.length}.{" "}
                     {watched.length > COMFORTABLE_WATCH_COUNT
@@ -226,11 +226,11 @@ export function HandleFinderModal({
                     <section key={group} className="space-y-1">
                       <div className="flex items-baseline justify-between gap-2">
                         <div>
-                          <span className="text-sm font-medium text-zinc-200">{GROUP_TITLES[group].title}</span>{" "}
-                          <span className="text-[11px] text-zinc-500">{GROUP_TITLES[group].detail}</span>
+                          <span className="text-sm font-medium text-fg">{GROUP_TITLES[group].title}</span>{" "}
+                          <span className="text-[11px] text-muted">{GROUP_TITLES[group].detail}</span>
                         </div>
                         {unwatched.length > 0 && (
-                          <button onClick={() => onWatch(unwatched, true)} className="text-[11px] text-zinc-500 hover:text-accent">
+                          <button onClick={() => onWatch(unwatched, true)} className="text-[11px] text-muted hover:text-primary">
                             Watch all
                           </button>
                         )}
@@ -260,7 +260,7 @@ export function HandleFinderModal({
                   <button onClick={followTicked} disabled={disabled || ticked.size === 0} className="btn-primary text-sm">
                     {running && job?.kind === "follow" ? "Following…" : `Follow ${Math.min(ticked.size, MAX_FOLLOWS_PER_RUN)}`}
                   </button>
-                  <span className="text-[11px] text-zinc-500">
+                  <span className="text-[11px] text-muted">
                     Tick accounts to follow. Up to {MAX_FOLLOWS_PER_RUN} a run and 200 a day, a few seconds apart.
                   </span>
                 </div>
@@ -268,7 +268,7 @@ export function HandleFinderModal({
             )}
 
             {state.data.dropped.length > 0 && (
-              <details className="text-[11px] text-zinc-500">
+              <details className="text-[11px] text-muted">
                 <summary className="cursor-pointer">{state.data.dropped.length} left out after checking X</summary>
                 <ul className="mt-1 space-y-0.5 pl-4">
                   {state.data.dropped.map((d) => (
@@ -311,7 +311,7 @@ function SuggestionRow({
     <div className="flex items-start gap-3 p-2.5">
       <input
         type="checkbox"
-        className="mt-1 accent-accent"
+        className="mt-1 accent-primary"
         checked={ticked}
         disabled={s.youFollow}
         onChange={(e) => onTick(e.target.checked)}
@@ -319,13 +319,13 @@ function SuggestionRow({
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <button onClick={() => openExternal(`https://x.com/${s.handle}`)} className="truncate text-sm font-medium text-zinc-100 hover:underline">
+          <button onClick={() => openExternal(`https://x.com/${s.handle}`)} className="truncate text-sm font-medium text-fg hover:underline">
             {s.name}
           </button>
-          <span className="truncate text-xs text-zinc-500">@{s.handle}</span>
+          <span className="truncate text-xs text-muted">@{s.handle}</span>
         </div>
-        {s.reason && <div className="mt-0.5 text-xs text-zinc-300">{s.reason}</div>}
-        <div className="mt-0.5 text-[11px] text-zinc-500">{facts.join(" · ")}</div>
+        {s.reason && <div className="mt-0.5 text-xs text-fg">{s.reason}</div>}
+        <div className="mt-0.5 text-[11px] text-muted">{facts.join(" · ")}</div>
       </div>
       <button onClick={() => onWatch(!watched)} className={(watched ? "chip-on" : "chip-suggest") + " shrink-0"}>
         {watched ? "Watching" : "+ Watch"}

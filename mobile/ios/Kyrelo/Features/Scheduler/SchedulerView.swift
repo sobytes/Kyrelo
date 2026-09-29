@@ -20,7 +20,7 @@ struct SchedulerView: View {
                     accountPicker.listRowBackground(Color.clear).listRowInsets(EdgeInsets())
                 }
                 if let error = model.error {
-                    Text(error).font(.footnote).foregroundStyle(Theme.danger).listRowBackground(Color.clear)
+                    Text(error).font(.inter(.footnote)).foregroundStyle(Theme.error).listRowBackground(Color.clear)
                 }
                 if model.loaded && model.accounts.isEmpty {
                     Text("No accounts connected yet. Connect them in Kyrelo on your computer.")
@@ -42,8 +42,9 @@ struct SchedulerView: View {
                     }
                 }
             }
+            .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Theme.ink)
+            .background(Theme.canvas)
             .overlay { if !model.loaded && model.error == nil { ProgressView() } }
             .refreshable { await model.load() }
             .navigationTitle("Scheduler")
@@ -87,11 +88,11 @@ struct SchedulerView: View {
                     let on = account.key == model.selectedKey
                     Button { model.selectedKey = account.key } label: {
                         Label { Text("@\(account.handle)") } icon: { Text(account.platform.mark) }
-                            .font(.subheadline)
+                            .font(.inter(.subheadline))
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .background(on ? Theme.accent.opacity(0.18) : Theme.panel, in: Capsule())
-                            .overlay(Capsule().stroke(on ? Theme.accent : Theme.line2))
-                            .foregroundStyle(on ? Theme.text : Theme.muted)
+                            .background(on ? Theme.primary.opacity(0.18) : Theme.surface, in: Capsule())
+                            .overlay(Capsule().stroke(on ? Theme.primary : Theme.line))
+                            .foregroundStyle(on ? Theme.fg : Theme.muted)
                     }
                     .buttonStyle(.plain)
                 }
@@ -109,18 +110,18 @@ struct PostRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(ISODate.parse(post.scheduledFor)?.formatted(date: .abbreviated, time: .shortened) ?? post.scheduledFor)
-                    .font(.caption.weight(.semibold)).foregroundStyle(Theme.text)
+                    .font(.inter(.caption, weight: .semibold)).foregroundStyle(Theme.fg)
                 Spacer()
                 status
-                if post.campaignId != nil { Text("✨ auto").font(.caption2).foregroundStyle(Theme.faint) }
+                if post.campaignId != nil { Text("✨ auto").font(.inter(.caption2)).foregroundStyle(Theme.muted) }
             }
-            Text(post.text).font(.subheadline).foregroundStyle(Theme.text)
+            Text(post.text).font(.inter(.subheadline)).foregroundStyle(Theme.fg)
             if let imagePath = post.imagePath { BridgeImage(client: client, filename: imagePath).frame(maxHeight: 140) }
             if let error = post.error, post.status == .failed {
-                Text(error).font(.caption).foregroundStyle(Theme.danger)
+                Text(error).font(.inter(.caption)).foregroundStyle(Theme.error)
             }
             if let link = post.postedUrl, let url = URL(string: link) {
-                Link("View post ↗", destination: url).font(.caption)
+                Link("View post ↗", destination: url).font(.inter(.caption))
             }
         }
         .padding(.vertical, 4)
@@ -128,13 +129,13 @@ struct PostRow: View {
 
     @ViewBuilder private var status: some View {
         switch post.status {
-        case .pending: Text("scheduled").font(.caption2).foregroundStyle(Theme.faint)
+        case .pending: Text("scheduled").font(.inter(.caption2)).foregroundStyle(Theme.muted)
         case .posting:
             // Matches the desktop: "posting" without sendingStartedAt is still waiting for the browser.
             Text(post.sendingStartedAt == nil ? "Waiting for the browser…" : "Posting now…")
-                .font(.caption2).foregroundStyle(.orange)
-        case .posted: Text("posted").font(.caption2).foregroundStyle(Theme.live)
-        case .failed: Text("failed").font(.caption2).foregroundStyle(Theme.danger)
+                .font(.inter(.caption2)).foregroundStyle(.orange)
+        case .posted: Text("posted").font(.inter(.caption2)).foregroundStyle(Theme.success)
+        case .failed: Text("failed").font(.inter(.caption2)).foregroundStyle(Theme.error)
         }
     }
 }
@@ -150,7 +151,7 @@ struct BridgeImage: View {
             if let image {
                 Image(uiImage: image).resizable().scaledToFit().clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
-                RoundedRectangle(cornerRadius: 8).fill(Theme.panel2).frame(height: 80)
+                RoundedRectangle(cornerRadius: 8).fill(Theme.canvas).frame(height: 80)
             }
         }
         .task(id: filename) {

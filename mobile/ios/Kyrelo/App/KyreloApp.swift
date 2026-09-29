@@ -6,6 +6,10 @@ struct KyreloApp: App {
     /// A pairing link that was opened, waiting for the user to confirm it.
     @State private var linkPairing: Pairing?
 
+    init() {
+        Appearance.apply()
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
@@ -22,8 +26,10 @@ struct KyreloApp: App {
                     PairView(onPaired: setPairing)
                 }
             }
-            .preferredColorScheme(.dark)
-            .tint(Theme.accent)
+            .preferredColorScheme(.light)
+            .tint(Theme.primary)
+            .font(.inter(.body))
+            .foregroundStyle(Theme.fg)
             // Any web page or app can open a kyrelo://pair link, so ask first:
             // pairing with someone else's server would send it your posts.
             .onOpenURL { url in linkPairing = Pairing(link: url.absoluteString) }

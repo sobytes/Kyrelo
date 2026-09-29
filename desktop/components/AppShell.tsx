@@ -79,15 +79,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
     <div className="flex min-h-screen">
-      <aside className="fixed inset-y-0 left-0 z-30 flex w-56 flex-col border-r border-line bg-panel/95 backdrop-blur-xl">
+      <aside className="fixed inset-y-0 left-0 z-30 flex w-56 flex-col border-r border-line bg-canvas">
         <div className="window-drag flex items-center gap-2.5 px-5 pb-4 pt-10 border-b border-line">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/icon.png"
             alt=""
-            className="h-7 w-7 rounded-md shadow-[0_4px_16px_-6px_rgba(124,92,255,0.7)]"
+            className="h-7 w-7 rounded-md"
           />
-          <span className="text-sm font-semibold tracking-tight text-zinc-100">Kyrelo</span>
+          <span className="text-sm font-semibold tracking-tight text-fg">Kyrelo</span>
         </div>
 
         <nav className="flex-1 space-y-0.5 p-2">
@@ -98,10 +98,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition " +
+                  "flex items-center gap-3 rounded border px-3 py-2 text-sm transition-colors " +
                   (active
-                    ? "bg-accent/15 text-zinc-100 shadow-[inset_0_0_0_1px_rgba(124,92,255,0.35)]"
-                    : "text-zinc-400 hover:bg-panel2 hover:text-zinc-100")
+                    ? "border-line bg-surface font-medium text-fg"
+                    : "border-transparent text-muted hover:text-fg")
                 }
               >
                 <span className="h-4 w-4 shrink-0">{item.icon}</span>
@@ -111,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="border-t border-line p-3 text-[10px] text-zinc-600">v{pkg.version}</div>
+        <div className="border-t border-line p-3 font-mono text-[11px] text-muted">v{pkg.version}</div>
       </aside>
 
       <main className="ml-56 flex-1 overflow-x-hidden">{children}</main>

@@ -14,5 +14,6 @@ side's logic drifts, its tests fail:
 | `pairing-links.json` | The `kyrelo://pair` link the desktop shows and the phone reads |
 | `scheduler.json` | Sample accounts, posts, campaigns and brand profile responses the phone must decode |
 | `monitor-feed.json` | A sample `/api/grok-state` + `/api/grok-settings` response the phone must decode |
+| `design-tokens.json` | The design system: colours, radii (never over 12px), spacing and fonts. The desktop's Tailwind config reads it, the website builds from a checked copy (`website/design-tokens.json`), and the iPhone's `Theme.swift` must match it |
 
 Change a rule here first, then make both apps pass.

@@ -130,8 +130,9 @@ struct CampaignSheet: View {
     var body: some View {
         NavigationStack {
             content
+                .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .background(Theme.ink)
+                .background(Theme.canvas)
                 .navigationTitle("Auto campaign · @\(model.account.handle)")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
@@ -143,7 +144,7 @@ struct CampaignSheet: View {
 
     @ViewBuilder private var content: some View {
         if let info = model.info, !info.aiReady {
-            Form {
+            List {
                 Text("Auto campaigns need an AI key. Add one in Kyrelo on your computer: Settings → API keys.")
                     .foregroundStyle(Theme.muted)
             }
@@ -163,7 +164,7 @@ struct CampaignSheet: View {
     }
 
     private var form: some View {
-        Form {
+        List {
             Section("What are you promoting?") {
                 TextEditor(text: $model.brief).frame(minHeight: 110)
             }
@@ -188,7 +189,7 @@ struct CampaignSheet: View {
             } footer: {
                 if !(model.info?.openaiKey ?? false) { Text("AI images need an OpenAI key in Settings on your computer.") }
             }
-            if let error = model.error { Section { Text(error).foregroundStyle(Theme.danger) } }
+            if let error = model.error { Section { Text(error).foregroundStyle(Theme.error) } }
             Section {
                 Button(model.busy ? "Starting…" : "Go") { Task { await model.start() } }
                     .frame(maxWidth: .infinity)
@@ -208,15 +209,15 @@ struct CampaignSheet: View {
             (.media, "Picking images, screenshots and links"),
         ]
         let current = steps.firstIndex { $0.0 == campaign.status } ?? steps.count
-        return Form {
+        return List {
             Section {
                 ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
                     HStack(spacing: 10) {
                         if i == current { ProgressView() } else {
                             Image(systemName: i < current ? "checkmark" : "circle")
-                                .foregroundStyle(i < current ? Theme.live : Theme.faint)
+                                .foregroundStyle(i < current ? Theme.success : Theme.muted)
                         }
-                        Text(step.1).foregroundStyle(i <= current ? Theme.text : Theme.faint)
+                        Text(step.1).foregroundStyle(i <= current ? Theme.fg : Theme.muted)
                     }
                 }
             } footer: {
@@ -231,7 +232,7 @@ struct CampaignSheet: View {
     }
 
     private var review: some View {
-        Form {
+        List {
             ForEach($model.drafts) { $draft in
                 if draft.removed {
                     Section {
@@ -241,19 +242,19 @@ struct CampaignSheet: View {
                     Section(draft.angle.capitalized) {
                         TextEditor(text: $draft.text).frame(minHeight: 100)
                         let length = ReplyRules.length(draft.text)
-                        Text("\(length) / \(ReplyRules.campaignMaxLength)").font(.caption)
-                            .foregroundStyle(length > ReplyRules.campaignMaxLength ? Theme.danger : Theme.faint)
+                        Text("\(length) / \(ReplyRules.campaignMaxLength)").font(.inter(.caption))
+                            .foregroundStyle(length > ReplyRules.campaignMaxLength ? Theme.error : Theme.muted)
                         if let image = draft.imagePath, !draft.removeImage {
                             BridgeImage(client: model.client, filename: image).frame(maxHeight: 160)
                             Button("Remove image", role: .destructive) { draft.removeImage = true }
                         }
-                        if let note = draft.note { Text(note).font(.caption).foregroundStyle(Theme.faint) }
+                        if let note = draft.note { Text(note).font(.inter(.caption)).foregroundStyle(Theme.muted) }
                         DatePicker("When", selection: $draft.date)
                         Button("Remove post", role: .destructive) { draft.removed = true }
                     }
                 }
             }
-            if let error = model.error { Section { Text(error).foregroundStyle(Theme.danger) } }
+            if let error = model.error { Section { Text(error).foregroundStyle(Theme.error) } }
             Section {
                 let kept = model.drafts.filter { !$0.removed }
                 Button(model.busy ? "Scheduling…" : "Schedule \(kept.count) post\(kept.count == 1 ? "" : "s")") {
@@ -270,19 +271,19 @@ struct CampaignSheet: View {
     }
 
     private func done(_ campaign: Campaign) -> some View {
-        Form {
+        List {
             Section {
-                Text("\(campaign.progress) They'll show up under Upcoming.").foregroundStyle(Theme.live)
-                Text("Keep Kyrelo running on your computer so the posts go out on time.").font(.footnote).foregroundStyle(Theme.muted)
+                Text("\(campaign.progress) They'll show up under Upcoming.").foregroundStyle(Theme.success)
+                Text("Keep Kyrelo running on your computer so the posts go out on time.").font(.inter(.footnote)).foregroundStyle(Theme.muted)
                 Button("Done") { dismiss() }
             }
         }
     }
 
     private func failed(_ campaign: Campaign) -> some View {
-        Form {
+        List {
             Section {
-                Text(campaign.error ?? "Something went wrong.").foregroundStyle(Theme.danger)
+                Text(campaign.error ?? "Something went wrong.").foregroundStyle(Theme.error)
                 Button("Start again") { model.campaign = nil }
             }
         }

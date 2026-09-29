@@ -9,7 +9,7 @@ export function PlatformBadge({ platform, size = "sm" }: { platform: PlatformId;
   return (
     <span
       title={PLATFORMS[platform].label}
-      className={`inline-flex shrink-0 items-center justify-center rounded-md bg-black/40 font-bold text-zinc-100 ${box}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-md bg-fg/40 font-bold text-fg ${box}`}
     >
       {MARKS[platform]}
     </span>

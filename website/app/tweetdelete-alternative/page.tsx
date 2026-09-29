@@ -135,6 +135,8 @@ const FAQ = [
   },
 ];
 
+const PAGE = "mx-auto max-w-5xl px-6";
+
 export default function TweetDeleteAlternative() {
   const jsonLd = [
     {
@@ -160,29 +162,26 @@ export default function TweetDeleteAlternative() {
   ];
 
   return (
-    <main className="relative">
+    <main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Nav />
 
-      <section className="hero-bg relative overflow-hidden pt-32 pb-16">
-        <div className="mx-auto max-w-4xl px-6 text-center">
-          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-line bg-panel px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-zinc-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-live" />
-            Free · Open source · MIT licensed
-          </span>
-          <h1 className="mx-auto max-w-3xl text-balance text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
-            The free, open-source <span className="text-accent">TweetDelete alternative</span>
+      <section className="pb-16 pt-32">
+        <div className={PAGE}>
+          <p className="eyebrow">Free · Open source · MIT licensed</p>
+          <h1 className="mt-4 max-w-2xl text-balance text-3xl font-semibold leading-tight tracking-tight text-fg sm:text-4xl">
+            The free, open-source TweetDelete alternative
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-400">
+          <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted">
             Bulk delete your old X (Twitter) posts and undo your reposts without paying for a
             subscription or handing your account to a third-party app. Kyrelo runs on your own
             computer, and its code is open for anyone to read.
           </p>
-          <div id="download" className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div id="download" className="mt-8 flex flex-wrap items-center gap-3">
             <a href={RELEASES_URL} className="btn-primary" target="_blank" rel="noreferrer">
               Download for macOS
             </a>
-            <a href={RELEASES_URL} className="btn-primary" target="_blank" rel="noreferrer">
+            <a href={RELEASES_URL} className="btn-ghost" target="_blank" rel="noreferrer">
               Download for Windows
             </a>
             <a href={GITHUB_URL} className="btn-ghost" target="_blank" rel="noreferrer">
@@ -192,58 +191,58 @@ export default function TweetDeleteAlternative() {
         </div>
       </section>
 
-      <section className="border-t border-line bg-ink py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mx-auto mb-12 max-w-3xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
+      <section className="section">
+        <div className={PAGE}>
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
               Why switch from TweetDelete to Kyrelo?
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-zinc-400">
+            <p className="mt-4 text-base leading-relaxed text-muted">
               TweetDelete is a popular web service for clearing out your X history. Kyrelo does
               the core job, deleting posts and reposts in bulk, for free and without the cloud.
             </p>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <dl className="mt-10 grid gap-x-12 gap-y-8 sm:grid-cols-2">
             {REASONS.map((r) => (
-              <div key={r.title} className="rounded-xl border border-line bg-panel p-5">
-                <h3 className="text-base font-semibold text-zinc-100">{r.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{r.body}</p>
+              <div key={r.title} className="border-t border-line pt-4">
+                <dt className="text-base font-semibold text-fg">{r.title}</dt>
+                <dd className="mt-2 text-sm leading-relaxed text-muted">{r.body}</dd>
               </div>
             ))}
-          </div>
+          </dl>
         </div>
       </section>
 
-      <section className="border-t border-line bg-ink py-20">
-        <div className="mx-auto max-w-4xl px-6">
-          <h2 className="text-center text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
-            Kyrelo vs TweetDelete
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-zinc-500">
-            An honest side-by-side. TweetDelete covers more types of content today; Kyrelo is
-            free, open source and keeps your account on your machine.
-          </p>
-          <div className="mt-10 overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-[560px] text-left text-sm">
-              <thead className="bg-panel text-zinc-300">
+      <section className="section">
+        <div className={PAGE}>
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">Kyrelo vs TweetDelete</h2>
+            <p className="mt-4 text-sm text-muted">
+              An honest side-by-side. TweetDelete covers more types of content today; Kyrelo is
+              free, open source and keeps your account on your machine.
+            </p>
+          </div>
+          <div className="mt-8 overflow-x-auto">
+            <table className="w-full min-w-[560px] border-y border-line text-left text-sm">
+              <thead className="border-b border-line text-fg">
                 <tr>
-                  <th className="px-4 py-3 font-medium"></th>
-                  <th className="px-4 py-3 font-semibold text-accent">Kyrelo</th>
+                  <th className="py-3 pr-4 font-medium"></th>
+                  <th className="px-4 py-3 font-semibold">Kyrelo</th>
                   <th className="px-4 py-3 font-medium">TweetDelete</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {COMPARISON.map((row) => (
                   <tr key={row.feature}>
-                    <th scope="row" className="px-4 py-3 font-medium text-zinc-200">
+                    <th scope="row" className="py-3 pr-4 font-medium text-fg">
                       {row.feature}
                     </th>
-                    <td className={`px-4 py-3 ${row.kyrelo.good ? "text-zinc-100" : "text-zinc-500"}`}>
-                      {row.kyrelo.good && <span className="mr-1.5 text-live">✓</span>}
+                    <td className={`px-4 py-3 ${row.kyrelo.good ? "text-fg" : "text-muted"}`}>
+                      {row.kyrelo.good && <span className="mr-2 text-success">✓</span>}
                       {row.kyrelo.text}
                     </td>
-                    <td className={`px-4 py-3 ${row.tweetdelete.good ? "text-zinc-300" : "text-zinc-500"}`}>
-                      {row.tweetdelete.good && <span className="mr-1.5 text-live">✓</span>}
+                    <td className={`px-4 py-3 ${row.tweetdelete.good ? "text-fg" : "text-muted"}`}>
+                      {row.tweetdelete.good && <span className="mr-2 text-success">✓</span>}
                       {row.tweetdelete.text}
                     </td>
                   </tr>
@@ -251,66 +250,60 @@ export default function TweetDeleteAlternative() {
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-center text-xs text-zinc-600">
+          <p className="mt-3 font-mono text-xs text-muted">
             TweetDelete details based on its public website, September 2026. Check tweetdelete.net
             for current plans and pricing.
           </p>
         </div>
       </section>
 
-      <section className="border-t border-line bg-ink py-20">
-        <div className="mx-auto max-w-3xl px-6">
-          <h2 className="text-center text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
+      <section className="section">
+        <div className={PAGE}>
+          <h2 className="max-w-2xl text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
             How to delete all your tweets for free
           </h2>
-          <ol className="mt-10 space-y-4">
+          <ol className="mt-8 max-w-2xl divide-y divide-line border-y border-line">
             {STEPS.map((step, i) => (
-              <li key={step} className="flex gap-4 rounded-xl border border-line bg-panel p-5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-accent to-live text-sm font-bold text-white">
-                  {i + 1}
-                </span>
-                <span className="pt-1 text-sm leading-relaxed text-zinc-300">{step}</span>
+              <li key={step} className="flex gap-6 py-4">
+                <span className="w-6 shrink-0 font-mono text-sm text-muted">{String(i + 1).padStart(2, "0")}</span>
+                <span className="text-sm leading-relaxed text-fg">{step}</span>
               </li>
             ))}
           </ol>
-          <p className="mt-6 text-center text-xs text-zinc-500">
-            Deleted posts can&apos;t be recovered, so double-check your settings before you run
-            it.
+          <p className="mt-4 text-xs text-muted">
+            Deleted posts can&apos;t be recovered, so double-check your settings before you run it.
           </p>
         </div>
       </section>
 
-      <section className="border-t border-line bg-ink py-20">
-        <div className="mx-auto max-w-3xl px-6">
-          <h2 className="text-center text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
-            TweetDelete alternative FAQ
-          </h2>
-          <div className="mt-10 divide-y divide-line rounded-xl border border-line bg-panel">
+      <section className="section">
+        <div className={PAGE}>
+          <h2 className="text-lg font-semibold tracking-tight text-fg">TweetDelete alternative FAQ</h2>
+          <div className="mt-4 divide-y divide-line border-y border-line">
             {FAQ.map((f) => (
-              <details key={f.q} className="group px-5 py-4">
-                <summary className="cursor-pointer list-none text-sm font-medium text-zinc-100 marker:hidden">
+              <details key={f.q} className="group py-4">
+                <summary className="cursor-pointer list-none text-sm font-medium text-fg marker:hidden">
                   <span className="flex items-center justify-between gap-4">
                     {f.q}
-                    <span className="text-zinc-500 transition group-open:rotate-45">+</span>
+                    <span className="font-mono text-muted transition-transform group-open:rotate-45">+</span>
                   </span>
                 </summary>
-                <p className="mt-3 text-sm leading-relaxed text-zinc-400">{f.a}</p>
+                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">{f.a}</p>
               </details>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="border-t border-line py-20">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
-            Clean up your X profile, free.
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base text-zinc-400">
-            Download Kyrelo, connect your account, and start deleting. No sign-up, no
-            subscription.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+      <section className="section">
+        <div className={`${PAGE} flex flex-col gap-6 md:flex-row md:items-end md:justify-between`}>
+          <div className="max-w-xl">
+            <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">Clean up your X profile, free.</h2>
+            <p className="mt-3 text-base text-muted">
+              Download Kyrelo, connect your account, and start deleting. No sign-up, no subscription.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
             <a href={RELEASES_URL} className="btn-primary" target="_blank" rel="noreferrer">
               Download Kyrelo
             </a>

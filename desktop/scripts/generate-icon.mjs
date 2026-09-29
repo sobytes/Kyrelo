@@ -10,59 +10,35 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const buildDir = path.join(__dirname, "..", "build");
 
-const SVG = `
+// Flat, from the design tokens (contracts/design-tokens.json): a geometric K
+// in canvas on primary. `rounded` is Apple's macOS icon shape, which the
+// platform requires; the square one is for iOS, which masks icons itself.
+const tokens = JSON.parse(await fs.readFile(path.join(__dirname, "..", "..", "contracts", "design-tokens.json"), "utf8"));
+const iconSvg = (rounded) => `
 <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#171a23"/>
-      <stop offset="100%" stop-color="#0b0d12"/>
-    </linearGradient>
-    <linearGradient id="x" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#a78bfa"/>
-      <stop offset="55%" stop-color="#7c5cff"/>
-      <stop offset="100%" stop-color="#10b981"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0%" stop-color="#7c5cff" stop-opacity="0.45"/>
-      <stop offset="60%" stop-color="#7c5cff" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-
-  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
-
-  <!-- Soft halo behind the mark -->
-  <circle cx="512" cy="512" r="380" fill="url(#glow)"/>
-
-  <!-- Radar rings -->
-  <circle cx="512" cy="512" r="400" fill="none" stroke="#222836" stroke-width="3"/>
-  <circle cx="512" cy="512" r="300" fill="none" stroke="#222836" stroke-width="3"/>
-  <circle cx="512" cy="512" r="200" fill="none" stroke="#222836" stroke-width="3"/>
-
-  <!-- Pulse dot top-right indicating "live watching" -->
-  <circle cx="780" cy="244" r="34" fill="#10b981"/>
-  <circle cx="780" cy="244" r="58" fill="none" stroke="#10b981" stroke-opacity="0.35" stroke-width="6"/>
-
-  <!-- X mark -->
-  <g transform="translate(512 512)" stroke="url(#x)" stroke-width="92" stroke-linecap="round" fill="none">
-    <line x1="-180" y1="-180" x2="180" y2="180"/>
-    <line x1="180" y1="-180" x2="-180" y2="180"/>
-  </g>
+  <rect width="1024" height="1024" rx="${rounded ? 224 : 0}" fill="${tokens.color.primary}"/>
+  <!-- K as one outline (no seams where parts meet), horizontal cuts. -->
+  <polygon fill="${tokens.color.canvas}" points="330,290 430,290 430,470 610,290 740,290 548,482 750,734 620,734 476,554 430,600 430,734 330,734"/>
 </svg>
 `;
 
-const html = `<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;background:transparent}</style></head><body>${SVG}</body></html>`;
+const page = (svg) =>
+  `<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;background:transparent}</style></head><body>${svg}</body></html>`;
 
 async function main() {
   await fs.mkdir(buildDir, { recursive: true });
 
   console.log("Rendering icon PNG via Playwright…");
-  const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1024, height: 1024 } });
-  await page.setContent(html);
+  const browser = await chromium.launch({ channel: "chrome" });
+  const tab = await browser.newPage({ viewport: { width: 1024, height: 1024 } });
   const pngPath = path.join(buildDir, "icon.png");
-  await page.locator("svg").screenshot({ path: pngPath, omitBackground: true });
+  const squarePath = path.join(buildDir, "icon-square.png");
+  for (const [file, rounded] of [[pngPath, true], [squarePath, false]]) {
+    await tab.setContent(page(iconSvg(rounded)));
+    await tab.locator("svg").screenshot({ path: file, omitBackground: true });
+    console.log(`  ${file}`);
+  }
   await browser.close();
-  console.log(`  ${pngPath}`);
 
   const isetDir = path.join(buildDir, "icon.iconset");
   await fs.rm(isetDir, { recursive: true, force: true });
@@ -93,7 +69,7 @@ async function main() {
   execSync(`iconutil -c icns "${isetDir}" -o "${icnsPath}"`, { stdio: "inherit" });
   await fs.rm(isetDir, { recursive: true, force: true });
 
-  console.log(`\nIcon written:\n  ${pngPath}\n  ${icnsPath}`);
+  console.log(`\nIcon written:\n  ${pngPath}\n  ${squarePath} (iOS)\n  ${icnsPath}`);
 }
 
 main().catch((err) => {

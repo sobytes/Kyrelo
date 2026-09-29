@@ -99,14 +99,14 @@ export function DeleterPanel() {
   }
 
   if (!accountsLoaded) {
-    return <div className="card text-sm text-zinc-500">Loading…</div>;
+    return <div className="py-6 text-sm text-muted">Loading…</div>;
   }
 
   if (accounts.length === 0) {
     return (
-      <div className="card flex flex-col items-center justify-center gap-2 py-10 text-center">
-        <div className="text-sm text-zinc-300">No X accounts connected yet.</div>
-        <div className="text-xs text-zinc-500">
+      <div className="flex flex-col items-center justify-center gap-2 border-y border-line py-12 text-center">
+        <div className="text-sm text-fg">No X accounts connected yet.</div>
+        <div className="text-xs text-muted">
           Connect one to delete tweets from its timeline.
         </div>
         <Link href="/connected" className="btn-primary mt-2 text-sm">
@@ -122,11 +122,11 @@ export function DeleterPanel() {
 
   return (
     <div className="space-y-5">
-      <section className="card space-y-4">
+      <section className="section space-y-4">
         <div>
           <div className="label">Account</div>
           <select
-            className="rounded-md border border-line bg-ink px-2 py-2 text-sm w-full"
+            className="rounded-md border border-line bg-canvas px-2 py-2 text-sm w-full"
             value={accountId}
             onChange={(e) => setAccountId(e.target.value)}
             disabled={disabled}
@@ -152,7 +152,7 @@ export function DeleterPanel() {
               onChange={(e) => setCount(clampInt(e.target.value, 1, 100, 10))}
               disabled={disabled}
             />
-            <div className="mt-1 text-[10px] text-zinc-500">1 – 100 tweets.</div>
+            <div className="mt-1 text-[10px] text-muted">1 – 100 tweets.</div>
           </div>
 
           <div>
@@ -167,23 +167,23 @@ export function DeleterPanel() {
               onChange={(e) => setStartingAt(clampInt(e.target.value, 0, 1000, 0))}
               disabled={disabled}
             />
-            <div className="mt-1 text-[10px] text-zinc-500">
+            <div className="mt-1 text-[10px] text-muted">
               Keep this many items at the top of your timeline. 0 removes from the newest.
             </div>
           </div>
         </div>
 
-        <label className="flex items-start gap-2 text-xs text-zinc-300">
+        <label className="flex items-start gap-2 text-xs text-fg">
           <input
             type="checkbox"
-            className="mt-0.5 accent-accent"
+            className="mt-0.5 accent-primary"
             checked={includeReposts}
             onChange={(e) => setIncludeReposts(e.target.checked)}
             disabled={disabled}
           />
           <span>
-            <span className="text-zinc-200">Include reposts (undo retweets)</span>
-            <span className="mt-0.5 block text-[10px] text-zinc-500">
+            <span className="text-fg">Include reposts (undo retweets)</span>
+            <span className="mt-0.5 block text-[10px] text-muted">
               When on, reposts count toward the total and are removed with &ldquo;Undo repost&rdquo;.
               When off, only your own tweets are removed and reposts are skipped.
             </span>
@@ -204,7 +204,7 @@ export function DeleterPanel() {
                   ? "Remove tweets & reposts"
                   : "Delete tweets"}
           </button>
-          <span className="text-[11px] text-zinc-500">
+          <span className="text-[11px] text-muted">
             Opens Chrome to x.com/{accounts.find((a) => a.id === accountId)?.handle ?? ""},
             scrolls, and removes items one at a time.
           </span>
@@ -221,8 +221,8 @@ export function DeleterPanel() {
         />
       )}
 
-      <div className="card text-xs leading-relaxed text-zinc-500">
-        <strong className="text-zinc-300">How this works.</strong> Kyrelo opens the
+      <div className="section text-xs leading-relaxed text-muted">
+        <strong className="text-fg">How this works.</strong> Kyrelo opens the
         account&apos;s own X profile in Chrome, scrolls to load enough tweets to cover
         your skip + count, then walks each one and picks Delete from the tweet menu.
         Pinned tweets are always skipped. Reposts are skipped unless Include reposts is on.
@@ -237,18 +237,18 @@ function JobPanel({ job, onDismiss }: { job: DeleterJob; onDismiss: () => void }
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm">
           <JobStatus running={job.running} error={job.error} />
-          <span className="text-zinc-300">
+          <span className="text-fg">
             @{job.handle} · skip {job.startingAt} · up to {job.count}
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="text-[11px] tabular-nums text-zinc-500">
+          <div className="text-[11px] tabular-nums text-muted">
             {job.deleted.length} deleted · {job.skipped.length} skipped
           </div>
           {!job.running && (
             <button
               onClick={onDismiss}
-              className="rounded-full px-2 py-0.5 text-zinc-500 hover:bg-panel2 hover:text-zinc-200"
+              className="rounded-sm px-2 py-0.5 text-muted hover:bg-canvas hover:text-fg"
               title="Clear"
             >
               ✕

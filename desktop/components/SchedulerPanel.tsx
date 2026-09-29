@@ -27,7 +27,7 @@ function LengthCounter({ text, platforms }: { text: string; platforms: PlatformI
         const spec = PLATFORMS[platform];
         const length = spec.length(text);
         return (
-          <span key={platform} className={length > spec.maxLength ? "text-rose-400" : "text-zinc-500"}>
+          <span key={platform} className={length > spec.maxLength ? "text-error" : "text-muted"}>
             {platforms.length > 1 || platform !== "twitter" ? `${spec.label} ` : ""}
             {length} / {spec.maxLength}
           </span>
@@ -161,14 +161,14 @@ export function SchedulerPanel() {
   );
 
   if (!accountsLoaded) {
-    return <div className="card text-sm text-zinc-500">Loading…</div>;
+    return <div className="py-6 text-sm text-muted">Loading…</div>;
   }
 
   if (accounts.length === 0) {
     return (
-      <div className="card flex flex-col items-center justify-center gap-2 py-10 text-center">
-        <div className="text-sm text-zinc-300">No accounts connected yet.</div>
-        <div className="text-xs text-zinc-500">
+      <div className="flex flex-col items-center justify-center gap-2 border-y border-line py-12 text-center">
+        <div className="text-sm text-fg">No accounts connected yet.</div>
+        <div className="text-xs text-muted">
           Connect one to start scheduling posts.
         </div>
         <Link href="/connected" className="btn-primary mt-2 text-sm">
@@ -188,7 +188,7 @@ export function SchedulerPanel() {
           {/* Auto campaigns write X posts (280 characters). */}
           {selected?.platform === "twitter" && (
             <button type="button" onClick={() => setCampaignOpen(true)} className="btn-ghost text-xs">
-              ✨ Auto-generate campaign
+              Auto-generate campaign
             </button>
           )}
         </div>
@@ -220,8 +220,8 @@ export function SchedulerPanel() {
                         setTargetKeys((keys) => (on ? keys.filter((k) => k !== key) : [...keys, key]))
                       }
                       className={
-                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition " +
-                        (on ? "border-accent bg-accent/10 text-zinc-100" : "border-line text-zinc-500 hover:text-zinc-300")
+                        "inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs transition " +
+                        (on ? "border-primary bg-primary/10 text-fg" : "border-line text-muted hover:text-fg")
                       }
                     >
                       <PlatformBadge platform={a.platform} />@{a.handle}
@@ -251,7 +251,7 @@ export function SchedulerPanel() {
                 </button>
               </div>
             ) : (
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-ink px-3 py-2 text-xs text-zinc-300 hover:border-line2">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-xs text-fg hover:border-muted">
                 {uploadingImage ? "Uploading…" : "Attach image"}
                 <input
                   type="file"
@@ -292,7 +292,7 @@ export function SchedulerPanel() {
       <section>
         <div className="label">Upcoming ({upcoming.length})</div>
         {upcoming.length === 0 ? (
-          <div className="card text-sm text-zinc-500">Nothing queued.</div>
+          <div className="rounded-lg border border-dashed border-line py-8 text-center text-sm text-muted">Nothing queued.</div>
         ) : (
           <Timeline
             posts={upcoming}
@@ -410,16 +410,16 @@ function PostRow({
       <div className="mb-2 flex items-center justify-between gap-2 text-xs">
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={post.status} />
-          <span className="text-zinc-400">
+          <span className="text-muted">
             {new Date(post.scheduledFor).toLocaleString()}
           </span>
           {post.status === "pending" && (
-            <span className="text-accent">
+            <span className="text-primary">
               {dueMs > 0 ? `Sending in ${formatCountdown(dueMs)}` : "Sending any moment…"}
             </span>
           )}
           {post.status === "posting" && (
-            <span className="text-amber-300">
+            <span className="text-warning">
               {post.sendingStartedAt ? "Posting now…" : "Waiting for the browser…"}
             </span>
           )}
@@ -428,25 +428,25 @@ function PostRow({
           {(post.status === "posted" || post.status === "failed") && (
             <button
               onClick={onReschedule}
-              className="text-[11px] text-zinc-500 hover:text-accent"
+              className="text-[11px] text-muted hover:text-primary"
             >
               Reschedule
             </button>
           )}
           {post.status === "pending" && (
-            <button onClick={onCancel} className="text-[11px] text-zinc-500 hover:text-rose-400">
+            <button onClick={onCancel} className="text-[11px] text-muted hover:text-error">
               Cancel
             </button>
           )}
         </div>
       </div>
-      <div className="whitespace-pre-wrap break-words text-sm text-zinc-200">{post.text}</div>
+      <div className="whitespace-pre-wrap break-words text-sm text-fg">{post.text}</div>
       {post.postedUrl && /\/status\/\d+/.test(post.postedUrl) && (
         <a
           href={post.postedUrl}
           target="_blank"
           rel="noreferrer"
-          className="mt-2 inline-block text-[11px] text-zinc-500 hover:text-zinc-300"
+          className="mt-2 inline-block text-[11px] text-muted hover:text-fg"
         >
           open on X ↗
         </a>
@@ -464,7 +464,7 @@ function PostError({ error }: { error: string }) {
   const isLong = error.length > LIMIT;
   const shown = expanded || !isLong ? error : error.slice(0, LIMIT).trimEnd() + "…";
   return (
-    <div className="mt-2 rounded-md border border-rose-900/50 bg-rose-950/30 p-2 text-[11px] text-rose-300">
+    <div className="mt-2 rounded-md border border-error/30 bg-error/5 p-2 text-[11px] text-error">
       <div
         className={
           "whitespace-pre-wrap break-words" +
@@ -476,7 +476,7 @@ function PostError({ error }: { error: string }) {
       {isLong && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="mt-1 font-medium text-rose-200 underline-offset-2 hover:underline"
+          className="mt-1 font-medium text-error underline-offset-2 hover:underline"
         >
           {expanded ? "Show less" : "Read more"}
         </button>
@@ -510,9 +510,9 @@ function Timeline({
     <div className="mt-3 space-y-7">
       {groups.map(({ label, items }) => (
         <div key={label} className="relative pl-7">
-          <div className="absolute bottom-2 left-[7px] top-2 w-px bg-line2" />
-          <div className="mb-3 -ml-7 inline-flex items-center gap-2 rounded-full border border-line bg-panel px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+          <div className="absolute bottom-2 left-[7px] top-2 w-px bg-line" />
+          <div className="mb-3 -ml-7 inline-flex items-center gap-2 rounded-sm border border-line bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-muted" />
             {label}
           </div>
           <div className="space-y-3">
@@ -554,18 +554,18 @@ function TimelineRow({
       <div className="pointer-events-none absolute -left-[26px] top-3.5 flex h-3 w-3 items-center justify-center">
         <span
           className={
-            "block h-2.5 w-2.5 rounded-full ring-4 ring-ink " +
+            "block h-2.5 w-2.5 rounded-full ring-4 ring-canvas " +
             (isPosting
-              ? "bg-amber-400 animate-pulse shadow-[0_0_0_4px_rgba(251,191,36,0.15)]"
-              : "bg-accent shadow-[0_0_0_4px_rgba(124,92,255,0.18)]")
+              ? "bg-warning animate-pulse "
+              : "bg-primary ")
           }
         />
       </div>
       <div className="card-tight">
         <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2">
-            <span className="font-semibold tabular-nums text-zinc-100">{time}</span>
-            <span className={isPosting ? "text-amber-300" : "text-accent"}>
+            <span className="font-semibold tabular-nums text-fg">{time}</span>
+            <span className={isPosting ? "text-warning" : "text-primary"}>
               {isPosting
                 ? post.sendingStartedAt
                   ? "Posting now…"
@@ -575,20 +575,20 @@ function TimelineRow({
                   : "any moment…"}
             </span>
             {post.campaignId && (
-              <span className="rounded-full bg-panel2 px-1.5 py-0.5 text-[10px] text-zinc-400">✨ auto</span>
+              <span className="badge">campaign</span>
             )}
           </div>
           {post.status === "pending" && (
             <div className="flex items-center gap-3">
               <button
                 onClick={onEdit}
-                className="text-[11px] text-zinc-500 hover:text-accent"
+                className="text-[11px] text-muted hover:text-primary"
               >
                 Edit
               </button>
               <button
                 onClick={onCancel}
-                className="text-[11px] text-zinc-500 hover:text-rose-400"
+                className="text-[11px] text-muted hover:text-error"
               >
                 Cancel
               </button>
@@ -598,7 +598,7 @@ function TimelineRow({
               deleting the record would only hide a post that still goes out.
               A stuck "posting" post turns "failed" after 10 minutes. */}
         </div>
-        <div className="whitespace-pre-wrap break-words text-sm text-zinc-200">
+        <div className="whitespace-pre-wrap break-words text-sm text-fg">
           {post.text}
         </div>
         {post.imagePath && (
@@ -688,23 +688,23 @@ function EditPostModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-fg/40 p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-2xl border border-line bg-panel p-5 shadow-2xl"
+        className="w-full max-w-lg rounded-lg border border-line bg-surface p-5 shadow-md"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <div className="label !mb-0">Edit scheduled post</div>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-muted">
               Change the text, time, account, or image. Saves in place.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full px-2 py-0.5 text-zinc-500 hover:bg-panel2 hover:text-zinc-200"
+            className="rounded-sm px-2 py-0.5 text-muted hover:bg-canvas hover:text-fg"
           >
             ✕
           </button>
@@ -717,7 +717,7 @@ function EditPostModal({
         />
         <div className="mt-1 flex items-center justify-between text-[10px]">
           <LengthCounter text={text} platforms={[post.platform]} />
-          {error && <span className="text-rose-400">{error}</span>}
+          {error && <span className="text-error">{error}</span>}
         </div>
 
         <div className="mt-3">
@@ -735,7 +735,7 @@ function EditPostModal({
               </button>
             </div>
           ) : (
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-ink px-3 py-2 text-xs text-zinc-300 hover:border-line2">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-xs text-fg hover:border-muted">
               {uploadingImage ? "Uploading…" : "Attach image"}
               <input
                 type="file"
@@ -756,7 +756,7 @@ function EditPostModal({
           <div>
             <div className="label">Account</div>
             <select
-              className="rounded-md border border-line bg-ink px-2 py-2 text-sm w-full"
+              className="rounded-md border border-line bg-canvas px-2 py-2 text-sm w-full"
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
             >
@@ -818,8 +818,8 @@ function AccountTabs({
             className={
               "relative -mb-px flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm transition " +
               (active
-                ? "border-accent text-zinc-100"
-                : "border-transparent text-zinc-500 hover:text-zinc-200")
+                ? "border-primary text-fg"
+                : "border-transparent text-muted hover:text-fg")
             }
           >
             <PlatformBadge platform={a.platform} />
@@ -829,7 +829,7 @@ function AccountTabs({
       })}
       <Link
         href="/connected"
-        className="ml-auto px-3 py-2.5 text-xs text-zinc-500 hover:text-zinc-200"
+        className="ml-auto px-3 py-2.5 text-xs text-muted hover:text-fg"
       >
         + add account
       </Link>
@@ -912,23 +912,23 @@ function RescheduleModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-fg/40 p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-2xl border border-line bg-panel p-5 shadow-2xl"
+        className="w-full max-w-lg rounded-lg border border-line bg-surface p-5 shadow-md"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <div className="label !mb-0">Reschedule post</div>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-muted">
               Edit, or have {providerName} reword it slightly. Then pick a new time.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full px-2 py-0.5 text-zinc-500 hover:bg-panel2 hover:text-zinc-200"
+            className="rounded-sm px-2 py-0.5 text-muted hover:bg-canvas hover:text-fg"
           >
             ✕
           </button>
@@ -942,14 +942,14 @@ function RescheduleModal({
         />
         <div className="mt-1 flex items-center justify-between text-[10px]">
           <LengthCounter text={text} platforms={[post.platform]} />
-          {error && <span className="text-rose-400">{error}</span>}
+          {error && <span className="text-error">{error}</span>}
         </div>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
             <div className="label">Account</div>
             <select
-              className="rounded-md border border-line bg-ink px-2 py-2 text-sm w-full"
+              className="rounded-md border border-line bg-canvas px-2 py-2 text-sm w-full"
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
               disabled={accounts.length === 0}
@@ -998,7 +998,7 @@ function RescheduleModal({
           </button>
         </div>
 
-        <p className="mt-2 text-[10px] leading-relaxed text-zinc-500">
+        <p className="mt-2 text-[10px] leading-relaxed text-muted">
           Re-gig keeps the meaning but varies the wording. The original post stays in History
           unchanged — this creates a new pending post.
         </p>
@@ -1009,15 +1009,15 @@ function RescheduleModal({
 
 function StatusBadge({ status }: { status: ScheduledPost["status"] }) {
   const styles: Record<ScheduledPost["status"], string> = {
-    pending: "bg-zinc-800/60 text-zinc-300",
-    posting: "bg-amber-500/10 text-amber-300",
-    posted: "bg-live/10 text-emerald-300",
-    failed: "bg-rose-500/10 text-rose-300",
+    pending: "bg-canvas text-fg",
+    posting: "bg-warning/10 text-warning",
+    posted: "bg-success/10 text-success",
+    failed: "bg-error/10 text-error",
   };
   return (
     <span
       className={
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide " +
+        "inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide " +
         styles[status]
       }
     >

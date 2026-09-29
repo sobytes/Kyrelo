@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ImageResponse } from "next/og";
+import tokens from "../design-tokens.json";
 
 export const alt = "Kyrelo — free, open-source Buffer alternative for X and Bluesky";
 export const size = { width: 1200, height: 630 };
@@ -10,6 +11,10 @@ async function dataUrl(file: string) {
   const buf = await readFile(path.join(process.cwd(), "public", file));
   return `data:image/png;base64,${buf.toString("base64")}`;
 }
+
+// Colours from the design tokens (design-tokens.json). ImageResponse can't
+// use Tailwind classes, so they're read here.
+const c = tokens.color;
 
 export default async function Image() {
   const [icon, screenshot] = await Promise.all([dataUrl("icon.png"), dataUrl("screenshot.png")]);
@@ -23,9 +28,7 @@ export default async function Image() {
           display: "flex",
           position: "relative",
           overflow: "hidden",
-          backgroundColor: "#0b0d12",
-          backgroundImage:
-            "radial-gradient(ellipse 70% 60% at 10% 0%, rgba(124,92,255,0.35), transparent 70%), radial-gradient(ellipse 60% 60% at 90% 10%, rgba(16,185,129,0.18), transparent 70%)",
+          backgroundColor: c.canvas,
           fontFamily: "sans-serif",
         }}
       >
@@ -34,50 +37,46 @@ export default async function Image() {
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
-            width: 620,
+            width: 600,
             padding: "0 0 0 72px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <img src={icon} width={60} height={60} style={{ borderRadius: 14 }} />
-            <span style={{ fontSize: 38, fontWeight: 700, color: "#f4f4f5" }}>Kyrelo</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <img src={icon} width={48} height={48} style={{ borderRadius: 8 }} />
+            <span style={{ fontSize: 32, fontWeight: 700, color: c.fg }}>Kyrelo</span>
           </div>
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              marginTop: 36,
-              fontSize: 54,
+              marginTop: 40,
+              fontSize: 52,
               fontWeight: 700,
-              lineHeight: 1.1,
+              lineHeight: 1.12,
               letterSpacing: -1.5,
-              color: "#fafafa",
+              color: c.fg,
             }}
           >
             <span>Run your socials</span>
-            <span>from your</span>
-            <span style={{ color: "#7c5cff" }}>own computer.</span>
+            <span>from your own computer.</span>
           </div>
-          <div style={{ display: "flex", marginTop: 28, fontSize: 26, color: "#a1a1aa" }}>
+          <div style={{ display: "flex", marginTop: 24, fontSize: 24, color: c.muted }}>
             Buffer alternative for X &amp; Bluesky
           </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 36 }}>
+          <div style={{ display: "flex", gap: 10, marginTop: 36 }}>
             {["Free", "Open source", "macOS & Windows"].map((t) => (
               <div
                 key={t}
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 18px",
-                  borderRadius: 999,
-                  border: "1px solid #2a3142",
-                  background: "#11141b",
-                  fontSize: 20,
-                  color: "#d4d4d8",
+                  padding: "8px 14px",
+                  borderRadius: 4,
+                  border: `1px solid ${c.line}`,
+                  background: c.surface,
+                  fontSize: 19,
+                  color: c.fg,
                 }}
               >
-                <div style={{ width: 9, height: 9, borderRadius: 9, background: "#10b981" }} />
                 {t}
               </div>
             ))}
@@ -92,8 +91,8 @@ export default async function Image() {
             position: "absolute",
             left: 660,
             top: 70,
-            borderRadius: 18,
-            boxShadow: "0 30px 80px rgba(124,92,255,0.35)",
+            borderRadius: 12,
+            border: `1px solid ${c.line}`,
           }}
         />
       </div>

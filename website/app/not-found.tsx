@@ -7,43 +7,40 @@ export const metadata: Metadata = {
 };
 
 const LINKS = [
-  { href: "/#features", title: "Features", body: "Scheduling, handle monitoring and AI replies for X." },
+  { href: "/#features", title: "Features", body: "Scheduling, monitoring, reply drafts and clean-up for X and Bluesky." },
   { href: "/#delete-tweets", title: "Delete tweets", body: "Bulk delete your old posts and reposts, free." },
   { href: "/tweetdelete-alternative", title: "TweetDelete alternative", body: "How Kyrelo compares, side by side." },
 ];
 
 export default function NotFound() {
   return (
-    <main className="relative">
+    <main>
       <Nav />
-      <section className="hero-bg relative overflow-hidden pt-32 pb-20">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-line bg-panel px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-zinc-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            Error 404
-          </span>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
-            This page has been <span className="text-accent">deleted</span>.
+      <section className="pb-20 pt-32">
+        <div className="mx-auto max-w-5xl px-6">
+          <p className="eyebrow">Error 404</p>
+          <h1 className="mt-4 max-w-2xl text-balance text-4xl font-semibold leading-tight tracking-tight text-fg">
+            This page has been deleted.
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-zinc-400">
-            Or it never existed. Either way, there&apos;s nothing here. Try one of these
-            instead.
+          <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-muted">
+            Or it never existed. Either way, there&apos;s nothing here. Try one of these instead.
           </p>
 
-          <div className="mt-10 grid gap-4 text-left sm:grid-cols-3">
+          <ul className="mt-10 max-w-2xl divide-y divide-line border-y border-line">
             {LINKS.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="rounded-xl border border-line bg-panel p-5 transition hover:border-line2"
-              >
-                <h2 className="text-sm font-semibold text-zinc-100">{l.title} →</h2>
-                <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">{l.body}</p>
-              </a>
+              <li key={l.href}>
+                <a href={l.href} className="group flex items-baseline justify-between gap-6 py-4">
+                  <span>
+                    <span className="text-sm font-semibold text-fg group-hover:text-primary">{l.title}</span>
+                    <span className="mt-1 block text-sm text-muted">{l.body}</span>
+                  </span>
+                  <span className="font-mono text-sm text-muted">→</span>
+                </a>
+              </li>
             ))}
-          </div>
+          </ul>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-10 flex flex-wrap items-center gap-3">
             <a href="/" className="btn-primary">
               Back to home
             </a>

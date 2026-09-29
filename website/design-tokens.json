@@ -1,0 +1,25 @@
+{
+  "color": {
+    "canvas": "#F5F3EE",
+    "surface": "#FFFFFF",
+    "fg": "#171717",
+    "muted": "#686868",
+    "line": "#D8D5CE",
+    "primary": "#D94F35",
+    "primaryHover": "#BB402B",
+    "accent": "#E9B949",
+    "success": "#397A55",
+    "warning": "#B7791F",
+    "error": "#B83A3A"
+  },
+  "radius": {
+    "sm": 4,
+    "md": 8,
+    "lg": 12
+  },
+  "spacing": [4, 8, 12, 16, 24, 32, 48, 64],
+  "font": {
+    "sans": "Inter",
+    "mono": "IBM Plex Mono"
+  }
+}

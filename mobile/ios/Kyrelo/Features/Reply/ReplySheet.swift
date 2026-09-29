@@ -31,8 +31,8 @@ struct ReplySheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Card(fill: Theme.panel2) {
-                        Text(tweet.text).font(.subheadline).foregroundStyle(Theme.muted).lineLimit(6)
+                    Card(fill: Theme.canvas) {
+                        Text(tweet.text).font(.inter(.subheadline)).foregroundStyle(Theme.muted).lineLimit(6)
                     }
 
                     if options.count > 1 {
@@ -40,8 +40,7 @@ struct ReplySheet: View {
                             HStack {
                                 ForEach(Array(options.enumerated()), id: \.offset) { i, option in
                                     Button("Option \(i + 1)") { text = option }
-                                        .buttonStyle(.bordered)
-                                        .tint(text == option ? Theme.accent : Theme.faint)
+                                        .buttonStyle(SecondaryButtonStyle(isSelected: text == option))
                                 }
                             }
                         }
@@ -51,18 +50,17 @@ struct ReplySheet: View {
                         .frame(minHeight: 130)
                         .scrollContentBackground(.hidden)
                         .padding(8)
-                        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.line2))
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.line))
                         .disabled(drafting)
                     Text("\(length) / \(ReplyRules.maxLength)")
-                        .font(.caption)
-                        .foregroundStyle(length > ReplyRules.maxLength ? Theme.danger : Theme.faint)
+                        .font(.inter(.caption))
+                        .foregroundStyle(length > ReplyRules.maxLength ? Theme.error : Theme.muted)
 
                     Button(action: copyAndOpen) {
                         Text("Copy & open in X").frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .buttonStyle(.primary)
                     .disabled(!canSend)
 
                     Button(action: draft) {
@@ -71,16 +69,16 @@ struct ReplySheet: View {
                         }
                         .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.secondary)
                     .disabled(drafting)
 
-                    if let error { Text(error).font(.footnote).foregroundStyle(Theme.danger) }
+                    if let error { Text(error).font(.inter(.footnote)).foregroundStyle(Theme.error) }
                     Text("Copies the reply and opens the tweet in X. Tap reply there, paste and send. The tweet is marked as replied in Kyrelo.")
-                        .font(.footnote).foregroundStyle(Theme.faint)
+                        .font(.inter(.footnote)).foregroundStyle(Theme.muted)
                 }
                 .padding(20)
             }
-            .background(Theme.ink)
+            .background(Theme.canvas)
             .navigationTitle("Reply to @\(tweet.handle)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }

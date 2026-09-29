@@ -2,25 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Components built from the design tokens (tailwind.config.ts). Screens use
+   these rather than styling controls themselves. */
+
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
 body {
-  background: #0b0d12;
-  color: #e6e8ef;
+  @apply bg-canvas text-fg;
 }
 
 body {
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial;
+  @apply font-sans text-sm antialiased;
+  font-feature-settings: "cv11", "ss01";
 }
 
 /* Make the top strip draggable so users can move the window even though the
@@ -37,77 +33,81 @@ a {
   -webkit-app-region: no-drag;
 }
 
+/* --- Buttons: rectangular, one primary per view --- */
 .btn {
-  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex h-8 items-center justify-center gap-2 rounded px-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
 }
 .btn-primary {
-  @apply btn bg-accent text-white shadow-[0_6px_24px_-12px_rgba(124,92,255,0.9)] hover:bg-accent/90;
+  @apply btn bg-primary text-surface hover:bg-primary-hover;
 }
 .btn-ghost {
-  @apply btn border border-line text-zinc-200 hover:bg-panel2 hover:border-line2;
+  @apply btn border border-line bg-surface text-fg hover:border-muted;
 }
 .btn-danger {
-  @apply btn border border-red-900/60 text-red-300 hover:bg-red-950/40;
+  @apply btn border border-error/40 bg-surface text-error hover:border-error;
 }
 .btn-live {
-  @apply btn bg-live/15 border border-live/40 text-emerald-300 hover:bg-live/25;
+  @apply btn border border-success/40 bg-surface text-success hover:border-success;
 }
 
+/* --- Surfaces: for things that are objects (a post, a dialog, a log), not
+   for grouping a page into sections; sections use .section. --- */
 .card {
-  @apply rounded-xl border border-line bg-panel p-4;
+  @apply rounded-lg border border-line bg-surface p-4;
 }
 .card-tight {
-  @apply rounded-xl border border-line bg-panel p-3;
+  @apply rounded-lg border border-line bg-surface p-3;
 }
+/* A page section: separated by whitespace and a rule, not a box. */
+.section {
+  @apply border-t border-line pt-6;
+}
+
+/* --- Form controls --- */
 .input,
 .textarea,
 .select {
-  @apply w-full rounded-md border border-line bg-ink px-3 py-2 text-sm outline-none focus:border-accent;
+  @apply w-full rounded border border-line bg-surface px-3 py-2 text-sm text-fg outline-none transition-colors placeholder:text-muted focus:border-fg;
 }
-.label {
-  @apply mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500;
-}
-.badge {
-  @apply inline-flex rounded-full border border-line bg-ink px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-300;
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  @apply accent-primary;
 }
 
-/* Hero gradient for the status bar — subtle but distinguishes from cards. */
-.hero {
-  background:
-    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(124, 92, 255, 0.10), transparent 70%),
-    radial-gradient(ellipse 60% 80% at 100% 100%, rgba(16, 185, 129, 0.06), transparent 70%),
-    #11141b;
+.label {
+  @apply mb-2 block text-[13px] font-semibold text-fg;
 }
-.hero-live {
-  background:
-    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(16, 185, 129, 0.16), transparent 70%),
-    radial-gradient(ellipse 60% 80% at 100% 100%, rgba(16, 185, 129, 0.08), transparent 70%),
-    #11141b;
+.badge {
+  @apply inline-flex items-center rounded-sm border border-line px-1 font-mono text-[11px] text-muted;
+}
+
+/* --- Tags: watched handles, keywords, suggestions --- */
+.chip {
+  @apply inline-flex items-center gap-1 rounded-sm border border-line bg-surface px-2 py-1 text-xs text-fg transition-colors;
+}
+.chip-on {
+  @apply chip border-fg/30;
+}
+.chip-suggest {
+  @apply chip border-dashed text-muted hover:border-muted hover:text-fg;
 }
 
 .live-dot {
-  @apply inline-block h-2.5 w-2.5 rounded-full bg-live;
-  animation: live-pulse 2.2s ease-out infinite;
+  @apply inline-block h-2 w-2 rounded-full bg-success;
 }
 
-.chip {
-  @apply inline-flex items-center gap-1 rounded-full border border-line bg-ink/60 px-2.5 py-1 text-xs text-zinc-300 transition;
-}
-.chip-on {
-  @apply chip border-accent/40 bg-accent/15 text-zinc-100;
-}
-.chip-suggest {
-  @apply chip hover:border-line2 hover:text-zinc-100;
-}
-
-/* Avatar circles by handle initial. Background colors are inline in the
-   component — these classes give the round/size/typography rhythm. */
+/* Initial for a handle. */
 .avatar {
-  @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-semibold text-sm text-white shadow-inner;
+  @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line bg-canvas text-sm font-medium text-fg;
 }
 
-/* Subtle scrollbar that doesn't shout */
-.feed::-webkit-scrollbar { width: 8px; }
-.feed::-webkit-scrollbar-track { background: transparent; }
-.feed::-webkit-scrollbar-thumb { background: #1f2430; border-radius: 4px; }
-.feed::-webkit-scrollbar-thumb:hover { background: #2a3142; }
+.feed::-webkit-scrollbar {
+  width: 8px;
+}
+.feed::-webkit-scrollbar-track {
+  background: transparent;
+}
+.feed::-webkit-scrollbar-thumb {
+  @apply rounded bg-line;
+}

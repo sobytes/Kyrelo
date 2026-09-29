@@ -20,7 +20,7 @@ struct AutopilotSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            List {
                 Section {
                     Toggle("Draft replies automatically", isOn: $settings.enabled)
                 } footer: {
@@ -59,11 +59,12 @@ struct AutopilotSheet: View {
                 }
 
                 if let error {
-                    Section { Text(error).foregroundStyle(Theme.danger) }
+                    Section { Text(error).foregroundStyle(Theme.error) }
                 }
             }
+            .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Theme.ink)
+            .background(Theme.canvas)
             .navigationTitle("Autopilot")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -126,3 +126,18 @@ describe("contract: scheduler sample", () => {
     expect(Object.keys(sample.brandProfile).sort()).toEqual(Object.keys(await getBrandProfile()).sort());
   });
 });
+
+describe("contract: design tokens", () => {
+  it("the website builds from an identical copy", () => {
+    // Vercel builds website/ on its own, so it keeps a copy of the tokens.
+    const copy = JSON.parse(readFileSync(path.join(__dirname, "..", "..", "website", "design-tokens.json"), "utf8"));
+    expect(copy).toEqual(contract("design-tokens.json"));
+  });
+
+  it("keeps every radius within 12px", () => {
+    for (const r of Object.values(contract("design-tokens.json").radius as Record<string, number>)) {
+      expect(r).toBeLessThanOrEqual(12);
+    }
+  });
+});
+

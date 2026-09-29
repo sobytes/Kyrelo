@@ -6,21 +6,21 @@ export const RELEASES_URL = `${GITHUB_URL}/releases`;
 
 export function Nav() {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-line/60 bg-ink/70 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-canvas">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
         <a href="/" className="flex items-center gap-2">
-          <Image src="/icon.png" alt="Kyrelo" width={28} height={28} className="rounded-md" />
-          <span className="text-sm font-semibold tracking-tight">Kyrelo</span>
+          <Image src="/icon.png" alt="Kyrelo" width={24} height={24} className="rounded" />
+          <span className="text-sm font-semibold tracking-tight text-fg">Kyrelo</span>
         </a>
-        <nav className="hidden items-center gap-6 text-sm text-zinc-400 sm:flex">
-          <a href="/#features" className="hover:text-zinc-100">Features</a>
-          <a href="/#delete-tweets" className="hover:text-zinc-100">Clean up</a>
-          <a href="/#how" className="hover:text-zinc-100">How it works</a>
-          <a href={GITHUB_URL} className="hover:text-zinc-100" target="_blank" rel="noreferrer">
+        <nav className="hidden items-center gap-6 text-sm text-muted sm:flex">
+          <a href="/#features" className="hover:text-fg">Features</a>
+          <a href="/#delete-tweets" className="hover:text-fg">Clean up</a>
+          <a href="/#how" className="hover:text-fg">How it works</a>
+          <a href={GITHUB_URL} className="hover:text-fg" target="_blank" rel="noreferrer">
             GitHub
           </a>
         </nav>
-        <a href="/#download" className="btn-primary text-xs">
+        <a href="/#download" className="btn-primary h-8 px-3">
           Download
         </a>
       </div>
@@ -31,24 +31,24 @@ export function Nav() {
 export function Footer() {
   return (
     <footer className="border-t border-line py-10">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-xs text-zinc-500 sm:flex-row">
+      <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-xs text-muted sm:flex-row">
         <div className="flex items-center gap-2">
           <Image src="/icon.png" alt="" width={20} height={20} className="rounded" />
           <span>Kyrelo · open source, MIT licensed</span>
         </div>
         <div className="flex items-center gap-5">
-          <a href={GITHUB_URL} className="hover:text-zinc-300" target="_blank" rel="noreferrer">
+          <a href={GITHUB_URL} className="hover:text-fg" target="_blank" rel="noreferrer">
             GitHub
           </a>
-          <a href={RELEASES_URL} className="hover:text-zinc-300" target="_blank" rel="noreferrer">
+          <a href={RELEASES_URL} className="hover:text-fg" target="_blank" rel="noreferrer">
             Releases
           </a>
-          <a href="/tweetdelete-alternative" className="hover:text-zinc-300">
+          <a href="/tweetdelete-alternative" className="hover:text-fg">
             TweetDelete alternative
           </a>
         </div>
       </div>
-      <p className="mx-auto mt-6 max-w-6xl px-6 text-[11px] leading-relaxed text-zinc-600">
+      <p className="mx-auto mt-6 max-w-5xl px-6 text-[11px] leading-relaxed text-muted">
         Kyrelo is an independent, open-source experiment, provided as is under the MIT license. It
         isn&apos;t affiliated with, endorsed by or sponsored by X Corp., Bluesky, Buffer,
         TweetDelete, Anthropic or OpenAI; their names are used only to describe what Kyrelo works

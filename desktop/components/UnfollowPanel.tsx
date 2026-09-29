@@ -166,11 +166,11 @@ export function UnfollowPanel() {
     );
   }
 
-  if (accounts === null) return <div className="card text-sm text-zinc-500">Loading…</div>;
+  if (accounts === null) return <div className="py-6 text-sm text-muted">Loading…</div>;
   if (accounts.length === 0) {
     return (
-      <div className="card flex flex-col items-center justify-center gap-2 py-10 text-center">
-        <div className="text-sm text-zinc-300">No X accounts connected yet.</div>
+      <div className="flex flex-col items-center justify-center gap-2 border-y border-line py-12 text-center">
+        <div className="text-sm text-fg">No X accounts connected yet.</div>
         <Link href="/connected" className="btn-primary mt-2 text-sm">
           Connect an account
         </Link>
@@ -185,12 +185,12 @@ export function UnfollowPanel() {
 
   return (
     <div className="space-y-5">
-      <section className="card space-y-3">
+      <section className="section space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-48 flex-1">
             <div className="label">Account</div>
             <select
-              className="w-full rounded-md border border-line bg-ink px-2 py-2 text-sm"
+              className="w-full rounded-md border border-line bg-canvas px-2 py-2 text-sm"
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
               disabled={disabled}
@@ -206,7 +206,7 @@ export function UnfollowPanel() {
             {running && job?.kind === "scan" ? "Scanning…" : data?.scannedAt ? "Scan again" : "Scan who I follow"}
           </button>
         </div>
-        <div className="text-[11px] leading-relaxed text-zinc-500">
+        <div className="text-[11px] leading-relaxed text-muted">
           {data?.scannedAt ? (
             <>
               Last scan {new Date(data.scannedAt).toLocaleString()}: following {data.following.length}.{" "}
@@ -217,9 +217,9 @@ export function UnfollowPanel() {
           ) : (
             "Opens Chrome, scrolls your Following list and your notifications. Nothing is unfollowed until you choose."
           )}
-          {data?.partial && <span className="text-amber-300"> The last scan stopped early; scan again for everyone.</span>}
+          {data?.partial && <span className="text-warning"> The last scan stopped early; scan again for everyone.</span>}
           {data?.scannedAt && !data.hasStats && (
-            <span className="text-amber-300">
+            <span className="text-warning">
               {" "}
               X&apos;s stats couldn&apos;t be read (X may have changed its page), so only &ldquo;doesn&apos;t follow
               you&rdquo; and interactions work until it&apos;s fixed.
@@ -233,10 +233,10 @@ export function UnfollowPanel() {
           <div className="flex items-center justify-between gap-2 text-sm">
             <div className="flex items-center gap-2">
               <JobStatus running={jobHere.running} error={jobHere.error} />
-              <span className="text-zinc-300">{JOB_LABELS[jobHere.kind]}</span>
+              <span className="text-fg">{JOB_LABELS[jobHere.kind]}</span>
             </div>
             {jobHere.total > 0 && (
-              <span className="text-[11px] tabular-nums text-zinc-500">
+              <span className="text-[11px] tabular-nums text-muted">
                 {jobHere.done} / {jobHere.total}
                 {jobHere.failed ? ` · ${jobHere.failed} skipped` : ""}
               </span>
@@ -248,8 +248,8 @@ export function UnfollowPanel() {
 
       {data && data.following.length > 0 && (
         <>
-          <section className="card space-y-4">
-            <div className="text-sm font-medium text-zinc-200">Suggest unfollowing accounts that…</div>
+          <section className="section space-y-4">
+            <div className="text-sm font-medium text-fg">Suggest unfollowing accounts that…</div>
             <div className="grid gap-3 sm:grid-cols-2">
               <RuleToggle
                 on={rules.dead}
@@ -259,7 +259,7 @@ export function UnfollowPanel() {
                   <>
                     No posts in{" "}
                     <select
-                      className="rounded border border-line bg-ink px-1 text-[11px]"
+                      className="rounded border border-line bg-canvas px-1 text-[11px]"
                       value={rules.inactiveDays}
                       onChange={(e) => setRules({ ...rules, inactiveDays: Number(e.target.value) })}
                       onClick={(e) => e.stopPropagation()}
@@ -293,10 +293,10 @@ export function UnfollowPanel() {
                 detail="On its own this catches news and big names, so it pairs well with keeping big accounts."
               />
             </div>
-            <label className="flex items-center gap-2 text-xs text-zinc-300">
+            <label className="flex items-center gap-2 text-xs text-fg">
               <input
                 type="checkbox"
-                className="accent-accent"
+                className="accent-primary"
                 checked={rules.protectBig}
                 onChange={(e) => setRules({ ...rules, protectBig: e.target.checked })}
               />
@@ -304,7 +304,7 @@ export function UnfollowPanel() {
               Monitor, people who interact with you and your keep list are always kept.
             </label>
             {rules.dead && toCheck.length > 0 && (
-              <div className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-ink p-3 text-[11px] text-zinc-400">
+              <div className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-canvas p-3 text-[11px] text-muted">
                 <span className="flex-1">
                   &ldquo;No posts in {describeDays(rules.inactiveDays)}&rdquo; needs each profile opened.{" "}
                   {toCheck.length} haven&apos;t been checked lately (least active first, about 3 seconds each).
@@ -320,7 +320,7 @@ export function UnfollowPanel() {
             )}
           </section>
 
-          <section className="card space-y-3">
+          <section className="section space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               {(
                 [
@@ -361,7 +361,7 @@ export function UnfollowPanel() {
                 />
               ))}
               {visible.length === 0 && (
-                <div className="py-6 text-center text-xs text-zinc-500">
+                <div className="py-6 text-center text-xs text-muted">
                   {view === "suggested" ? "Nobody matches the rules above." : "Nobody here."}
                 </div>
               )}
@@ -378,7 +378,7 @@ export function UnfollowPanel() {
                   ? "Unfollowing…"
                   : `Unfollow ${Math.min(ticked.length, MAX_PER_RUN)}${ticked.length > MAX_PER_RUN ? ` of ${ticked.length}` : ""}`}
               </button>
-              <span className="text-[11px] text-zinc-500">
+              <span className="text-[11px] text-muted">
                 Up to {MAX_PER_RUN} a run and 300 a day, a few seconds apart, so X doesn&apos;t flag the account.
               </span>
             </div>
@@ -387,19 +387,19 @@ export function UnfollowPanel() {
       )}
 
       {history.length > 0 && (
-        <section className="card space-y-2">
-          <div className="text-sm font-medium text-zinc-200">History</div>
+        <section className="section space-y-2">
+          <div className="text-sm font-medium text-fg">History</div>
           <div className="divide-y divide-line">
             {history.map((change, i) => (
               <div key={`${change.handle}-${change.at}-${i}`} className="flex items-center gap-3 py-2 text-xs">
-                <span className={change.action === "unfollowed" ? "text-rose-300" : "text-emerald-300"}>
+                <span className={change.action === "unfollowed" ? "text-error" : "text-success"}>
                   {change.action === "unfollowed" ? "Unfollowed" : "Followed again"}
                 </span>
-                <button onClick={() => openExternal(`https://x.com/${change.handle}`)} className="text-zinc-200 hover:underline">
+                <button onClick={() => openExternal(`https://x.com/${change.handle}`)} className="text-fg hover:underline">
                   @{change.handle}
                 </button>
-                <span className="flex-1 truncate text-zinc-500">{change.reasons.join(" · ")}</span>
-                <span className="text-zinc-600">{new Date(change.at).toLocaleDateString()}</span>
+                <span className="flex-1 truncate text-muted">{change.reasons.join(" · ")}</span>
+                <span className="text-muted">{new Date(change.at).toLocaleDateString()}</span>
                 {change.action === "unfollowed" && isLatest(data!, change) && (
                   <button
                     onClick={() => start({ action: "refollow", handles: [change.handle] })}
@@ -445,13 +445,13 @@ function RuleToggle({
     <label
       className={
         "flex cursor-pointer items-start gap-2 rounded-md border p-3 text-xs " +
-        (on ? "border-accent/60 bg-accent/5" : "border-line")
+        (on ? "border-primary/60 bg-primary/5" : "border-line")
       }
     >
-      <input type="checkbox" className="mt-0.5 accent-accent" checked={on} onChange={(e) => onChange(e.target.checked)} />
+      <input type="checkbox" className="mt-0.5 accent-primary" checked={on} onChange={(e) => onChange(e.target.checked)} />
       <span>
-        <span className="block text-zinc-200">{title}</span>
-        <span className="mt-0.5 block text-[11px] leading-snug text-zinc-500">{detail}</span>
+        <span className="block text-fg">{title}</span>
+        <span className="mt-0.5 block text-[11px] leading-snug text-muted">{detail}</span>
       </span>
     </label>
   );
@@ -488,7 +488,7 @@ function AccountRow({
     <div className="flex items-start gap-3 py-2.5">
       <input
         type="checkbox"
-        className="mt-1 accent-accent"
+        className="mt-1 accent-primary"
         checked={ticked}
         disabled={!!row.protectedBecause}
         onChange={(e) => onTick(e.target.checked)}
@@ -498,19 +498,19 @@ function AccountRow({
         <div className="flex items-baseline gap-2">
           <button
             onClick={() => openExternal(`https://x.com/${a.handle}`)}
-            className="truncate text-sm font-medium text-zinc-100 hover:underline"
+            className="truncate text-sm font-medium text-fg hover:underline"
           >
             {a.name}
           </button>
-          <span className="truncate text-xs text-zinc-500">@{a.handle}</span>
+          <span className="truncate text-xs text-muted">@{a.handle}</span>
         </div>
-        <div className="mt-0.5 text-[11px] text-zinc-500">{stats.join(" · ")}</div>
+        <div className="mt-0.5 text-[11px] text-muted">{stats.join(" · ")}</div>
         <div className="mt-1 flex flex-wrap gap-1">
           {row.protectedBecause ? (
-            <span className="rounded bg-live/10 px-1.5 py-0.5 text-[10px] text-emerald-300">kept: {row.protectedBecause}</span>
+            <span className="rounded bg-success/10 px-1.5 py-0.5 text-[10px] text-success">kept: {row.protectedBecause}</span>
           ) : (
             row.reasons.map((reason) => (
-              <span key={reason} className="rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] text-rose-300">
+              <span key={reason} className="rounded bg-error/10 px-1.5 py-0.5 text-[10px] text-error">
                 {reason}
               </span>
             ))

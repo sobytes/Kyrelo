@@ -2,45 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Components built from the design tokens (tailwind.config.ts). */
+
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
 body {
-  background: #0b0d12;
-  color: #e6e8ef;
+  @apply bg-canvas text-fg;
 }
 
 body {
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial;
-}
-
-/* Background grid + glow */
-.hero-bg {
-  background:
-    radial-gradient(ellipse 70% 50% at 20% 0%, rgba(124, 92, 255, 0.18), transparent 70%),
-    radial-gradient(ellipse 60% 50% at 80% 0%, rgba(16, 185, 129, 0.10), transparent 70%),
-    #0b0d12;
-}
-
-.glow-purple {
-  box-shadow: 0 30px 80px -30px rgba(124, 92, 255, 0.55);
+  @apply font-sans antialiased;
+  font-feature-settings: "cv11", "ss01";
 }
 
 .btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition;
+  @apply inline-flex h-10 items-center justify-center gap-2 rounded px-4 text-sm font-medium transition-colors;
 }
 .btn-primary {
-  @apply btn bg-accent text-white shadow-[0_10px_30px_-10px_rgba(124,92,255,0.6)] hover:bg-accent/90;
+  @apply btn bg-primary text-surface hover:bg-primary-hover;
 }
 .btn-ghost {
-  @apply btn border border-line text-zinc-200 hover:bg-panel2 hover:border-line2;
+  @apply btn border border-line bg-surface text-fg hover:border-muted;
+}
+
+/* Small uppercase label above a section heading, in the mono face. */
+.eyebrow {
+  @apply font-mono text-xs uppercase tracking-[0.08em] text-muted;
+}
+
+/* A page section: whitespace and a rule, not a box. */
+.section {
+  @apply border-t border-line py-16;
 }

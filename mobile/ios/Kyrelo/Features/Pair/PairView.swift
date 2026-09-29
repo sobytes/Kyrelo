@@ -13,7 +13,7 @@ struct PairView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Kyrelo").font(.largeTitle.bold()).foregroundStyle(Theme.text)
+                Text("Kyrelo").font(.inter(.title, weight: .semibold)).foregroundStyle(Theme.fg)
                 Text("See your Monitor feed and Autopilot's draft replies, and reply from the X app. Kyrelo on your computer does the watching, so keep it running.")
                     .foregroundStyle(Theme.muted)
 
@@ -21,14 +21,13 @@ struct PairView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         SectionLabel(text: "Pair with your computer")
                         Text("In Kyrelo on your computer: Settings → Phone app → turn it on.")
-                            .font(.subheadline).foregroundStyle(Theme.muted)
+                            .font(.inter(.subheadline)).foregroundStyle(Theme.muted)
                         Button { scanning = true } label: {
                             Text("Scan the code").frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
+                        .buttonStyle(.primary)
 
-                        Text("or paste the pairing link").font(.footnote).foregroundStyle(Theme.faint)
+                        Text("or paste the pairing link").font(.inter(.footnote)).foregroundStyle(Theme.muted)
                             .frame(maxWidth: .infinity)
                         TextField("kyrelo://pair?…", text: $link)
                             .textInputAutocapitalization(.never)
@@ -37,20 +36,20 @@ struct PairView: View {
                         Button { pair(link) } label: {
                             Text("Connect").frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.secondary)
                         .disabled(checking || link.trimmingCharacters(in: .whitespaces).isEmpty)
 
                         if checking { ProgressView().frame(maxWidth: .infinity) }
-                        if let error { Text(error).font(.footnote).foregroundStyle(Theme.danger) }
+                        if let error { Text(error).font(.inter(.footnote)).foregroundStyle(Theme.error) }
                     }
                 }
 
                 Text("Works on the same Wi-Fi as your computer. Install Tailscale on both to use it anywhere, and on public Wi-Fi.")
-                    .font(.footnote).foregroundStyle(Theme.faint)
+                    .font(.inter(.footnote)).foregroundStyle(Theme.muted)
             }
             .padding(20)
         }
-        .background(Theme.ink)
+        .background(Theme.canvas)
         .sheet(isPresented: $scanning) {
             QRScannerView(
                 onCode: { code in scanning = false; pair(code) },

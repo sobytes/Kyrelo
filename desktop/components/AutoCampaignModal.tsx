@@ -168,33 +168,33 @@ export function AutoCampaignModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-fg/40 p-4 animate-fade-in"
       // A stray click outside shouldn't close a campaign that's running or
       // waiting for review; the ✕ still does (and reopening resumes it).
       onClick={campaign && campaign.status !== "scheduled" && campaign.status !== "failed" ? undefined : onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-panel p-5 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-line bg-surface p-5 shadow-md"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <div className="label !mb-0">Auto campaign · @{account.handle}</div>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-muted">
               {providerName} researches your product and competitors, writes the posts, picks media and
               spreads them naturally over the time you choose.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full px-2 py-0.5 text-zinc-500 hover:bg-panel2 hover:text-zinc-200"
+            className="rounded-sm px-2 py-0.5 text-muted hover:bg-canvas hover:text-fg"
           >
             ✕
           </button>
         </div>
 
         {info && !info.aiReady ? (
-          <div className="card space-y-2 text-sm text-zinc-300">
+          <div className="space-y-2 text-sm text-fg">
             <div>Auto campaigns need a {providerName} API key.</div>
             <Link href="/settings" className="btn-primary inline-block text-xs">
               Add a key in Settings
@@ -254,7 +254,7 @@ export function AutoCampaignModal({
                     onChange={(e) => setDuration(Number(e.target.value))}
                   />
                   <select
-                    className="rounded-md border border-line bg-ink px-2 py-2 text-sm"
+                    className="rounded-md border border-line bg-canvas px-2 py-2 text-sm"
                     value={unit}
                     onChange={(e) => setUnit(e.target.value as Unit)}
                   >
@@ -268,7 +268,7 @@ export function AutoCampaignModal({
 
             <MediaLibrary />
 
-            <div className="space-y-2 text-xs text-zinc-300">
+            <div className="space-y-2 text-xs text-fg">
               <label className={"flex items-center gap-2 " + (info?.openaiKey ? "" : "opacity-50")}>
                 <input
                   type="checkbox"
@@ -277,7 +277,7 @@ export function AutoCampaignModal({
                   onChange={(e) => setUseAiImages(e.target.checked)}
                 />
                 Generate AI images when a post needs one
-                {!info?.openaiKey && <span className="text-zinc-500">(needs an OpenAI key in Settings)</span>}
+                {!info?.openaiKey && <span className="text-muted">(needs an OpenAI key in Settings)</span>}
               </label>
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={reviewFirst} onChange={(e) => setReviewFirst(e.target.checked)} />
@@ -285,7 +285,7 @@ export function AutoCampaignModal({
               </label>
             </div>
 
-            {error && <div className="text-xs text-rose-400">{error}</div>}
+            {error && <div className="text-xs text-error">{error}</div>}
             <div className="flex items-center justify-end gap-2">
               <button onClick={onClose} className="btn-ghost text-xs">
                 Cancel
@@ -301,17 +301,17 @@ export function AutoCampaignModal({
           </div>
         ) : campaign.status === "failed" ? (
           <div className="space-y-3">
-            <div className="text-sm text-rose-300">{campaign.error ?? "Something went wrong."}</div>
+            <div className="text-sm text-error">{campaign.error ?? "Something went wrong."}</div>
             <button onClick={() => setCampaign(null)} className="btn-primary text-xs">
               Back
             </button>
           </div>
         ) : campaign.status === "scheduled" ? (
           <div className="space-y-3">
-            <div className="text-sm text-emerald-300">
+            <div className="text-sm text-success">
               {campaign.progress} They&apos;ll show up under Upcoming.
             </div>
-            <p className="text-[11px] text-zinc-500">Keep Kyrelo open so the posts go out on time.</p>
+            <p className="text-[11px] text-muted">Keep Kyrelo open so the posts go out on time.</p>
             <button onClick={onClose} className="btn-primary text-xs">
               Done
             </button>
@@ -321,7 +321,7 @@ export function AutoCampaignModal({
             {drafts.map((d, i) => (
               <DraftCard key={d.id} index={i} draft={d} onChange={(p) => updateDraft(d.id, p)} />
             ))}
-            {error && <div className="text-xs text-rose-400">{error}</div>}
+            {error && <div className="text-xs text-error">{error}</div>}
             <div className="flex items-center justify-end gap-2">
               <button onClick={discard} className="btn-ghost text-xs">
                 Discard
@@ -368,19 +368,19 @@ function Progress({ campaign }: { campaign: Campaign }) {
             {i === current ? (
               <span
                 aria-label="In progress"
-                className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-amber-300 border-t-transparent"
+                className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-warning border-t-transparent"
               />
             ) : (
-              <span className={i < current ? "w-3.5 text-emerald-400" : "w-3.5 text-zinc-600"}>
+              <span className={i < current ? "w-3.5 text-success" : "w-3.5 text-muted"}>
                 {i < current ? "✓" : "○"}
               </span>
             )}
-            <span className={i <= current ? "text-zinc-200" : "text-zinc-500"}>{s.label}</span>
+            <span className={i <= current ? "text-fg" : "text-muted"}>{s.label}</span>
           </li>
         ))}
       </ul>
-      <p className="text-xs text-zinc-500">
-        {campaign.progress} <span className="tabular-nums text-zinc-400">{elapsed} elapsed</span> · usually a
+      <p className="text-xs text-muted">
+        {campaign.progress} <span className="tabular-nums text-muted">{elapsed} elapsed</span> · usually a
         few minutes.
       </p>
     </div>
@@ -399,7 +399,7 @@ function DraftCard({
   const len = tweetLength(draft.text);
   if (draft.removed) {
     return (
-      <div className="card flex items-center justify-between text-xs text-zinc-500">
+      <div className="card flex items-center justify-between text-xs text-muted">
         Post {index + 1} removed.
         <button onClick={() => onChange({ removed: false })} className="btn-ghost text-xs">
           Undo
@@ -411,7 +411,7 @@ function DraftCard({
   return (
     <div className="card space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="rounded-full bg-panel2 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
+        <span className="rounded-sm bg-canvas px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">
           {draft.angle}
         </span>
         <button onClick={() => onChange({ removed: true })} className="btn-ghost text-xs">
@@ -423,7 +423,7 @@ function DraftCard({
         value={draft.text}
         onChange={(e) => onChange({ text: e.target.value })}
       />
-      <div className={"text-[10px] " + (len > MAX_TWEET_LENGTH ? "text-rose-400" : "text-zinc-500")}>
+      <div className={"text-[10px] " + (len > MAX_TWEET_LENGTH ? "text-error" : "text-muted")}>
         {len} / {MAX_TWEET_LENGTH}
       </div>
       {image && (
@@ -439,7 +439,7 @@ function DraftCard({
           </button>
         </div>
       )}
-      {draft.media.note && <div className="text-[10px] text-zinc-500">{draft.media.note}</div>}
+      {draft.media.note && <div className="text-[10px] text-muted">{draft.media.note}</div>}
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="datetime-local"
@@ -448,10 +448,10 @@ function DraftCard({
           onChange={(e) => onChange({ when: e.target.value })}
         />
         {draft.sources.length > 0 && (
-          <span className="text-[10px] text-zinc-500">
+          <span className="text-[10px] text-muted">
             Sources:{" "}
             {draft.sources.map((s, i) => (
-              <a key={s} href={s} target="_blank" rel="noreferrer" className="underline hover:text-zinc-300">
+              <a key={s} href={s} target="_blank" rel="noreferrer" className="underline hover:text-fg">
                 [{i + 1}]
               </a>
             ))}
@@ -513,32 +513,32 @@ function MediaLibrary() {
   return (
     <div>
       <div className="label">Your images</div>
-      <p className="mb-2 text-[11px] text-zinc-500">
+      <p className="mb-2 text-[11px] text-muted">
         Upload product shots, logos or photos. The automator picks from these when one fits a post. Each image
         gets a short description so the AI knows what it shows; edit it if it&apos;s wrong.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         {items.map((m) => (
-          <div key={m.id} className="flex gap-2 rounded-md border border-line bg-ink p-2">
+          <div key={m.id} className="flex gap-2 rounded-md border border-line bg-canvas p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/api/scheduler/uploads/${m.filename}`} alt="" className="h-14 w-14 shrink-0 rounded object-cover" />
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <input
-                className="w-full rounded border border-line bg-panel px-1.5 py-1 text-[11px] text-zinc-300"
+                className="w-full rounded border border-line bg-surface px-1.5 py-1 text-[11px] text-fg"
                 defaultValue={m.description}
                 placeholder="What does this show?"
                 onBlur={(e) => {
                   if (e.target.value !== m.description) void saveDescription(m.id, e.target.value);
                 }}
               />
-              <button onClick={() => remove(m.id)} className="self-start text-[10px] text-zinc-500 hover:text-rose-300">
+              <button onClick={() => remove(m.id)} className="self-start text-[10px] text-muted hover:text-error">
                 Remove
               </button>
             </div>
           </div>
         ))}
       </div>
-      <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-ink px-3 py-2 text-xs text-zinc-300 hover:border-line2">
+      <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-xs text-fg hover:border-muted">
         {uploading ? "Uploading and describing…" : "+ Upload images"}
         <input
           type="file"
@@ -552,7 +552,7 @@ function MediaLibrary() {
           }}
         />
       </label>
-      {error && <div className="mt-1 text-[11px] text-rose-400">{error}</div>}
+      {error && <div className="mt-1 text-[11px] text-error">{error}</div>}
     </div>
   );
 }

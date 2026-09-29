@@ -18,7 +18,7 @@ const APP_JSON_LD = {
 
 export default function Home() {
   return (
-    <main className="relative">
+    <main>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(APP_JSON_LD) }}
@@ -36,63 +36,61 @@ export default function Home() {
   );
 }
 
+// Content width for the whole page: wide enough for the screenshot, narrow
+// enough that sections read as a document.
+const PAGE = "mx-auto max-w-5xl px-6";
+
+function SectionHeader({ eyebrow, title, children }: { eyebrow: string; title: string; children?: React.ReactNode }) {
+  return (
+    <div className="max-w-2xl">
+      <p className="eyebrow">{eyebrow}</p>
+      <h2 className="mt-3 text-2xl font-semibold tracking-tight text-fg sm:text-3xl">{title}</h2>
+      {children && <div className="mt-4 space-y-4 text-base leading-relaxed text-muted">{children}</div>}
+    </div>
+  );
+}
+
 function Hero() {
   return (
-    <section className="hero-bg relative overflow-hidden pt-32 pb-20">
-      <div className="mx-auto max-w-6xl px-6 text-center">
-        <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-line bg-panel px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-zinc-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-live" />
-          Open source · macOS &amp; Windows · free
-        </span>
-        <h1 className="mx-auto max-w-3xl text-balance text-5xl font-semibold tracking-tight text-zinc-50 sm:text-6xl">
-          Run your socials from your <span className="text-accent">own computer</span>.
-          <br />
-          No SaaS. No outages.
+    <section className="pb-16 pt-32">
+      <div className={PAGE}>
+        <p className="eyebrow">Open source · macOS &amp; Windows · Free</p>
+        <h1 className="mt-4 max-w-2xl text-balance text-3xl font-semibold leading-tight tracking-tight text-fg sm:text-4xl">
+          Run your socials from your own computer.
         </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-zinc-400">
-          Kyrelo is a free, open-source Buffer alternative. Schedule posts to X and Bluesky, let
-          AI plan a whole campaign, get reply drafts under the posts you care about,
-          and clean up old tweets and dead follows. It all runs on your machine with your own
+        <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted">
+          Kyrelo is a free, open-source Buffer alternative for X and Bluesky. Schedule posts, let AI
+          plan a whole campaign, get reply drafts under the posts you care about, and clean up old
+          tweets and dead follows. No SaaS and no outages: it runs on your machine with your own
           accounts and your own AI key.
         </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-400">
-          {["X", "Bluesky"].map((network) => (
-            <span key={network} className="rounded-full border border-line bg-panel px-3 py-1">
-              {network}
-            </span>
-          ))}
-        </div>
-        <div id="download" className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div id="download" className="mt-8 flex flex-wrap items-center gap-3">
           <a href={RELEASES_URL} className="btn-primary" target="_blank" rel="noreferrer">
-            <span aria-hidden> </span>
             Download for macOS
           </a>
-          <a href={RELEASES_URL} className="btn-primary" target="_blank" rel="noreferrer">
-            <span aria-hidden> </span>
+          <a href={RELEASES_URL} className="btn-ghost" target="_blank" rel="noreferrer">
             Download for Windows
           </a>
           <a href={GITHUB_URL} className="btn-ghost" target="_blank" rel="noreferrer">
             View on GitHub
           </a>
-          <a href="#demo" className="btn-ghost">
-            ▶ Watch the demo
+          <a href="#demo" className="px-2 text-sm font-medium text-fg underline decoration-line underline-offset-4 hover:decoration-fg">
+            Watch the demo
           </a>
         </div>
-        <p className="mt-3 text-xs text-zinc-500">
-          macOS (Apple Silicon &amp; Intel, signed &amp; notarized) · Windows 10/11 x64 · Free, open source
+        <p className="mt-4 font-mono text-xs text-muted">
+          macOS: Apple Silicon &amp; Intel, signed &amp; notarised · Windows 10/11 x64
         </p>
 
-        <div className="relative mx-auto mt-16 max-w-5xl">
-          <div className="glow-purple overflow-hidden rounded-2xl border border-line bg-panel">
-            <Image
-              src="/screenshot.png"
-              alt="Kyrelo desktop app — the Monitor watching X handles, with reply drafts"
-              width={2400}
-              height={1500}
-              className="h-auto w-full"
-              priority
-            />
-          </div>
+        <div className="mt-12 overflow-hidden rounded-lg border border-line bg-surface">
+          <Image
+            src="/screenshot.png"
+            alt="Kyrelo desktop app: the Monitor watching X handles, with reply drafts"
+            width={2400}
+            height={1500}
+            className="h-auto w-full"
+            priority
+          />
         </div>
       </div>
     </section>
@@ -103,15 +101,10 @@ const DEMO_VIDEO_ID = "zgzbSPSTf_A";
 
 function Demo() {
   return (
-    <section id="demo" className="border-t border-line bg-ink py-20">
-      <div className="mx-auto max-w-4xl px-6">
-        <div className="mb-8 text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Demo</span>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
-            See it in action.
-          </h2>
-        </div>
-        <div className="glow-purple relative aspect-video overflow-hidden rounded-2xl border border-line bg-panel">
+    <section id="demo" className="section">
+      <div className={PAGE}>
+        <SectionHeader eyebrow="Demo" title="See it in action." />
+        <div className="relative mt-8 aspect-video overflow-hidden rounded-lg border border-line bg-surface">
           {/* youtube-nocookie: no tracking cookies until the visitor presses play. */}
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${DEMO_VIDEO_ID}?rel=0`}
@@ -130,37 +123,34 @@ function Demo() {
 
 function Why() {
   return (
-    <section className="border-t border-line bg-ink py-20">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 md:grid-cols-2">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-            Why this exists
-          </span>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
-            Because cloud schedulers go down.
-          </h2>
-          <p className="mt-5 text-base leading-relaxed text-zinc-400">
-            Buffer&apos;s status page is a working-day fixture. Multi-hour outages across web,
-            iOS, Android and API. ~97% uptime over the last quarter. When the scheduling layer
-            is someone else&apos;s cloud, it breaks at exactly the moments you need it up.
+    <section className="section">
+      <div className={`${PAGE} grid items-start gap-12 md:grid-cols-2`}>
+        <SectionHeader eyebrow="Why this exists" title="Because cloud schedulers go down.">
+          <p>
+            Buffer&apos;s status page is a working-day fixture. Multi-hour outages across web, iOS,
+            Android and API. ~97% uptime over the last quarter. When the scheduling layer is someone
+            else&apos;s cloud, it breaks at exactly the moments you need it up.
           </p>
-          <p className="mt-4 text-base leading-relaxed text-zinc-400">
+          <p>
             Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared
             infrastructure. Your logins and AI keys live in a local data folder, and Kyrelo only
             talks to the networks you connect, the AI provider whose key you add, and any site you
             point an auto campaign at. If something breaks, it breaks for you alone, and you can
             read the source to fix it.
           </p>
-        </div>
-        <div className="overflow-hidden rounded-xl border border-line bg-panel p-3 shadow-xl">
-          <Image
-            src="/buffer-status.png"
-            alt="Buffer status page showing 17-hour ongoing outage and ~97% uptime"
-            width={1200}
-            height={1400}
-            className="h-auto w-full rounded-md"
-          />
-        </div>
+        </SectionHeader>
+        <figure>
+          <div className="overflow-hidden rounded-lg border border-line bg-surface">
+            <Image
+              src="/buffer-status.png"
+              alt="Buffer status page showing a 17-hour ongoing outage and ~97% uptime"
+              width={1200}
+              height={1400}
+              className="h-auto w-full"
+            />
+          </div>
+          <figcaption className="mt-2 font-mono text-xs text-muted">Buffer&apos;s status page</figcaption>
+        </figure>
       </div>
     </section>
   );
@@ -193,7 +183,7 @@ const FEATURE_GROUPS = [
       {
         title: "Autopilot reply drafts",
         body: "Autopilot scores each new post for how worth replying to it is and writes a few replies underneath, in the tone you choose. You pick one, edit it and send it yourself. Kyrelo never replies on its own, so every reply is really yours.",
-        icon: "sparkles",
+        icon: "reply",
       },
     ],
   },
@@ -234,31 +224,24 @@ const EXTRAS = [
 
 function Features() {
   return (
-    <section id="features" className="border-t border-line bg-ink py-20">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-12 text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-            Features
-          </span>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
-            Publish, engage, clean up. On your machine.
-          </h2>
-        </div>
-        <div className="grid gap-5 lg:grid-cols-3">
+    <section id="features" className="section">
+      <div className={PAGE}>
+        <SectionHeader eyebrow="Features" title="Publish, engage, clean up. On your machine." />
+        <div className="mt-12 grid gap-x-12 gap-y-12 md:grid-cols-3">
           {FEATURE_GROUPS.map((group) => (
-            <div key={group.heading} className="space-y-5">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-                {group.heading}
-              </h3>
-              {group.features.map((f) => (
-                <FeatureCard key={f.title} {...f} />
-              ))}
+            <div key={group.heading}>
+              <h3 className="border-b border-line pb-2 text-sm font-semibold text-fg">{group.heading}</h3>
+              <div className="mt-6 space-y-8">
+                {group.features.map((f) => (
+                  <Feature key={f.title} {...f} />
+                ))}
+              </div>
             </div>
           ))}
         </div>
-        <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-16 grid gap-x-12 gap-y-8 border-t border-line pt-8 md:grid-cols-3">
           {EXTRAS.map((f) => (
-            <FeatureCard key={f.title} {...f} />
+            <Feature key={f.title} {...f} />
           ))}
         </div>
       </div>
@@ -266,12 +249,14 @@ function Features() {
   );
 }
 
-function FeatureCard({ title, body, icon }: { title: string; body: string; icon: string }) {
+function Feature({ title, body, icon }: { title: string; body: string; icon: string }) {
   return (
-    <div className="rounded-xl border border-line bg-panel p-5 transition hover:border-line2">
-      <Icon name={icon} />
-      <h4 className="mt-4 text-base font-semibold text-zinc-100">{title}</h4>
-      <p className="mt-2 text-sm leading-relaxed text-zinc-400">{body}</p>
+    <div>
+      <div className="flex items-center gap-2">
+        <Icon name={icon} />
+        <h4 className="text-base font-semibold text-fg">{title}</h4>
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
     </div>
   );
 }
@@ -338,57 +323,49 @@ function CleanUp() {
   };
 
   return (
-    <section id="delete-tweets" className="border-t border-line bg-ink py-20">
+    <section id="delete-tweets" className="section">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mx-auto mb-12 max-w-3xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-            Deleter & Unfollow
-          </span>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
-            Clean up your X account. <span className="text-accent">Free.</span>
-          </h2>
-          <p className="mt-5 text-base leading-relaxed text-zinc-400">
-            Tweet deleters and unfollow tools charge a monthly fee and ask for access to your
-            account. Kyrelo bulk deletes your old posts and reposts, and unfollows the accounts
-            that went quiet, straight from your own computer at no cost. Wipe years of old tweets,
-            tidy up your profile before a job hunt, or get your feed back to the people you
-            actually read.
-          </p>
-          <a
-            href="/tweetdelete-alternative"
-            className="mt-4 inline-block text-sm text-accent hover:underline"
-          >
-            Compare Kyrelo with TweetDelete →
-          </a>
+      <div className={PAGE}>
+        <div className="grid gap-12 md:grid-cols-2">
+          <SectionHeader eyebrow="Deleter & Unfollow" title="Clean up your X account, for free.">
+            <p>
+              Tweet deleters and unfollow tools charge a monthly fee and ask for access to your
+              account. Kyrelo bulk deletes your old posts and reposts, and unfollows the accounts
+              that went quiet, straight from your own computer at no cost. Wipe years of old
+              tweets, tidy up your profile before a job hunt, or get your feed back to the people
+              you actually read.
+            </p>
+            <p>
+              <a href="/tweetdelete-alternative" className="font-medium text-primary hover:text-primary-hover">
+                Compare Kyrelo with TweetDelete →
+              </a>
+            </p>
+          </SectionHeader>
+          <dl className="space-y-6">
+            {CLEANUP_POINTS.map((p) => (
+              <div key={p.title}>
+                <dt className="text-base font-semibold text-fg">{p.title}</dt>
+                <dd className="mt-1 text-sm leading-relaxed text-muted">{p.body}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          {CLEANUP_POINTS.map((p) => (
-            <div key={p.title} className="rounded-xl border border-line bg-panel p-5">
-              <h3 className="text-base font-semibold text-zinc-100">{p.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">{p.body}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mx-auto mt-14 max-w-3xl">
-          <h3 className="text-center text-xl font-semibold tracking-tight text-zinc-100">
-            Deleter &amp; Unfollow FAQ
-          </h3>
-          <div className="mt-6 divide-y divide-line rounded-xl border border-line bg-panel">
+        <div className="mt-16">
+          <h3 className="text-lg font-semibold tracking-tight text-fg">Deleter &amp; Unfollow FAQ</h3>
+          <div className="mt-4 divide-y divide-line border-y border-line">
             {CLEANUP_FAQ.map((f) => (
-              <details key={f.q} className="group px-5 py-4">
-                <summary className="cursor-pointer list-none text-sm font-medium text-zinc-100 marker:hidden">
+              <details key={f.q} className="group py-4">
+                <summary className="cursor-pointer list-none text-sm font-medium text-fg marker:hidden">
                   <span className="flex items-center justify-between gap-4">
                     {f.q}
-                    <span className="text-zinc-500 transition group-open:rotate-45">+</span>
+                    <span className="font-mono text-muted transition-transform group-open:rotate-45">+</span>
                   </span>
                 </summary>
-                <p className="mt-3 text-sm leading-relaxed text-zinc-400">{f.a}</p>
+                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">{f.a}</p>
               </details>
             ))}
           </div>
@@ -418,27 +395,18 @@ const STEPS = [
 
 function HowItWorks() {
   return (
-    <section id="how" className="border-t border-line bg-ink py-20">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-12 text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-            How it works
-          </span>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
-            Three steps. No accounts to make.
-          </h2>
-        </div>
-        <div className="grid gap-5 md:grid-cols-3">
+    <section id="how" className="section">
+      <div className={PAGE}>
+        <SectionHeader eyebrow="How it works" title="Three steps. No accounts to make." />
+        <ol className="mt-12 grid gap-x-12 gap-y-10 md:grid-cols-3">
           {STEPS.map((s) => (
-            <div key={s.n} className="rounded-xl border border-line bg-panel p-6">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gradient-to-br from-accent to-live text-sm font-bold text-white">
-                {s.n}
-              </div>
-              <h3 className="mt-4 text-base font-semibold text-zinc-100">{s.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">{s.body}</p>
-            </div>
+            <li key={s.n} className="border-t border-line pt-4">
+              <span className="font-mono text-sm text-muted">{String(s.n).padStart(2, "0")}</span>
+              <h3 className="mt-2 text-base font-semibold text-fg">{s.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{s.body}</p>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </section>
   );
@@ -446,19 +414,21 @@ function HowItWorks() {
 
 function CTA() {
   return (
-    <section className="border-t border-line py-20">
-      <div className="mx-auto max-w-3xl px-6 text-center">
-        <h2 className="text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">
-          Stop refreshing the status page.
-        </h2>
-        <p className="mx-auto mt-4 max-w-xl text-base text-zinc-400">
-          Kyrelo is free, open source, and lives on your laptop. Bring your own accounts.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+    <section className="section">
+      <div className={`${PAGE} flex flex-col gap-6 md:flex-row md:items-end md:justify-between`}>
+        <div className="max-w-xl">
+          <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
+            Stop refreshing the status page.
+          </h2>
+          <p className="mt-3 text-base text-muted">
+            Kyrelo is free, open source, and lives on your laptop. Bring your own accounts.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
           <a href={RELEASES_URL} className="btn-primary" target="_blank" rel="noreferrer">
             Download for macOS
           </a>
-          <a href={RELEASES_URL} className="btn-primary" target="_blank" rel="noreferrer">
+          <a href={RELEASES_URL} className="btn-ghost" target="_blank" rel="noreferrer">
             Download for Windows
           </a>
           <a href={GITHUB_URL} className="btn-ghost" target="_blank" rel="noreferrer">
@@ -471,7 +441,7 @@ function CTA() {
 }
 
 function Icon({ name }: { name: string }) {
-  const common = "h-6 w-6 text-accent";
+  const common = "h-4 w-4 shrink-0 text-muted";
   switch (name) {
     case "calendar":
       return (
@@ -487,10 +457,11 @@ function Icon({ name }: { name: string }) {
           <path d="M12 3v9l6 4" />
         </svg>
       );
-    case "sparkles":
+    case "reply":
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={common}>
-          <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+          <path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.4A8 8 0 1 1 21 12z" />
+          <path d="M9 10h6M9 14h4" />
         </svg>
       );
     case "shield":

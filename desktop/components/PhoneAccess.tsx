@@ -43,10 +43,10 @@ export function PhoneAccess() {
   const hasTailscale = status.addresses.some((a) => a.kind === "tailscale");
 
   return (
-    <section className="card space-y-3">
+    <section className="section space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="label !mb-0">Phone app</div>
-        <label className="flex items-center gap-2 text-xs text-zinc-300">
+        <label className="flex items-center gap-2 text-xs text-fg">
           <input
             type="checkbox"
             checked={status.enabled}
@@ -56,7 +56,7 @@ export function PhoneAccess() {
           {status.enabled ? "On" : "Off"}
         </label>
       </div>
-      <p className="text-[11px] leading-relaxed text-zinc-500">
+      <p className="text-[11px] leading-relaxed text-muted">
         See the Monitor feed and Autopilot drafts on your phone, and reply from the X app. This computer
         keeps doing the watching and drafting, so Kyrelo must be running here.
       </p>
@@ -65,10 +65,10 @@ export function PhoneAccess() {
         <div className="flex flex-wrap items-start gap-4">
           {/* Our own SVG, generated server-side from our own pairing link. */}
           <div
-            className="h-44 w-44 shrink-0 rounded-md bg-white p-2"
+            className="h-44 w-44 shrink-0 rounded-md bg-surface p-2"
             dangerouslySetInnerHTML={{ __html: status.qrSvg }}
           />
-          <div className="min-w-0 flex-1 space-y-2 text-[11px] text-zinc-400">
+          <div className="min-w-0 flex-1 space-y-2 text-[11px] text-muted">
             <p>In the Kyrelo phone app, scan this code, or copy the pairing link to your phone.</p>
             <button
               onClick={async () => {
@@ -86,14 +86,14 @@ export function PhoneAccess() {
                 "no network found"}{" "}
               · port {status.port}
             </div>
-            <button onClick={() => act("reset")} disabled={busy} className="text-zinc-500 underline hover:text-zinc-300">
+            <button onClick={() => act("reset")} disabled={busy} className="text-muted underline hover:text-fg">
               Reset pairing
             </button>
           </div>
         </div>
       )}
 
-      <p className="text-[10px] leading-relaxed text-zinc-500">
+      <p className="text-[10px] leading-relaxed text-muted">
         {hasTailscale
           ? "Tailscale is connected: your phone can reach this computer from anywhere, encrypted."
           : "Works when your phone is on the same Wi-Fi. Install Tailscale on both devices to use it anywhere."}{" "}

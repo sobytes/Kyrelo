@@ -22,7 +22,7 @@ struct FeedView: View {
                         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 }
                 if let error = model.error {
-                    Text(error).font(.footnote).foregroundStyle(Theme.danger).listRowBackground(Color.clear)
+                    Text(error).font(.inter(.footnote)).foregroundStyle(Theme.error).listRowBackground(Color.clear)
                 }
                 ForEach(model.tweets) { tweet in
                     TweetRow(tweet: tweet) { text in replying = ReplyTarget(tweet: tweet, text: text) }
@@ -36,13 +36,13 @@ struct FeedView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Theme.ink)
+            .background(Theme.canvas)
             .overlay { if model.settings == nil && model.error == nil { ProgressView() } }
             .refreshable { await model.load() }
             .navigationTitle("Monitor")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Unpair", role: .destructive, action: onUnpair).font(.footnote)
+                    Button("Unpair", role: .destructive, action: onUnpair).font(.inter(.footnote))
                 }
             }
         }
@@ -73,12 +73,12 @@ struct FeedView: View {
                 Toggle(isOn: Binding(get: { settings.enabled }, set: { on in Task { await model.setWatching(on) } })) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(settings.enabled ? "Watching \(watchingSummary(settings))" : "Not watching")
-                            .foregroundStyle(Theme.text)
+                            .foregroundStyle(Theme.fg)
                         Text(model.lastCheckedAt.map { "Last checked \(timeAgo($0))" } ?? "Not checked yet")
-                            .font(.caption).foregroundStyle(Theme.muted)
+                            .font(.inter(.caption)).foregroundStyle(Theme.muted)
                     }
                 }
-                .tint(Theme.live)
+                .tint(Theme.success)
                 HStack {
                     Button {
                         Task { await model.checkNow() }
@@ -90,7 +90,7 @@ struct FeedView: View {
                         Text("Autopilot: \(settings.autopilot.enabled ? "on" : "off")").frame(maxWidth: .infinity)
                     }
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.secondary)
             }
         }
     }
@@ -123,32 +123,31 @@ struct TweetRow: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("@\(tweet.handle)").bold().foregroundStyle(Theme.text)
+                    Text("@\(tweet.handle)").bold().foregroundStyle(Theme.fg)
                     Spacer()
                     Text("\(tweet.isReply ? "replied" : "posted") \(timeAgo(tweet.sortDate))")
-                        .font(.caption).foregroundStyle(Theme.faint)
+                        .font(.inter(.caption)).foregroundStyle(Theme.muted)
                 }
                 if let keyword = tweet.keyword {
                     Text("“\(keyword)”")
-                        .font(.caption2)
-                        .foregroundStyle(Theme.accent)
+                        .font(.inter(.caption2))
+                        .foregroundStyle(Theme.primary)
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+                        .background(Theme.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                 }
-                Text(tweet.text).foregroundStyle(Theme.text)
+                Text(tweet.text).foregroundStyle(Theme.fg)
 
                 HStack {
                     if let repliedAt = tweet.repliedAt {
-                        Label("Replied \(timeAgo(repliedAt))", systemImage: "checkmark").font(.footnote).foregroundStyle(Theme.live)
+                        Label("Replied \(timeAgo(repliedAt))", systemImage: "checkmark").font(.inter(.footnote)).foregroundStyle(Theme.success)
                     } else if tweet.draft == nil {
-                        Button("Reply") { onReply(nil) }.buttonStyle(.bordered)
+                        Button("Reply") { onReply(nil) }.buttonStyle(.secondary)
                     }
                     // x.com links open in the X app when it's installed.
                     Button("Open on X") {
                         if let url = URL(string: tweet.url) { openURL(url) }
                     }
-                    .buttonStyle(.bordered)
-                    .tint(Theme.muted)
+                    .buttonStyle(.secondary)
                 }
                 if let draft = tweet.draft, tweet.repliedAt == nil {
                     DraftSuggestions(draft: draft, onUse: onReply)
@@ -167,22 +166,22 @@ struct DraftSuggestions: View {
         if draft.options.isEmpty {
             Button { onUse(nil) } label: {
                 (Text("Autopilot skipped (\(draft.score)/100): \(draft.reason) ") + Text("Draft anyway").underline())
-                    .font(.caption).foregroundStyle(Theme.muted).multilineTextAlignment(.leading)
+                    .font(.inter(.caption)).foregroundStyle(Theme.muted).multilineTextAlignment(.leading)
             }
             .buttonStyle(.plain)
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                (Text("\(draft.score)/100 ").bold().foregroundColor(Theme.accent) + Text(draft.reason).foregroundColor(Theme.muted))
-                    .font(.caption)
+                (Text("\(draft.score)/100 ").bold().foregroundColor(Theme.primary) + Text(draft.reason).foregroundColor(Theme.muted))
+                    .font(.inter(.caption))
                 ForEach(Array(draft.options.enumerated()), id: \.offset) { _, option in
                     Button { onUse(option) } label: {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(option).font(.subheadline).foregroundStyle(Theme.text).multilineTextAlignment(.leading)
-                            Text("Use →").font(.caption).foregroundStyle(Theme.accent)
+                            Text(option).font(.inter(.subheadline)).foregroundStyle(Theme.fg).multilineTextAlignment(.leading)
+                            Text("Use →").font(.inter(.caption)).foregroundStyle(Theme.primary)
                         }
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Theme.panel2, in: RoundedRectangle(cornerRadius: 8))
+                        .background(Theme.canvas, in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
                 }

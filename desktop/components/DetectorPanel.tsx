@@ -105,7 +105,7 @@ export function DetectorPanel() {
   }, [settings?.notifyDesktop]);
 
   if (!settings || !state) {
-    return <div className="card text-sm text-zinc-500">Loading…</div>;
+    return <div className="py-6 text-sm text-muted">Loading…</div>;
   }
 
   async function save(next: GrokSettings) {
@@ -299,16 +299,13 @@ function Hero({
 
   return (
     <div
-      className={
-        "relative overflow-hidden rounded-2xl border p-5 transition-all " +
-        (watching ? "border-live/40 hero-live" : "border-line hero")
-      }
+      className="pb-2"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-4">
           <StatusDot watching={watching} inLogin={inLogin} />
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.15em] text-muted">
               {watching
                 ? "Watching"
                 : inLogin
@@ -319,7 +316,7 @@ function Hero({
                       ? "Setup"
                       : "Paused"}
             </div>
-            <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-zinc-100">
+            <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-fg">
               {watching && `Monitoring ${watchingSummary(settings)} on X`}
               {!watching && inLogin && connect.phase === "saving" && "Saving session…"}
               {!watching && inLogin && connect.phase === "starting" && "Opening Chrome…"}
@@ -331,7 +328,7 @@ function Hero({
               {!watching && !inLogin && !needsConnect && !needsHandles &&
                 "Ready to watch"}
             </h1>
-            <p className="mt-0.5 text-sm text-zinc-400">
+            <p className="mt-0.5 text-sm text-muted">
               {watching && (
                 <>
                   Last check {lastCheckAgo ?? "never"} •{" "}
@@ -390,34 +387,13 @@ function Hero({
         </div>
       </div>
 
-      {/* Subtle bottom strip when watching */}
-      {watching && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-live/40 to-transparent" />
-      )}
     </div>
   );
 }
 
 function StatusDot({ watching, inLogin }: { watching: boolean; inLogin: boolean }) {
-  if (watching) {
-    return (
-      <div className="mt-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-live/10">
-        <span className="live-dot" />
-      </div>
-    );
-  }
-  if (inLogin) {
-    return (
-      <div className="mt-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10">
-        <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-amber-400" />
-      </div>
-    );
-  }
-  return (
-    <div className="mt-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800/50">
-      <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-600" />
-    </div>
-  );
+  const colour = watching ? "bg-success" : inLogin ? "bg-warning" : "bg-muted";
+  return <span className={`mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ${colour}`} />;
 }
 
 // --- Sidebar cards ----------------------------------------------------------
@@ -449,17 +425,17 @@ function HandlesCard({
   onFind?: () => void;
 }) {
   return (
-    <div className="card space-y-3">
+    <div className="section space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="label !mb-0">Watching</div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-zinc-500">
+          <span className="text-[10px] text-muted">
             {settings.handles.length} handle{settings.handles.length !== 1 && "s"}
           </span>
           {settings.handles.length > 0 && (
             <button
               onClick={onRemoveAll}
-              className="text-[10px] text-zinc-500 underline-offset-2 hover:text-rose-400 hover:underline"
+              className="text-[10px] text-muted underline-offset-2 hover:text-error hover:underline"
             >
               Remove all
             </button>
@@ -469,14 +445,14 @@ function HandlesCard({
 
       <div className="flex flex-wrap gap-1.5">
         {settings.handles.length === 0 ? (
-          <span className="text-xs text-zinc-500">None yet.</span>
+          <span className="text-xs text-muted">None yet.</span>
         ) : (
           settings.handles.map((h) => (
             <span key={h} className="chip-on">
               @{h}
               <button
                 onClick={() => onRemove(h)}
-                className="-mr-1 ml-0.5 rounded-full px-1 text-zinc-500 hover:text-rose-400"
+                className="-mr-1 ml-0.5 rounded-sm px-1 text-muted hover:text-error"
                 title="Remove"
               >
                 ×
@@ -505,14 +481,14 @@ function HandlesCard({
       </div>
 
       {onFind && (
-        <button onClick={onFind} className="btn-primary w-full text-xs">
-          ✨ Find accounts for my brand
+        <button onClick={onFind} className="btn-ghost w-full text-xs">
+          Find accounts for my brand
         </button>
       )}
 
       <button
         onClick={() => setShowSuggested(!showSuggested)}
-        className="w-full rounded-md border border-line py-1.5 text-xs text-zinc-400 hover:border-line2 hover:text-zinc-200"
+        className="w-full rounded-md border border-line py-1.5 text-xs text-muted hover:border-muted hover:text-fg"
       >
         {showSuggested ? "Hide popular handles" : "Popular tech handles ▾"}
       </button>
@@ -526,13 +502,13 @@ function HandlesCard({
             return (
               <div key={group.group}>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-zinc-600">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted">
                     {group.group}
                   </div>
                   {!allOn && (
                     <button
                       onClick={() => onAddGroup(group.handles)}
-                      className="text-[10px] text-zinc-500 underline-offset-2 hover:text-accent hover:underline"
+                      className="text-[10px] text-muted underline-offset-2 hover:text-primary hover:underline"
                     >
                       Add all
                     </button>
@@ -604,23 +580,23 @@ function KeywordsCard({
   }
 
   return (
-    <div className="card space-y-3">
+    <div className="section space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="label !mb-0">Keywords</div>
-        <span className="text-[10px] text-zinc-500">
+        <span className="text-[10px] text-muted">
           {keywords.length} / {MAX_KEYWORDS}
         </span>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {keywords.length === 0 ? (
-          <span className="text-xs text-zinc-500">None yet.</span>
+          <span className="text-xs text-muted">None yet.</span>
         ) : (
           keywords.map((k) => (
             <span key={k} className="chip-on">
               {k}
               <button
                 onClick={() => onChange(keywords.filter((x) => x !== k))}
-                className="-mr-1 ml-0.5 rounded-full px-1 text-zinc-500 hover:text-rose-400"
+                className="-mr-1 ml-0.5 rounded-sm px-1 text-muted hover:text-error"
                 title="Remove"
               >
                 ×
@@ -630,7 +606,7 @@ function KeywordsCard({
         )}
       </div>
       {keywords.length > 0 && (
-        <ul className="space-y-0.5 text-[10px] text-zinc-500">
+        <ul className="space-y-0.5 text-[10px] text-muted">
           {keywords.map((k) => {
             const latest = latestMatch(k);
             return (
@@ -660,7 +636,7 @@ function KeywordsCard({
           Add
         </button>
       </div>
-      <p className="text-[10px] leading-relaxed text-zinc-500">
+      <p className="text-[10px] leading-relaxed text-muted">
         Posts from anyone that mention these show in the feed for a day, labelled, and Autopilot drafts replies
         for them. Phrases match as written; X search syntax works too (#tag, -word, lang:en). They don&apos;t send
         desktop notifications, since popular keywords match often.
@@ -684,7 +660,7 @@ function Feed({
 }) {
   if (!connected) {
     return (
-      <div className="card flex h-48 items-center justify-center text-sm text-zinc-500">
+      <div className="flex h-48 rounded-lg border border-dashed border-line items-center justify-center text-sm text-muted">
         Connect X to populate the feed.
       </div>
     );
@@ -692,7 +668,7 @@ function Feed({
 
   if (settings.handles.length === 0 && settings.keywords.length === 0) {
     return (
-      <div className="card flex h-48 items-center justify-center text-sm text-zinc-500">
+      <div className="flex h-48 rounded-lg border border-dashed border-line items-center justify-center text-sm text-muted">
         Add a handle or keyword to start watching.
       </div>
     );
@@ -700,7 +676,7 @@ function Feed({
 
   if (tweets.length === 0) {
     return (
-      <div className="card flex h-48 flex-col items-center justify-center gap-1 text-sm text-zinc-500">
+      <div className="flex h-48 rounded-lg border border-dashed border-line flex-col items-center justify-center gap-1 text-sm text-muted">
         <span>No tweets yet.</span>
         <span className="text-xs">
           {settings.enabled
@@ -729,11 +705,10 @@ function TweetCard({
   onReply: (text?: string) => void;
 }) {
   const when = tweet.postedAt ?? tweet.seenAt;
-  const { bg, fg } = avatarColors(tweet.handle);
   return (
-    <article className="group card-tight transition-colors hover:border-line2">
+    <article className="group card-tight transition-colors hover:border-muted">
       <div className="flex gap-3">
-        <div className="avatar" style={{ background: bg, color: fg }}>
+        <div className="avatar">
           {(tweet.handle[0] ?? "?").toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
@@ -742,21 +717,21 @@ function TweetCard({
               href={`https://x.com/${tweet.handle}`}
               target="_blank"
               rel="noreferrer"
-              className="font-semibold text-zinc-100 hover:underline"
+              className="font-semibold text-fg hover:underline"
             >
               @{tweet.handle}
             </a>
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-muted">
               {tweet.isReply ? "replied" : "posted"} {timeAgo(when)}
             </span>
             {tweet.keyword && (
-              <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] text-accent" title="Found by a keyword search">
+              <span className="rounded-sm bg-accent/30 px-1.5 py-0.5 font-mono text-[11px] text-fg" title="Found by a keyword search">
                 “{tweet.keyword}”
               </span>
             )}
           </div>
 
-          <div className="mt-1.5 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-zinc-200">
+          <div className="mt-1.5 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-fg">
             {tweet.text}
           </div>
 
@@ -765,18 +740,18 @@ function TweetCard({
               href={tweet.url}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-zinc-500 hover:text-zinc-300"
+              className="text-xs text-muted hover:text-fg"
             >
               open on X ↗
             </a>
 
             {tweet.repliedAt ? (
-              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="inline-flex items-center gap-1.5 text-xs text-success">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
                 replied {new Date(tweet.repliedAt).toLocaleTimeString()}
               </span>
             ) : (
-              <button onClick={() => onReply()} className="btn-primary text-xs">
+              <button onClick={() => onReply()} className="btn-ghost text-xs">
                 Reply
               </button>
             )}
@@ -785,12 +760,12 @@ function TweetCard({
           {tweet.draft && !tweet.repliedAt && <DraftSuggestions draft={tweet.draft} onUse={onReply} />}
 
           {tweet.replyText && (
-            <div className="mt-3 rounded-md border border-emerald-900/50 bg-emerald-950/30 p-2.5 text-sm leading-snug text-emerald-200">
+            <div className="mt-3 rounded-md border border-success/30 bg-success/5 p-2.5 text-sm leading-snug text-success">
               {tweet.replyText}
             </div>
           )}
           {tweet.replyError && (
-            <div className="mt-3 rounded-md border border-rose-900/50 bg-rose-950/30 p-2.5 text-xs leading-snug text-rose-300">
+            <div className="mt-3 rounded-md border border-error/30 bg-error/5 p-2.5 text-xs leading-snug text-error">
               {tweet.replyError}
             </div>
           )}
@@ -804,25 +779,25 @@ function TweetCard({
 function DraftSuggestions({ draft, onUse }: { draft: ReplyDraft; onUse: (text?: string) => void }) {
   if (draft.options.length === 0) {
     return (
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted">
         <span>
           Autopilot skipped ({draft.score}/100): {draft.reason}
         </span>
-        <button onClick={() => onUse()} className="text-zinc-400 underline hover:text-zinc-200">
+        <button onClick={() => onUse()} className="text-muted underline hover:text-fg">
           Draft anyway
         </button>
       </div>
     );
   }
   return (
-    <div className="mt-3 space-y-2 rounded-md border border-line bg-ink/40 p-2.5">
-      <div className="flex items-center gap-2 text-[11px] text-zinc-400">
-        <span className="rounded-full bg-accent/15 px-2 py-0.5 font-semibold text-accent">{draft.score}/100</span>
+    <div className="mt-3 space-y-2 rounded-md border border-line bg-canvas p-2.5">
+      <div className="flex items-center gap-2 text-[11px] text-muted">
+        <span className="rounded-sm bg-primary/10 px-2 py-0.5 font-semibold text-primary">{draft.score}/100</span>
         <span>{draft.reason}</span>
       </div>
       {draft.options.map((option, i) => (
         <div key={i} className="flex items-start justify-between gap-3">
-          <p className="text-sm leading-snug text-zinc-200">{option}</p>
+          <p className="text-sm leading-snug text-fg">{option}</p>
           <button onClick={() => onUse(option)} className="btn-ghost shrink-0 text-xs">
             Use
           </button>
@@ -854,15 +829,15 @@ function AutopilotCard({
   const commit = (patch: Partial<AutopilotSettings> = {}) => onChange({ ...draft, ...patch });
 
   return (
-    <div className="card space-y-3">
+    <div className="section space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="label !mb-0">Autopilot</div>
-        <label className="flex items-center gap-2 text-xs text-zinc-300">
+        <label className="flex items-center gap-2 text-xs text-fg">
           <input type="checkbox" checked={autopilot.enabled} onChange={(e) => commit({ enabled: e.target.checked })} />
           {autopilot.enabled ? "On" : "Off"}
         </label>
       </div>
-      <p className="text-[11px] leading-relaxed text-zinc-500">
+      <p className="text-[11px] leading-relaxed text-muted">
         Scores each new tweet and drafts replies under it. Nothing is posted automatically: you pick a draft
         and send it from X.
       </p>
@@ -875,8 +850,8 @@ function AutopilotCard({
               key={tone}
               onClick={() => commit({ tone })}
               className={
-                "rounded-full border px-2.5 py-1 text-[11px] capitalize transition " +
-                (draft.tone === tone ? "border-accent text-zinc-100" : "border-line text-zinc-500 hover:text-zinc-300")
+                "rounded-sm border px-2.5 py-1 text-[11px] capitalize transition " +
+                (draft.tone === tone ? "border-primary text-fg" : "border-line text-muted hover:text-fg")
               }
             >
               {tone}
@@ -894,7 +869,7 @@ function AutopilotCard({
               onClick={() => commit({ style })}
               className={
                 "flex-1 rounded-md border px-2 py-1.5 text-[11px] transition " +
-                (draft.style === style ? "border-accent text-zinc-100" : "border-line text-zinc-500 hover:text-zinc-300")
+                (draft.style === style ? "border-primary text-fg" : "border-line text-muted hover:text-fg")
               }
             >
               {STYLE_LABELS[style]}
@@ -954,7 +929,7 @@ function AutopilotCard({
         />
       </label>
 
-      <p className="text-[10px] leading-relaxed text-zinc-500">
+      <p className="text-[10px] leading-relaxed text-muted">
         Uses your Reply tone from Settings as voice notes. One AI call per drafted tweet, up to 5 per check,
         only for tweets under an hour old.
       </p>
@@ -1047,29 +1022,29 @@ function ReplyModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-fg/40 p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-2xl border border-line bg-panel p-5 shadow-2xl"
+        className="w-full max-w-lg rounded-lg border border-line bg-surface p-5 shadow-md"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <div className="label !mb-0">Reply to @{tweet.handle}</div>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-muted">
               Pick a draft or ask {providerName} for some, edit if you like, then open on X to paste.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full px-2 py-0.5 text-zinc-500 hover:bg-panel2 hover:text-zinc-200"
+            className="rounded-sm px-2 py-0.5 text-muted hover:bg-canvas hover:text-fg"
           >
             ✕
           </button>
         </div>
 
-        <div className="mb-3 max-h-24 overflow-y-auto rounded-md border border-line bg-ink/50 p-2.5 text-sm leading-snug text-zinc-300">
+        <div className="mb-3 max-h-24 overflow-y-auto rounded-md border border-line bg-canvas p-2.5 text-sm leading-snug text-fg">
           {tweet.text}
         </div>
 
@@ -1080,8 +1055,8 @@ function ReplyModal({
                 key={i}
                 onClick={() => setReplyText(option)}
                 className={
-                  "rounded-full border px-2.5 py-1 text-[11px] transition " +
-                  (replyText === option ? "border-accent text-zinc-100" : "border-line text-zinc-500 hover:text-zinc-300")
+                  "rounded-sm border px-2.5 py-1 text-[11px] transition " +
+                  (replyText === option ? "border-primary text-fg" : "border-line text-muted hover:text-fg")
                 }
               >
                 Option {i + 1}
@@ -1097,10 +1072,10 @@ function ReplyModal({
           disabled={generating}
         />
         <div className="mt-1 flex items-center justify-between text-[10px]">
-          <span className={overLimit ? "text-rose-400" : "text-zinc-500"}>
+          <span className={overLimit ? "text-error" : "text-muted"}>
             {tweetLength(replyText)} / {REPLY_MAX_LENGTH}
           </span>
-          {error && <span className="text-rose-400">{error}</span>}
+          {error && <span className="text-error">{error}</span>}
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -1132,7 +1107,7 @@ function ReplyModal({
           </button>
         </div>
 
-        <p className="mt-2 text-[10px] leading-relaxed text-zinc-500">
+        <p className="mt-2 text-[10px] leading-relaxed text-muted">
           Clicking Open will copy the reply to your clipboard, mark this tweet as replied, and open
           it in your browser. Paste with ⌘V.
         </p>
@@ -1149,25 +1124,6 @@ function timeAgo(iso: string): string {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
-}
-
-const AVATAR_PALETTE = [
-  { bg: "#7c5cff", fg: "#fff" },
-  { bg: "#10b981", fg: "#062821" },
-  { bg: "#f59e0b", fg: "#3b2400" },
-  { bg: "#ef4444", fg: "#3a0d0d" },
-  { bg: "#0ea5e9", fg: "#022134" },
-  { bg: "#a855f7", fg: "#2c0d4c" },
-  { bg: "#ec4899", fg: "#4a0a2a" },
-  { bg: "#22c55e", fg: "#052e16" },
-];
-
-function avatarColors(handle: string) {
-  let h = 0;
-  for (let i = 0; i < handle.length; i++) {
-    h = (h * 31 + handle.charCodeAt(i)) >>> 0;
-  }
-  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
 
 function fireBrowserNotification(t: SeenTweet) {

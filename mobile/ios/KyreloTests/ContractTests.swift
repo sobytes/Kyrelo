@@ -125,6 +125,28 @@ final class ContractTests: XCTestCase {
         }
     }
 
+    // MARK: design-tokens.json
+
+    private struct DesignTokens: Decodable {
+        let color: [String: String]
+        let radius: [String: Double]
+    }
+
+    func testThemeUsesTheDesignTokens() throws {
+        let tokens = try JSONDecoder().decode(DesignTokens.self, from: contract("design-tokens"))
+        let hex = { (name: String) -> UInt32? in tokens.color[name].flatMap { UInt32($0.dropFirst(), radix: 16) } }
+        let palette: [String: UInt32] = [
+            "canvas": Palette.canvas, "surface": Palette.surface, "fg": Palette.fg, "muted": Palette.muted,
+            "line": Palette.line, "primary": Palette.primary, "primaryHover": Palette.primaryHover,
+            "accent": Palette.accent, "success": Palette.success, "warning": Palette.warning, "error": Palette.error,
+        ]
+        XCTAssertEqual(Set(palette.keys), Set(tokens.color.keys))
+        for (name, value) in palette {
+            XCTAssertEqual(value, hex(name), name)
+        }
+        XCTAssertEqual(tokens.radius, ["sm": Double(Radius.sm), "md": Double(Radius.md), "lg": Double(Radius.lg)])
+    }
+
     // MARK: scheduler.json
 
     func testSkipsAccountsOnPlatformsThisAppDoesntSupport() throws {
