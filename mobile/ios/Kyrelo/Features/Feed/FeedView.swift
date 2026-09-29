@@ -107,6 +107,7 @@ struct TweetRow: View {
     let tweet: SeenTweet
     /// Opens the reply sheet, starting from `text` when a draft was picked.
     let onReply: (String?) -> Void
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         Card {
@@ -119,12 +120,21 @@ struct TweetRow: View {
                 }
                 Text(tweet.text).foregroundStyle(Theme.text)
 
-                if let repliedAt = tweet.repliedAt {
-                    Label("Replied \(timeAgo(repliedAt))", systemImage: "checkmark").font(.footnote).foregroundStyle(Theme.live)
-                } else if let draft = tweet.draft {
+                HStack {
+                    if let repliedAt = tweet.repliedAt {
+                        Label("Replied \(timeAgo(repliedAt))", systemImage: "checkmark").font(.footnote).foregroundStyle(Theme.live)
+                    } else if tweet.draft == nil {
+                        Button("Reply") { onReply(nil) }.buttonStyle(.bordered)
+                    }
+                    // x.com links open in the X app when it's installed.
+                    Button("Open on X") {
+                        if let url = URL(string: tweet.url) { openURL(url) }
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(Theme.muted)
+                }
+                if let draft = tweet.draft, tweet.repliedAt == nil {
                     DraftSuggestions(draft: draft, onUse: onReply)
-                } else {
-                    Button("Reply") { onReply(nil) }.buttonStyle(.bordered)
                 }
             }
         }

@@ -858,6 +858,16 @@ function ReplyModal({
     }
   }
 
+  // Nothing to start from (no Autopilot drafts, no earlier reply): draft
+  // straight away. The ref stops React's dev double-mount drafting twice.
+  const autoDrafted = useRef(false);
+  useEffect(() => {
+    if (autoDrafted.current || replyText || options.length > 0) return;
+    autoDrafted.current = true;
+    generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function copy() {
     await navigator.clipboard.writeText(replyText);
     setCopied(true);
@@ -931,7 +941,7 @@ function ReplyModal({
         )}
         <textarea
           className="textarea h-32 resize-none"
-          placeholder={generating ? "Drafting…" : "Click Draft replies, or write one yourself."}
+          placeholder={generating ? "Drafting…" : "Write a reply, or draft some."}
           value={replyText}
           onChange={(e) => setReplyText(e.target.value)}
           disabled={generating}

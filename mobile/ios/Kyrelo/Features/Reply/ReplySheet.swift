@@ -85,6 +85,8 @@ struct ReplySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
         }
+        // Nothing to start from (no Autopilot drafts, no picked reply): draft straight away.
+        .onAppear { if text.isEmpty && options.isEmpty { draft() } }
     }
 
     private func draft() {
