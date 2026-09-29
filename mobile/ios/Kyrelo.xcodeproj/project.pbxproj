@@ -15,6 +15,7 @@
 		238E06526D06378730DF73E2 /* UnfollowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B97D7645D288E2599B4370A2 /* UnfollowView.swift */; };
 		31376F0C7CCECE209878C13B /* BridgeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CB294475FDCBC98CD8B75E /* BridgeClient.swift */; };
 		31D2D166003B6360909F718E /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = 396F0A9B3BB67E89CD663C4C /* Services.swift */; };
+		33D82E39CEC64A9281725DEC /* NotConnectedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F008C94A8D1B1419C877F267 /* NotConnectedView.swift */; };
 		3FF285A433827E3DE3B3CAEE /* AutopilotSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35ED055D0549A2C9014DB264 /* AutopilotSheet.swift */; };
 		41D4809F79E75EEB32F4594B /* PhotoPrep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0457154AD91DB1238578FA /* PhotoPrep.swift */; };
 		42A9E55065A70803C7751A67 /* CampaignSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE80A37744425D8C029551B3 /* CampaignSheet.swift */; };
@@ -98,6 +99,7 @@
 		DFF3E4FD91F35F915EDFBF8B /* Monitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Monitor.swift; sourceTree = "<group>"; };
 		EBBDB3C9B2C596E5A2FF9BAA /* ReplyRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplyRules.swift; sourceTree = "<group>"; };
 		EDC4E4F512248344C85F1871 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		F008C94A8D1B1419C877F267 /* NotConnectedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotConnectedView.swift; sourceTree = "<group>"; };
 		F772E91FDF9B21B78B296FEC /* IBMPlexMono-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "IBMPlexMono-OFL.txt"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -139,6 +141,7 @@
 			isa = PBXGroup;
 			children = (
 				A1957682DB70525077950EAD /* JobLogView.swift */,
+				F008C94A8D1B1419C877F267 /* NotConnectedView.swift */,
 				638C56556323F47AB21F7E5A /* Theme.swift */,
 			);
 			path = Shared;
@@ -439,6 +442,7 @@
 				0D95CC465753839146624408 /* JobLogView.swift in Sources */,
 				A496F16368C4C30401F6DAFF /* KyreloApp.swift in Sources */,
 				61D4EB61A22D1A325410C66B /* Monitor.swift in Sources */,
+				33D82E39CEC64A9281725DEC /* NotConnectedView.swift in Sources */,
 				E80B812F8E38316361A62799 /* PairView.swift in Sources */,
 				4B04E3FBF069A0DC47FF9624 /* Pairing.swift in Sources */,
 				00AABA7137900D20F5591CB8 /* PhotoField.swift in Sources */,

@@ -46,6 +46,12 @@ struct HomeView: View {
             }
             .refreshable { await load() }
         }
+        .overlay {
+            if client.cantReach { NotConnectedView(client: client) }
+        }
+        .onChange(of: client.cantReach) { _, cantReach in
+            if !cantReach { Task { await load() } }
+        }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             await load()

@@ -10,8 +10,8 @@ enum BridgeError: LocalizedError {
         switch self {
         case .unpaired:
             "This phone isn't paired any more. Scan the code in Kyrelo's Settings again."
-        case let .unreachable(host):
-            "Couldn't reach your computer at \(host). Is Kyrelo running, and are you on the same Wi-Fi or Tailscale?"
+        case .unreachable:
+            "Can't reach your computer. Check Kyrelo is open on it, and that your phone is on the same Wi-Fi."
         case let .server(message):
             message
         }
@@ -21,10 +21,13 @@ enum BridgeError: LocalizedError {
 /// Talks to Kyrelo's phone bridge (desktop/lib/mobile-bridge.ts). Each method
 /// is one of the endpoints the bridge allows; the desktop's own routes
 /// do the work, so the phone follows the same rules as the desktop.
+@Observable
 final class BridgeClient {
     let pairing: Pairing
+    /// The last request found none of the computer's addresses (NotConnectedView).
+    private(set) var cantReach = false
     /// The address that answered last time, tried first.
-    private var lastGoodHost: String?
+    @ObservationIgnored private var lastGoodHost: String?
 
     init(pairing: Pairing) {
         self.pairing = pairing
@@ -289,6 +292,7 @@ final class BridgeClient {
                 continue // try the next address
             }
             lastGoodHost = host
+            await setCantReach(false)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             if status == 401 { throw BridgeError.unpaired }
             guard (200..<300).contains(status) else {
@@ -297,7 +301,13 @@ final class BridgeClient {
             }
             return data
         }
+        await setCantReach(true)
         throw BridgeError.unreachable(host: lastHost)
+    }
+
+    // The screens watch this, so change it on the main thread.
+    @MainActor private func setCantReach(_ value: Bool) {
+        if cantReach != value { cantReach = value }
     }
 
     private struct Empty: Decodable {}
