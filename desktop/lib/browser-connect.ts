@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import {
@@ -54,28 +55,43 @@ const LOGINS: Partial<Record<PlatformId, BrowserLogin>> = {
     async readHandle(chrome) {
       const { page } = chrome;
       await page.goto("https://www.instagram.com/", { waitUntil: "domcontentloaded", timeout: 10_000 });
-      // Ask Instagram's web API from inside the signed-in page, so the request
-      // carries the browser's own headers (from outside, Instagram refuses it).
-      const api = await page
-        .evaluate(async () => {
-          const res = await fetch("/api/v1/accounts/current_user/?edit=true", {
-            headers: { "X-IG-App-ID": "936619743392459", "X-Requested-With": "XMLHttpRequest" },
-            credentials: "include",
-          });
-          const json = res.ok ? ((await res.json()) as { user?: { username?: string } }) : null;
-          return { status: res.status, username: json?.user?.username ?? null };
-        })
-        .catch((err: unknown) => ({ status: 0, username: null, error: String(err) }));
-      if (api.username) return api.username;
-      console.warn("[connect] instagram: current_user didn't give a username:", api);
+      const username = (href: string | null) => href?.match(/^\/([A-Za-z0-9._]+)\/?$/)?.[1] ?? null;
 
-      // Otherwise the sidebar's Profile link (its name may start with the
-      // profile picture's alt text), which points at /<username>/.
+      // 1. The sidebar's Profile link, which points at /<username>/. Its name
+      //    may start with the profile picture's alt text. It draws after load.
       const profile = page.getByRole("link", { name: /profile$/i }).first();
-      const href = await profile.getAttribute("href", { timeout: 5_000 }).catch(() => null);
-      const fromLink = href?.match(/^\/([A-Za-z0-9._]+)\/?$/)?.[1] ?? null;
-      if (!fromLink) console.warn(`[connect] instagram: no Profile link (href=${href}), url=${page.url()}`);
-      return fromLink;
+      await profile.waitFor({ state: "attached", timeout: 12_000 }).catch(() => {});
+      const fromSidebar = username(await profile.getAttribute("href", { timeout: 1_000 }).catch(() => null));
+      if (fromSidebar) return fromSidebar;
+
+      // 2. Any link wrapping the signed-in user's profile picture.
+      const picture = page.locator('a[href^="/"]:has(img[alt$="profile picture"])').first();
+      const fromPicture = username(await picture.getAttribute("href", { timeout: 1_000 }).catch(() => null));
+      if (fromPicture) return fromPicture;
+
+      // 3. The account's details, by the user id in Instagram's ds_user_id
+      //    cookie, asked from inside the page so it carries the browser's headers.
+      const userId = (await chrome.context.cookies("https://www.instagram.com")).find((c) => c.name === "ds_user_id")?.value;
+      const api = userId
+        ? await page
+            .evaluate(async (id) => {
+              const res = await fetch(`/api/v1/users/${id}/info/`, {
+                headers: { "X-IG-App-ID": "936619743392459", "X-Requested-With": "XMLHttpRequest" },
+                credentials: "include",
+              });
+              const type = res.headers.get("content-type") ?? "";
+              const json = type.includes("json") ? ((await res.json()) as { user?: { username?: string } }) : null;
+              return { status: res.status, type, username: json?.user?.username ?? null };
+            }, userId)
+            .catch((err: unknown) => ({ status: 0, type: "", username: null, error: String(err) }))
+        : null;
+      if (api?.username) return api.username;
+
+      // Keep a picture of what Chrome was showing, to see why.
+      const shot = path.join(os.tmpdir(), "kyrelo-instagram-connect.png");
+      await page.screenshot({ path: shot }).catch(() => {});
+      console.warn(`[connect] instagram: no username (url=${page.url()}, userId=${userId ?? "none"}, api=${JSON.stringify(api)}); screenshot at ${shot}`);
+      return null;
     },
   },
 };
@@ -220,7 +236,7 @@ export async function endBrowserConnect(): Promise<{ ok: true; handle: string } 
     console.warn("[connect] cookie check failed:", err);
   }
 
-  const capturedHandle = signedIn ? await readHandleWithTimeout(login, chrome, 15_000) : null;
+  const capturedHandle = signedIn ? await readHandleWithTimeout(login, chrome, 30_000) : null;
   console.log(`[connect] end: captured handle=${capturedHandle ?? "null"}`);
 
   try {
