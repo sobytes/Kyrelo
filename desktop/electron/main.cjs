@@ -1,7 +1,7 @@
 // Electron main. In dev: spawns `next dev` + worker. In packaged builds:
 // spawns the Next standalone server + worker via ELECTRON_RUN_AS_NODE so we
 // don't need a separate Node runtime.
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, powerSaveBlocker, shell } = require("electron");
 const { spawn } = require("node:child_process");
 const http = require("node:http");
 const net = require("node:net");
@@ -222,6 +222,11 @@ if (!app.requestSingleInstanceLock()) {
   });
 }
 
+// Keep the screen on and the computer awake while Kyrelo is open, so
+// scheduled posts go out and the Monitor keeps watching. macOS and Windows
+// drop the block when the app quits, even after a crash.
+let awakeBlocker = null;
+
 app.whenReady().then(async () => {
   // A packaged app takes its icon from the bundle; in development the Dock
   // would show Electron's own.
@@ -230,6 +235,7 @@ app.whenReady().then(async () => {
   }
   // Lost the single-instance lock above: we're quitting, start nothing.
   if (!app.hasSingleInstanceLock()) return;
+  awakeBlocker = powerSaveBlocker.start("prevent-display-sleep");
   const port = isDev ? 3000 : await findFreePort();
   appUrl = `http://127.0.0.1:${port}`;
 
@@ -249,6 +255,10 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => app.quit());
+
+app.on("will-quit", () => {
+  if (awakeBlocker !== null && powerSaveBlocker.isStarted(awakeBlocker)) powerSaveBlocker.stop(awakeBlocker);
+});
 
 app.on("before-quit", () => {
   for (const p of [workerProc, nextProc]) {
