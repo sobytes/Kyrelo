@@ -98,8 +98,14 @@ enum Appearance {
             .font: UIFont(name: "Inter", size: 30)?.withWeight(.semibold) ?? .systemFont(ofSize: 30, weight: .semibold),
         ]
         UINavigationBar.appearance().standardAppearance = nav
-        UINavigationBar.appearance().scrollEdgeAppearance = nav
         UINavigationBar.appearance().compactAppearance = nav
+        // At the top of a list, where the large title shows: no bar or
+        // hairline. An opaque bar here hides the large title on iOS 26.
+        let top = UINavigationBarAppearance()
+        top.configureWithTransparentBackground()
+        top.titleTextAttributes = nav.titleTextAttributes
+        top.largeTitleTextAttributes = nav.largeTitleTextAttributes
+        UINavigationBar.appearance().scrollEdgeAppearance = top
 
         let tab = UITabBarAppearance()
         tab.configureWithOpaqueBackground()
@@ -112,8 +118,13 @@ enum Appearance {
 
 private extension UIFont {
     /// A weight of a variable font (Inter ships as one file with a weight axis).
+    /// Sets the font's weight axis ("wght", 100–900); a weight trait alone
+    /// leaves a variable font at its default.
     func withWeight(_ weight: UIFont.Weight) -> UIFont {
-        let descriptor = fontDescriptor.addingAttributes([.traits: [UIFontDescriptor.TraitKey.weight: weight]])
+        let wghtAxis = 0x77676874 // "wght"
+        let value: CGFloat = weight == .semibold ? 600 : weight == .bold ? 700 : weight == .medium ? 500 : 400
+        let variation = UIFontDescriptor.AttributeName(rawValue: kCTFontVariationAttribute as String)
+        let descriptor = fontDescriptor.addingAttributes([variation: [wghtAxis: value]])
         return UIFont(descriptor: descriptor, size: pointSize)
     }
 }

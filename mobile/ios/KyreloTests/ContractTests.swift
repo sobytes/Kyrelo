@@ -147,6 +147,9 @@ final class ContractTests: XCTestCase {
         for platform in PlatformId.allCases {
             XCTAssertNotNil(UIImage(named: "Service-\(platform.rawValue)"), platform.rawValue)
         }
+        for section in Services.global {
+            XCTAssertNotNil(UIImage(named: "Global-\(section)"), section)
+        }
     }
 
     func testEachPlatformJudgesImagesLikeTheDesktop() throws {

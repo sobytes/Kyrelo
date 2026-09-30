@@ -212,14 +212,19 @@ describe("contract: X tools sample (Deleter, Unfollow, finder)", () => {
 describe("contract: service icons", () => {
   const sample = contract("service-icons.json");
 
-  it("has an icon for every platform", () => {
+  it("has an icon for every platform and global section", () => {
     expect(Object.keys(sample.icons).sort()).toEqual([...PLATFORM_IDS].sort());
+    expect(Object.keys(sample.globals)).toEqual(contract("services.json").global);
   });
 
   it("the iPhone's copies are up to date (npm run service-icons)", async () => {
     const { iosIconFiles } = await import("../scripts/generate-service-icons.mjs");
-    for (const [id, markup] of Object.entries(sample.icons as Record<string, string>)) {
-      const { dir, files } = iosIconFiles(id, markup, sample.viewBox);
+    const all = [
+      ...Object.entries(sample.icons as Record<string, string>).map(([id, m]) => [`Service-${id}`, id, m]),
+      ...Object.entries(sample.globals as Record<string, string>).map(([id, m]) => [`Global-${id}`, id, m]),
+    ];
+    for (const [name, id, markup] of all) {
+      const { dir, files } = iosIconFiles(name, id, markup, sample.viewBox);
       for (const [name, content] of Object.entries(files)) {
         expect(readFileSync(path.join(dir, name), "utf8"), `${id}/${name}`).toBe(content);
       }

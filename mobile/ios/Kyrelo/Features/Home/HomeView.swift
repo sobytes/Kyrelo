@@ -20,7 +20,7 @@ struct HomeView: View {
                         .navigationTitle("Scheduler")
                         .navigationBarTitleDisplayMode(.inline)
                 } label: {
-                    HomeRow(icon: Image(systemName: "calendar"), title: "Scheduler", status: accounts.map { "\($0.count) accounts" } ?? "…",
+                    HomeRow(icon: Image("Global-scheduler"), title: "Scheduler", status: accounts.map { "\($0.count) accounts" } ?? "…",
                             detail: "Post and run campaigns across all your accounts")
                 }
                 .listRowBackground(Theme.canvas)

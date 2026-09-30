@@ -1,4 +1,5 @@
 "use client";
+import icons from "../../contracts/service-icons.json";
 import { SectionId, ServiceSpec } from "@/lib/services";
 import { AccountsPanel } from "./ConnectedPanel";
 import { DeleterPanel } from "./DeleterPanel";
@@ -78,11 +79,9 @@ export const SECTIONS: Record<SectionId, SectionSpec> = {
   },
 };
 
-export const SCHEDULER_ICON = icon(
-  <>
-    <rect x="3" y="4" width="18" height="18" rx="2" />
-    <path d="M16 2v4M8 2v4M3 10h18" />
-  </>,
+// Shared with the iPhone app (contracts/service-icons.json).
+export const SCHEDULER_ICON = (
+  <svg viewBox={icons.viewBox} aria-hidden dangerouslySetInnerHTML={{ __html: icons.globals.scheduler }} />
 );
 
 export const SETTINGS_ICON = icon(
