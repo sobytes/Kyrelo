@@ -36,5 +36,6 @@ enum Services {
         ServiceSpec(id: .mastodon, slug: "mastodon", sections: [.accounts]),
         ServiceSpec(id: .threads, slug: "threads", sections: [.accounts]),
         ServiceSpec(id: .instagram, slug: "instagram", sections: [.accounts]),
+        ServiceSpec(id: .facebook, slug: "facebook", sections: [.accounts]),
     ]
 }

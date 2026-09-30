@@ -59,6 +59,8 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
     "Kyrelo posts with Meta's official Threads API, using your token, stored only on this computer and renewed as you post. Threads posts are text only.",
   instagram:
     "Each Instagram account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through instagram.com, the way you would. Every Instagram post needs a photo (JPEG or PNG). Instagram doesn't officially support posting this way, so it can break when they change their site.",
+  facebook:
+    "Each Facebook account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through facebook.com as whichever profile you were using: to post as a Page, switch to it (your picture at the top right → the Page) before clicking I'm logged in. Connect again to add another Page. Facebook doesn't officially support posting this way, so it can break when they change their site.",
 };
 
 function BrowserConnectCard({
@@ -84,10 +86,16 @@ function BrowserConnectCard({
           {phase === "starting"
             ? "Opening Chrome…"
             : phase === "connecting"
-              ? `Log in to ${spec.label} in the Chrome window that opened. Any sign-in method works, including Google or Apple.`
+              ? `Log in to ${spec.label} in the Chrome window that opened. Any sign-in method works, including Google or Apple.${
+                  platform === "facebook"
+                    ? " To post as a Page, switch to it (your picture at the top right → the Page) before clicking I'm logged in."
+                    : ""
+                }`
               : phase === "saving"
                 ? "Saving session…"
-                : `Connect opens Chrome to ${host}. Sign in once and the session is saved to its own profile.`}
+                : platform === "facebook"
+                  ? `Connect opens Chrome to ${host}. Sign in, switch to the Page you want Kyrelo to post as (your picture at the top right → the Page), then click I'm logged in.`
+                  : `Connect opens Chrome to ${host}. Sign in once and the session is saved to its own profile.`}
         </div>
       </div>
 

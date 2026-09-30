@@ -65,6 +65,14 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
       onBrowserReady: opts.onSendingStarted,
     });
   },
+  async facebook(account, text, opts) {
+    const { postToFacebookBrowser } = await import("./browser/facebook-post");
+    return postToFacebookBrowser(account.id, text, {
+      headless: opts.headless,
+      imagePath: opts.imagePath,
+      onBrowserReady: opts.onSendingStarted,
+    });
+  },
 };
 
 export function publish(account: Account, text: string, opts: PublishOptions): Promise<{ url: string }> {

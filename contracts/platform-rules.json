@@ -9,7 +9,8 @@
       "credentials": [],
       "loginUrl": "https://x.com/login",
       "signupUrl": "https://x.com/i/flow/signup",
-      "requiresImage": false
+      "requiresImage": false,
+      "campaignLimit": 280
     },
     {
       "id": "bluesky",
@@ -23,7 +24,8 @@
       ],
       "loginUrl": "https://bsky.app/settings/app-passwords",
       "signupUrl": "https://bsky.app/",
-      "requiresImage": false
+      "requiresImage": false,
+      "campaignLimit": 300
     },
     {
       "id": "mastodon",
@@ -34,7 +36,8 @@
       "credentials": [],
       "loginUrl": "https://joinmastodon.org/servers",
       "signupUrl": "https://joinmastodon.org/servers",
-      "requiresImage": false
+      "requiresImage": false,
+      "campaignLimit": 500
     },
     {
       "id": "threads",
@@ -47,7 +50,8 @@
       ],
       "loginUrl": "https://developers.facebook.com/docs/threads/get-started",
       "signupUrl": "https://www.threads.com/login",
-      "requiresImage": false
+      "requiresImage": false,
+      "campaignLimit": 500
     },
     {
       "id": "instagram",
@@ -63,7 +67,20 @@
         "jpg",
         "jpeg",
         "png"
-      ]
+      ],
+      "campaignLimit": 2200
+    },
+    {
+      "id": "facebook",
+      "label": "Facebook",
+      "maxLength": 63206,
+      "maxImageBytes": 5242880,
+      "connect": "browser",
+      "credentials": [],
+      "loginUrl": "https://www.facebook.com/login/",
+      "signupUrl": "https://www.facebook.com/r.php",
+      "requiresImage": false,
+      "campaignLimit": 500
     }
   ],
   "lengthCases": [
@@ -116,6 +133,11 @@
       "platform": "instagram",
       "text": "Launch day 🚀 https://kyrelo.com/a-long-path",
       "length": 43
+    },
+    {
+      "platform": "facebook",
+      "text": "Launch day 🚀 https://kyrelo.com/a-long-path",
+      "length": 43
     }
   ],
   "imageCases": [
@@ -147,6 +169,16 @@
     {
       "platform": "instagram",
       "imagePath": "abcdef.JPG",
+      "error": null
+    },
+    {
+      "platform": "facebook",
+      "imagePath": null,
+      "error": null
+    },
+    {
+      "platform": "facebook",
+      "imagePath": "abcdef.webp",
       "error": null
     }
   ]

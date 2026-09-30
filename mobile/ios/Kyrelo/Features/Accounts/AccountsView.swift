@@ -21,7 +21,8 @@ struct AccountsView: View {
             Section {
                 switch service.id.connect {
                 case .browser:
-                    Text("\(service.label) accounts connect in Kyrelo on your computer: it opens Chrome there for you to sign in once.")
+                    Text("\(service.label) accounts connect in Kyrelo on your computer: it opens Chrome there for you to sign in once."
+                         + (service.id == .facebook ? " To post as a Page, switch to it in Facebook before clicking I'm logged in." : ""))
                         .foregroundStyle(Theme.muted)
                 case .oauth:
                     MastodonConnect(client: client, onDone: onChange)

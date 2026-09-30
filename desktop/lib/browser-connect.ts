@@ -94,6 +94,23 @@ const LOGINS: Partial<Record<PlatformId, BrowserLogin>> = {
       return null;
     },
   },
+  facebook: {
+    isSignedIn: (cookies) =>
+      cookies.some((c) => c.name === "c_user" && !!c.value && /(^|\.)facebook\.com$/.test(c.domain)),
+    async readHandle(chrome) {
+      // The active profile: a Page the user switched into (i_user), or their own (c_user).
+      const cookies = await chrome.context.cookies("https://www.facebook.com");
+      const actingId = (cookies.find((c) => c.name === "i_user") ?? cookies.find((c) => c.name === "c_user"))?.value;
+      // /me goes to the active profile's address: /<name> or /profile.php?id=<id>.
+      await chrome.page.goto("https://www.facebook.com/me", { waitUntil: "domcontentloaded", timeout: 15_000 }).catch(() => {});
+      const url = new URL(chrome.page.url());
+      const vanity = url.pathname.match(/^\/([A-Za-z0-9.]+)\/?$/)?.[1];
+      if (vanity && !["me", "profile.php", "login"].includes(vanity)) return vanity;
+      const id = url.searchParams.get("id") ?? actingId ?? null;
+      if (!id) console.warn(`[connect] facebook: no profile (url=${chrome.page.url()})`);
+      return id && /^\d+$/.test(id) ? id : null;
+    },
+  },
 };
 
 interface ActiveConnect {

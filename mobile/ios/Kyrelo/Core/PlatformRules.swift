@@ -11,6 +11,7 @@ extension PlatformId {
         case .mastodon: "Mastodon"
         case .threads: "Threads"
         case .instagram: "Instagram"
+        case .facebook: "Facebook"
         }
     }
 
@@ -24,13 +25,14 @@ extension PlatformId {
         case .bluesky: 300
         case .mastodon, .threads: 500
         case .instagram: 2200 // the caption limit
+        case .facebook: 63_206
         }
     }
 
     /// Largest image file the platform accepts on a post.
     var maxImageBytes: Int {
         switch self {
-        case .twitter, .mastodon, .instagram: 5 * 1024 * 1024
+        case .twitter, .mastodon, .instagram, .facebook: 5 * 1024 * 1024
         case .bluesky: 1_000_000
         // Threads' API only takes images from a public web address.
         case .threads: 0
@@ -61,6 +63,7 @@ extension PlatformId {
         case .mastodon: URL(string: "https://joinmastodon.org/servers")!
         case .threads: URL(string: "https://developers.facebook.com/docs/threads/get-started")!
         case .instagram: URL(string: "https://www.instagram.com/accounts/login/")!
+        case .facebook: URL(string: "https://www.facebook.com/login/")!
         }
     }
 
@@ -72,13 +75,14 @@ extension PlatformId {
         case .mastodon: URL(string: "https://joinmastodon.org/servers")!
         case .threads: URL(string: "https://www.threads.com/login")!
         case .instagram: URL(string: "https://www.instagram.com/accounts/emailsignup/")!
+        case .facebook: URL(string: "https://www.facebook.com/r.php")!
         }
     }
 
     /// How an account is connected, as the desktop's PLATFORMS[..].connect.
     var connect: ConnectMethod {
         switch self {
-        case .twitter, .instagram: .browser
+        case .twitter, .instagram, .facebook: .browser
         case .bluesky: .credentials([
             CredentialField(key: "handle", placeholder: "yourname.bsky.social", secret: false),
             CredentialField(key: "appPassword", placeholder: "App password", secret: true),
@@ -88,16 +92,23 @@ extension PlatformId {
         }
     }
 
-    /// The longest post a campaign writes here: X's standard 280 (not X
-    /// Premium's longer limit), the platform's own elsewhere. As the desktop's
-    /// campaignLimit.
-    var campaignLimit: Int { self == .twitter ? ReplyRules.campaignMaxLength : maxLength }
+    /// The longest post an auto campaign writes here: short enough to read as
+    /// a social post, even where the platform allows far more. As the desktop's
+    /// PlatformSpec.campaignLimit.
+    var campaignLimit: Int {
+        switch self {
+        case .twitter: ReplyRules.campaignMaxLength // X's standard 280, not Premium's
+        case .bluesky: 300
+        case .mastodon, .threads, .facebook: 500
+        case .instagram: 2200
+        }
+    }
 
     /// Post length as this platform counts it.
     func length(_ text: String) -> Int {
         switch self {
         case .twitter: ReplyRules.length(text) // links count 23
-        case .bluesky, .threads, .instagram: text.count // what a person sees; links in full
+        case .bluesky, .threads, .instagram, .facebook: text.count // what a person sees; links in full
         case .mastodon: Self.mastodonCountable(text).count
         }
     }

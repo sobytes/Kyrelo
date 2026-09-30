@@ -112,6 +112,7 @@ final class ContractTests: XCTestCase {
             let signupUrl: String
             let requiresImage: Bool
             let imageTypes: [String]?
+            let campaignLimit: Int
         }
         struct ImageCase: Decodable { let platform: String; let imagePath: String?; let error: String? }
         struct LengthCase: Decodable { let platform: String; let text: String; let length: Int }
@@ -131,6 +132,7 @@ final class ContractTests: XCTestCase {
             XCTAssertEqual(platform.loginUrl.absoluteString, p.loginUrl)
             XCTAssertEqual(platform.signupUrl.absoluteString, p.signupUrl)
             XCTAssertEqual(platform.requiresImage, p.requiresImage)
+            XCTAssertEqual(platform.campaignLimit, p.campaignLimit)
             XCTAssertEqual(platform.imageTypes, p.imageTypes)
             switch platform.connect {
             case .browser: XCTAssertEqual(p.connect, "browser")

@@ -18,6 +18,11 @@ export interface PlatformSpec {
    * images there (Threads' API only takes images from a public web address).
    */
   maxImageBytes: number;
+  /**
+   * The longest post an auto campaign writes here: short enough to read as a
+   * social post, even where the platform allows far more (Facebook).
+   */
+  campaignLimit: number;
   /** Every post needs an image (Instagram): text-only posts can't go there. */
   requiresImage: boolean;
   /** The image files it takes, by extension, if not all of Kyrelo's (png, jpg, gif, webp). */
@@ -53,6 +58,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxLength: 4000,
     length: tweetLength,
     maxImageBytes: 5 * 1024 * 1024,
+    campaignLimit: MAX_TWEET_LENGTH,
     requiresImage: false,
     connect: "browser",
     loginUrl: "https://x.com/login",
@@ -66,6 +72,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Bluesky rejects image blobs over ~1 MB.
     maxImageBytes: 1_000_000,
+    campaignLimit: 300,
     requiresImage: false,
     connect: "credentials",
     loginUrl: "https://bsky.app/settings/app-passwords",
@@ -85,6 +92,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Kyrelo's own upload limit (lib/uploads.ts); every Mastodon server takes
     // at least 8 MB.
     maxImageBytes: 5 * 1024 * 1024,
+    campaignLimit: 500,
     requiresImage: false,
     // Type the server, approve Kyrelo there (startMastodonConnect).
     connect: "oauth",
@@ -97,6 +105,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxLength: 500,
     length: (text) => Array.from(graphemes.segment(text)).length,
     maxImageBytes: 0,
+    campaignLimit: 500,
     requiresImage: false,
     connect: "credentials",
     loginUrl: "https://developers.facebook.com/docs/threads/get-started",
@@ -111,6 +120,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Kyrelo's own upload limit (lib/uploads.ts); Instagram takes bigger.
     maxImageBytes: 5 * 1024 * 1024,
+    campaignLimit: 2200,
     requiresImage: true,
     imageTypes: ["jpg", "jpeg", "png"],
     // Posted through instagram.com in the account's own Chrome profile, like X,
@@ -120,15 +130,27 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     loginUrl: "https://www.instagram.com/accounts/login/",
     signupUrl: "https://www.instagram.com/accounts/emailsignup/",
   },
+  facebook: {
+    id: "facebook",
+    label: "Facebook",
+    // Facebook's own limit; campaigns write far shorter (campaignLimit).
+    maxLength: 63_206,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    // Kyrelo's own upload limit (lib/uploads.ts); Facebook takes bigger.
+    maxImageBytes: 5 * 1024 * 1024,
+    campaignLimit: 500,
+    requiresImage: false,
+    // Posted through facebook.com in the account's own Chrome profile, like
+    // Instagram, to the user's own profile.
+    connect: "browser",
+    loginUrl: "https://www.facebook.com/login/",
+    signupUrl: "https://www.facebook.com/r.php",
+  },
 };
 
-/**
- * The longest post a campaign writes for a platform. X's is the standard 280
- * (anyone can post it), not X Premium's longer limit; the rest are the
- * platform's own.
- */
+/** The longest post a campaign writes for a platform (PlatformSpec.campaignLimit). */
 export function campaignLimit(platform: PlatformId): number {
-  return platform === "twitter" ? MAX_TWEET_LENGTH : PLATFORMS[platform].maxLength;
+  return PLATFORMS[platform].campaignLimit;
 }
 
 /** Whether `text` fits every platform a campaign posts to, as each counts it. */

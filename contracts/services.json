@@ -51,6 +51,14 @@
       "sections": [
         "accounts"
       ]
+    },
+    {
+      "id": "facebook",
+      "slug": "facebook",
+      "label": "Facebook",
+      "sections": [
+        "accounts"
+      ]
     }
   ]
 }
