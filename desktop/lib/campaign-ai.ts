@@ -146,7 +146,7 @@ Writing rules:
 - Competitor comparisons are allowed, at most one per burst. State only facts that appear in the research brief, keep it fair and factual, never mock or disparage. Put the supporting source URL(s) in "sources".
 - Never invent statistics, pricing, customer names or quotes.
 
-Media: decide per post; roughly half the posts should carry media, the rest none. Options:
+Media: decide per post; roughly half the posts should carry media, the rest none, unless the prompt says every post needs an image. Options:
 - "library": an image the user uploaded — set libraryId to its id. Prefer these when one genuinely fits the post.
 - "og": the product site's own social preview image.
 - "screenshot": a screenshot of a page — set screenshotUrl (usually the product URL or one of its pages).
@@ -164,7 +164,8 @@ function writePrompt(input: WriteInput): string {
   return (
     `Write exactly ${input.count} posts. They'll go out over the next ${formatWindow(input.windowMinutes)}, ` +
     `each on ${platformList(input.targets)}.\n` +
-    `Each post must be ${input.maxLength - 10} characters or fewer. ${linkRule(input.targets)}\n\n` +
+    `Each post must be ${input.maxLength - 10} characters or fewer. ${linkRule(input.targets)}\n` +
+    `${imageRule(input.targets)}\n\n` +
     `Product URL: ${input.url || "(none)"}\n` +
     `Competitors: ${input.competitors || "(see research)"}\n\n` +
     `Founder's brief:\n"""\n${input.brief}\n"""\n\n` +
@@ -180,10 +181,17 @@ function platformList(targets: CampaignTarget[]): string {
   return labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`;
 }
 
-/** X and Mastodon count every link as 23 characters; Bluesky and Threads count it in full. */
+/** X and Mastodon count every link as 23 characters; the others count it in full. */
 function linkRule(targets: CampaignTarget[]): string {
-  const full = targets.some((t) => t.platform === "bluesky" || t.platform === "threads");
+  const full = targets.some((t) => t.platform !== "twitter" && t.platform !== "mastodon");
   return full ? "Links count at their full length, so keep them short." : "A link counts as 23 characters.";
+}
+
+/** Instagram only takes posts with an image: ask for one on every post. */
+function imageRule(targets: CampaignTarget[]): string {
+  const needs = [...new Set(targets.filter((t) => PLATFORMS[t.platform].requiresImage).map((t) => PLATFORMS[t.platform].label))];
+  if (needs.length === 0) return "";
+  return `${needs.join(" and ")} only takes posts with an image, so give EVERY post an image (library, og, screenshot or ai), never youtube or none.`;
 }
 
 function formatWindow(minutes: number): string {

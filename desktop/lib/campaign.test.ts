@@ -85,6 +85,28 @@ describe("scheduleCampaign", () => {
     ]);
   });
 
+  it("sends Instagram only the posts with a photo it takes", async () => {
+    const { uploadsDir } = await import("./uploads");
+    await mkdir(uploadsDir(), { recursive: true });
+    const photo = "aaaaaaaa-0000-4000-8000-000000000002.png";
+    await writeFile(path.join(uploadsDir(), photo), Buffer.alloc(1000));
+    const c = reviewCampaign("insta", [
+      { platform: "twitter", accountId: "x1" },
+      { platform: "instagram", accountId: "me" },
+    ]);
+    c.drafts = [{ ...c.drafts[0], media: { kind: "library", imagePath: photo } }, c.drafts[1]];
+    await storage.upsertCampaign(c);
+
+    const done = await campaign.scheduleCampaign("insta");
+    const posts = (await storage.listScheduledPosts()).filter((p) => p.campaignId === "insta");
+    expect(posts.map((p) => [p.platform, p.text, p.imagePath ?? null])).toEqual([
+      ["twitter", "first", photo],
+      ["instagram", "first", photo],
+      ["twitter", "second", null],
+    ]);
+    expect(done.postIds).toHaveLength(3);
+  });
+
   it("refuses an edit too long for one of the platforms", async () => {
     const c = reviewCampaign("strict", [
       { platform: "mastodon", accountId: "me@mastodon.social" },

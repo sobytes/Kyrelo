@@ -1,3 +1,4 @@
+import { postImageError } from "./platforms";
 import { getAccountSecret, setAccountSecret } from "./storage";
 import { Account, PlatformId } from "./types";
 
@@ -54,6 +55,15 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
       await setAccountSecret("threads", account.id, { ...secret, token, refreshedAt: new Date().toISOString() });
     }
     return postToThreads(secret.userId, token, text);
+  },
+  async instagram(account, text, opts) {
+    const imageError = postImageError("instagram", opts.imagePath);
+    if (imageError || !opts.imagePath) throw new Error(`${imageError}. Change the photo and reschedule.`);
+    const { postToInstagramBrowser } = await import("./browser/instagram-post");
+    return postToInstagramBrowser(account.id, text, opts.imagePath, {
+      headless: opts.headless,
+      onBrowserReady: opts.onSendingStarted,
+    });
   },
 };
 

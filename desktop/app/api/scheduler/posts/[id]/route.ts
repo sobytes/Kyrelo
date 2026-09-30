@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cancelScheduledPost } from "@/lib/scheduler";
 import { listAccounts, listScheduledPosts, updateScheduledPost } from "@/lib/storage";
-import { PLATFORMS, postTextError } from "@/lib/platforms";
+import { postImageError, postTextError } from "@/lib/platforms";
 import { SAFE_IMAGE_FILENAME } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -49,9 +49,10 @@ export async function PATCH(
   if (body.imagePath && !SAFE_IMAGE_FILENAME.test(body.imagePath)) {
     return NextResponse.json({ error: "invalid imagePath" }, { status: 400 });
   }
-  if (body.imagePath && PLATFORMS[existing.platform].maxImageBytes === 0) {
-    return NextResponse.json({ error: `Kyrelo can't post images to ${PLATFORMS[existing.platform].label}` }, { status: 400 });
-  }
+  // null or "" removes the image; leaving it out keeps the current one.
+  const image = "imagePath" in body ? body.imagePath || undefined : existing.imagePath;
+  const imageError = postImageError(existing.platform, image);
+  if (imageError) return NextResponse.json({ error: imageError }, { status: 400 });
 
   // Applied to the latest stored copy, and only while it is still pending:
   // the scheduler may have started sending it since the user opened the editor.

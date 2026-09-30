@@ -18,6 +18,10 @@ export interface PlatformSpec {
    * images there (Threads' API only takes images from a public web address).
    */
   maxImageBytes: number;
+  /** Every post needs an image (Instagram): text-only posts can't go there. */
+  requiresImage: boolean;
+  /** The image files it takes, by extension, if not all of Kyrelo's (png, jpg, gif, webp). */
+  imageTypes?: string[];
   /**
    * How an account is connected: logging in through Chrome, credentials the
    * user pastes, or approving Kyrelo on the platform's own page (OAuth).
@@ -49,6 +53,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxLength: 4000,
     length: tweetLength,
     maxImageBytes: 5 * 1024 * 1024,
+    requiresImage: false,
     connect: "browser",
     loginUrl: "https://x.com/login",
     signupUrl: "https://x.com/i/flow/signup",
@@ -61,6 +66,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Bluesky rejects image blobs over ~1 MB.
     maxImageBytes: 1_000_000,
+    requiresImage: false,
     connect: "credentials",
     loginUrl: "https://bsky.app/settings/app-passwords",
     signupUrl: "https://bsky.app/",
@@ -79,6 +85,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Kyrelo's own upload limit (lib/uploads.ts); every Mastodon server takes
     // at least 8 MB.
     maxImageBytes: 5 * 1024 * 1024,
+    requiresImage: false,
     // Type the server, approve Kyrelo there (startMastodonConnect).
     connect: "oauth",
     loginUrl: "https://joinmastodon.org/servers",
@@ -90,10 +97,28 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxLength: 500,
     length: (text) => Array.from(graphemes.segment(text)).length,
     maxImageBytes: 0,
+    requiresImage: false,
     connect: "credentials",
     loginUrl: "https://developers.facebook.com/docs/threads/get-started",
     signupUrl: "https://www.threads.com/login",
     credentials: [{ key: "token", label: "Access token", placeholder: "Your Threads access token", secret: true }],
+  },
+  instagram: {
+    id: "instagram",
+    label: "Instagram",
+    // The caption limit. Links count in full and aren't clickable in captions.
+    maxLength: 2200,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    // Kyrelo's own upload limit (lib/uploads.ts); Instagram takes bigger.
+    maxImageBytes: 5 * 1024 * 1024,
+    requiresImage: true,
+    imageTypes: ["jpg", "jpeg", "png"],
+    // Posted through instagram.com in the account's own Chrome profile, like X,
+    // so images come straight from this computer (Meta's API only takes them
+    // from a public web address).
+    connect: "browser",
+    loginUrl: "https://www.instagram.com/accounts/login/",
+    signupUrl: "https://www.instagram.com/accounts/emailsignup/",
   },
 };
 
@@ -142,6 +167,16 @@ export function fitText(text: string, max: number, length: (t: string) => number
     if (!/^https?:\/\//.test(words[i])) words.splice(i, 1);
   }
   return words.join("").trimEnd() + "…";
+}
+
+/** Why a post with this image (or none) can't go to `platform`, or null if it can. */
+export function postImageError(platform: PlatformId, imagePath: string | undefined): string | null {
+  const spec = PLATFORMS[platform];
+  if (!imagePath) return spec.requiresImage ? `${spec.label} posts need a photo` : null;
+  if (spec.maxImageBytes === 0) return `Kyrelo can't post images to ${spec.label}`;
+  const ext = imagePath.split(".").pop()?.toLowerCase() ?? "";
+  if (spec.imageTypes && !spec.imageTypes.includes(ext)) return `${spec.label} takes JPEG or PNG photos`;
+  return null;
 }
 
 /** Why `text` can't be posted on `platform`, or null if it can. */

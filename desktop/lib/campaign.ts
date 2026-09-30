@@ -6,7 +6,7 @@ import { cancelScheduledPost, createScheduledPost } from "./scheduler";
 import { getCampaign, getGrokSettings, listMediaItems, upsertCampaign } from "./storage";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { campaignLimit, fitForCampaign, fitsCampaign, PLATFORMS } from "./platforms";
+import { campaignLimit, fitForCampaign, fitsCampaign, PLATFORMS, postImageError } from "./platforms";
 import { Campaign, CampaignDraft, CampaignTarget, MediaItem } from "./types";
 import { uploadsDir } from "./uploads";
 
@@ -242,13 +242,18 @@ async function scheduleCampaignOnce(id: string, edits?: DraftEdit[]): Promise<Ca
 
   // Each post goes to every target, at the same time. An image goes where the
   // platform can take it (Threads can't; Bluesky only up to 1 MB); the rest
-  // get the text alone.
+  // get the text alone. Instagram needs an image, so it gets only the posts
+  // that have one it can take.
   const postIds: string[] = [];
   try {
     for (const d of toPost) {
       const imageBytes = d.media.imagePath ? await fileSize(path.join(uploadsDir(), d.media.imagePath)) : 0;
       for (const target of c.targets) {
-        const fits = imageBytes > 0 && imageBytes <= PLATFORMS[target.platform].maxImageBytes;
+        const fits =
+          imageBytes > 0 &&
+          imageBytes <= PLATFORMS[target.platform].maxImageBytes &&
+          !postImageError(target.platform, d.media.imagePath);
+        if (!fits && PLATFORMS[target.platform].requiresImage) continue;
         const post = await createScheduledPost({
           platform: target.platform,
           accountId: target.accountId,

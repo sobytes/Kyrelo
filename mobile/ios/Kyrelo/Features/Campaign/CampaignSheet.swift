@@ -192,8 +192,13 @@ struct CampaignSheet: View {
             } header: {
                 Text("Post to")
             } footer: {
-                if model.platforms.count > 1 {
-                    Text("Each post goes to every account picked, written to fit the strictest limit.")
+                VStack(alignment: .leading, spacing: 4) {
+                    if model.platforms.count > 1 {
+                        Text("Each post goes to every account picked, written to fit the strictest limit.")
+                    }
+                    if model.platforms.contains(where: \.requiresImage) {
+                        Text("Instagram only takes posts with a photo: Kyrelo asks for an image on every post, and any post without one skips Instagram.")
+                    }
                 }
             }
             Section("What are you promoting?") {
@@ -283,6 +288,11 @@ struct CampaignSheet: View {
                         if let image = draft.imagePath, !draft.removeImage {
                             BridgeImage(client: model.client, filename: image).frame(maxHeight: 160)
                             Button("Remove image", role: .destructive) { draft.removeImage = true }
+                        }
+                        ForEach(model.platforms.filter(\.requiresImage), id: \.self) { p in
+                            if let problem = p.imageError(draft.removeImage ? nil : draft.imagePath) {
+                                Text("This post skips \(p.label) (\(problem)).").font(.inter(.caption)).foregroundStyle(Theme.warning)
+                            }
                         }
                         if let note = draft.note { Text(note).font(.inter(.caption)).foregroundStyle(Theme.muted) }
                         DatePicker("When", selection: $draft.date)

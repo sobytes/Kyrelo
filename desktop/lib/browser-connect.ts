@@ -48,6 +48,21 @@ const LOGINS: Partial<Record<PlatformId, BrowserLogin>> = {
       return typeof json.screen_name === "string" ? json.screen_name : null;
     },
   },
+  instagram: {
+    isSignedIn: (cookies) =>
+      cookies.some((c) => c.name === "sessionid" && !!c.value && /(^|\.)instagram\.com$/.test(c.domain)),
+    async readHandle(chrome) {
+      // Instagram's own web app asks this endpoint for the signed-in user, with
+      // its public web app id.
+      const res = await chrome.context.request.get("https://www.instagram.com/api/v1/accounts/current_user/?edit=true", {
+        headers: { "X-IG-App-ID": "936619743392459" },
+        timeout: 8_000,
+      });
+      if (!res.ok()) return null;
+      const json = (await res.json().catch(() => null)) as { user?: { username?: string } } | null;
+      return typeof json?.user?.username === "string" ? json.user.username : null;
+    },
+  },
 };
 
 interface ActiveConnect {

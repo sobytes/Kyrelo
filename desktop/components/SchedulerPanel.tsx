@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AutoCampaignModal } from "@/components/AutoCampaignModal";
 import { PlatformBadge } from "@/components/PlatformBadge";
-import { PLATFORMS } from "@/lib/platforms";
+import { PLATFORMS, postImageError } from "@/lib/platforms";
 import { Account, GrokSettings, PlatformId, ScheduledPost } from "@/lib/types";
 
 interface ConnectStatus {
@@ -183,6 +183,9 @@ export function SchedulerPanel() {
 
   const canAttachImage = targets.some((a) => PLATFORMS[a.platform].maxImageBytes > 0);
   const imagesDropped = imagePath ? targets.filter((a) => PLATFORMS[a.platform].maxImageBytes === 0) : [];
+  // Instagram needs a photo, and only takes JPEG or PNG.
+  const needsImage = targets.find((a) => PLATFORMS[a.platform].requiresImage)?.platform;
+  const imageProblem = needsImage ? postImageError(needsImage, imagePath ?? undefined) : null;
 
   return (
     <div className="space-y-5">
@@ -239,7 +242,7 @@ export function SchedulerPanel() {
 
           {canAttachImage && (
           <div>
-            <div className="label">Image (optional)</div>
+            <div className="label">{needsImage ? "Photo" : "Image (optional)"}</div>
             {imagePreviewUrl ? (
               <div className="flex items-start gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -275,6 +278,12 @@ export function SchedulerPanel() {
           </div>
           )}
 
+          {imageProblem && (
+            <p className="text-xs text-warning">
+              {imageProblem}. {imagePath ? "Pick a different image" : "Add one"}, or untick {PLATFORMS[needsImage!].label}.
+            </p>
+          )}
+
           {imagesDropped.length > 0 && (
             <p className="text-xs text-muted">
               {[...new Set(imagesDropped.map((a) => PLATFORMS[a.platform].label))].join(" and ")} posts are sent without
@@ -295,7 +304,7 @@ export function SchedulerPanel() {
 
           <button
             type="submit"
-            disabled={submitting || !text.trim() || overLimit || !scheduledFor || targets.length === 0}
+            disabled={submitting || !text.trim() || overLimit || !scheduledFor || targets.length === 0 || !!imageProblem}
             className="btn-primary text-sm"
           >
             {submitting ? "Scheduling…" : targets.length > 1 ? `Schedule ${targets.length} posts` : "Schedule post"}

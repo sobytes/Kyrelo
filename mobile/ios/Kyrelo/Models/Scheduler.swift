@@ -4,7 +4,7 @@ import Foundation
 // contracts/scheduler.json is a sample both apps are tested against.
 
 enum PlatformId: String, Codable, CaseIterable {
-    case twitter, bluesky, mastodon, threads
+    case twitter, bluesky, mastodon, threads, instagram
 }
 
 /// A list from the desktop, skipping items this app can't read. The desktop

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { pairingLink } from "./mobile-bridge";
-import { PLATFORM_IDS, PLATFORMS } from "./platforms";
+import { PLATFORM_IDS, PLATFORMS, postImageError } from "./platforms";
 import { getGrokSettings } from "./storage";
 import { MAX_TWEET_LENGTH, REPLY_MAX_LENGTH, tweetLength } from "./tweet";
 import { REPLY_STYLES, REPLY_TONES } from "./types";
@@ -45,6 +45,8 @@ describe("contract: platform rules", () => {
         label: PLATFORMS[id].label,
         maxLength: PLATFORMS[id].maxLength,
         maxImageBytes: PLATFORMS[id].maxImageBytes,
+        requiresImage: PLATFORMS[id].requiresImage,
+        imageTypes: PLATFORMS[id].imageTypes,
         connect: PLATFORMS[id].connect,
         credentials: (PLATFORMS[id].credentials ?? []).map((f) => f.key),
         loginUrl: PLATFORMS[id].loginUrl,
@@ -52,6 +54,13 @@ describe("contract: platform rules", () => {
       })),
     );
   });
+
+  it.each(rules.imageCases as { platform: keyof typeof PLATFORMS; imagePath: string | null; error: string | null }[])(
+    "says the same about $platform with $imagePath",
+    ({ platform, imagePath, error }) => {
+      expect(postImageError(platform, imagePath ?? undefined)).toBe(error);
+    },
+  );
 
   it.each(rules.lengthCases as { platform: keyof typeof PLATFORMS; text: string; length: number }[])(
     "counts $platform %j the same way",

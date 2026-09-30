@@ -109,10 +109,14 @@ final class ContractTests: XCTestCase {
             let credentials: [String]
             let loginUrl: String
             let signupUrl: String
+            let requiresImage: Bool
+            let imageTypes: [String]?
         }
+        struct ImageCase: Decodable { let platform: String; let imagePath: String?; let error: String? }
         struct LengthCase: Decodable { let platform: String; let text: String; let length: Int }
         let platforms: [Platform]
         let lengthCases: [LengthCase]
+        let imageCases: [ImageCase]
     }
 
     func testPlatformsNamesLimitsAndConnectingMatch() throws {
@@ -125,6 +129,8 @@ final class ContractTests: XCTestCase {
             XCTAssertEqual(platform.maxImageBytes, p.maxImageBytes)
             XCTAssertEqual(platform.loginUrl.absoluteString, p.loginUrl)
             XCTAssertEqual(platform.signupUrl.absoluteString, p.signupUrl)
+            XCTAssertEqual(platform.requiresImage, p.requiresImage)
+            XCTAssertEqual(platform.imageTypes, p.imageTypes)
             switch platform.connect {
             case .browser: XCTAssertEqual(p.connect, "browser")
             case .oauth: XCTAssertEqual(p.connect, "oauth")
@@ -132,6 +138,14 @@ final class ContractTests: XCTestCase {
                 XCTAssertEqual(p.connect, "credentials")
                 XCTAssertEqual(fields.map(\.key), p.credentials)
             }
+        }
+    }
+
+    func testEachPlatformJudgesImagesLikeTheDesktop() throws {
+        let rules = try JSONDecoder().decode(PlatformRulesContract.self, from: contract("platform-rules"))
+        for c in rules.imageCases {
+            let platform = try XCTUnwrap(PlatformId(rawValue: c.platform))
+            XCTAssertEqual(platform.imageError(c.imagePath), c.error, "\(c.platform) \(c.imagePath ?? "no image")")
         }
     }
 

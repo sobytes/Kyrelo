@@ -10,6 +10,7 @@ extension PlatformId {
         case .bluesky: "Bluesky"
         case .mastodon: "Mastodon"
         case .threads: "Threads"
+        case .instagram: "Instagram"
         }
     }
 
@@ -20,6 +21,7 @@ extension PlatformId {
         case .bluesky: "B"
         case .mastodon: "M"
         case .threads: "T"
+        case .instagram: "I"
         }
     }
 
@@ -28,17 +30,34 @@ extension PlatformId {
         case .twitter: 4000
         case .bluesky: 300
         case .mastodon, .threads: 500
+        case .instagram: 2200 // the caption limit
         }
     }
 
     /// Largest image file the platform accepts on a post.
     var maxImageBytes: Int {
         switch self {
-        case .twitter, .mastodon: 5 * 1024 * 1024
+        case .twitter, .mastodon, .instagram: 5 * 1024 * 1024
         case .bluesky: 1_000_000
         // Threads' API only takes images from a public web address.
         case .threads: 0
         }
+    }
+
+    /// Every post needs an image (Instagram): text-only posts can't go there.
+    var requiresImage: Bool { self == .instagram }
+
+    /// The image files it takes, by extension, if not all of Kyrelo's.
+    var imageTypes: [String]? { self == .instagram ? ["jpg", "jpeg", "png"] : nil }
+
+    /// Why a post with this image (or none) can't go here, or nil if it can.
+    /// Same rules and words as the desktop's postImageError.
+    func imageError(_ imagePath: String?) -> String? {
+        guard let imagePath else { return requiresImage ? "\(label) posts need a photo" : nil }
+        if maxImageBytes == 0 { return "Kyrelo can't post images to \(label)" }
+        let ext = (imagePath as NSString).pathExtension.lowercased()
+        if let imageTypes, !imageTypes.contains(ext) { return "\(label) takes JPEG or PNG photos" }
+        return nil
     }
 
     /// Where to log in, or to create the credentials Kyrelo asks for.
@@ -48,6 +67,7 @@ extension PlatformId {
         case .bluesky: URL(string: "https://bsky.app/settings/app-passwords")!
         case .mastodon: URL(string: "https://joinmastodon.org/servers")!
         case .threads: URL(string: "https://developers.facebook.com/docs/threads/get-started")!
+        case .instagram: URL(string: "https://www.instagram.com/accounts/login/")!
         }
     }
 
@@ -58,13 +78,14 @@ extension PlatformId {
         case .bluesky: URL(string: "https://bsky.app/")!
         case .mastodon: URL(string: "https://joinmastodon.org/servers")!
         case .threads: URL(string: "https://www.threads.com/login")!
+        case .instagram: URL(string: "https://www.instagram.com/accounts/emailsignup/")!
         }
     }
 
     /// How an account is connected, as the desktop's PLATFORMS[..].connect.
     var connect: ConnectMethod {
         switch self {
-        case .twitter: .browser
+        case .twitter, .instagram: .browser
         case .bluesky: .credentials([
             CredentialField(key: "handle", placeholder: "yourname.bsky.social", secret: false),
             CredentialField(key: "appPassword", placeholder: "App password", secret: true),
@@ -83,7 +104,7 @@ extension PlatformId {
     func length(_ text: String) -> Int {
         switch self {
         case .twitter: ReplyRules.length(text) // links count 23
-        case .bluesky, .threads: text.count // what a person sees; links in full
+        case .bluesky, .threads, .instagram: text.count // what a person sees; links in full
         case .mastodon: Self.mastodonCountable(text).count
         }
     }

@@ -8,7 +8,8 @@
       "connect": "browser",
       "credentials": [],
       "loginUrl": "https://x.com/login",
-      "signupUrl": "https://x.com/i/flow/signup"
+      "signupUrl": "https://x.com/i/flow/signup",
+      "requiresImage": false
     },
     {
       "id": "bluesky",
@@ -21,7 +22,8 @@
         "appPassword"
       ],
       "loginUrl": "https://bsky.app/settings/app-passwords",
-      "signupUrl": "https://bsky.app/"
+      "signupUrl": "https://bsky.app/",
+      "requiresImage": false
     },
     {
       "id": "mastodon",
@@ -31,7 +33,8 @@
       "connect": "oauth",
       "credentials": [],
       "loginUrl": "https://joinmastodon.org/servers",
-      "signupUrl": "https://joinmastodon.org/servers"
+      "signupUrl": "https://joinmastodon.org/servers",
+      "requiresImage": false
     },
     {
       "id": "threads",
@@ -43,7 +46,24 @@
         "token"
       ],
       "loginUrl": "https://developers.facebook.com/docs/threads/get-started",
-      "signupUrl": "https://www.threads.com/login"
+      "signupUrl": "https://www.threads.com/login",
+      "requiresImage": false
+    },
+    {
+      "id": "instagram",
+      "label": "Instagram",
+      "maxLength": 2200,
+      "maxImageBytes": 5242880,
+      "connect": "browser",
+      "credentials": [],
+      "loginUrl": "https://www.instagram.com/accounts/login/",
+      "signupUrl": "https://www.instagram.com/accounts/emailsignup/",
+      "requiresImage": true,
+      "imageTypes": [
+        "jpg",
+        "jpeg",
+        "png"
+      ]
     }
   ],
   "lengthCases": [
@@ -91,6 +111,43 @@
       "platform": "threads",
       "text": "👨‍👩‍👧 family",
       "length": 8
+    },
+    {
+      "platform": "instagram",
+      "text": "Launch day 🚀 https://kyrelo.com/a-long-path",
+      "length": 43
+    }
+  ],
+  "imageCases": [
+    {
+      "platform": "twitter",
+      "imagePath": null,
+      "error": null
+    },
+    {
+      "platform": "twitter",
+      "imagePath": "abcdef.webp",
+      "error": null
+    },
+    {
+      "platform": "threads",
+      "imagePath": "abcdef.jpg",
+      "error": "Kyrelo can't post images to Threads"
+    },
+    {
+      "platform": "instagram",
+      "imagePath": null,
+      "error": "Instagram posts need a photo"
+    },
+    {
+      "platform": "instagram",
+      "imagePath": "abcdef.webp",
+      "error": "Instagram takes JPEG or PNG photos"
+    },
+    {
+      "platform": "instagram",
+      "imagePath": "abcdef.JPG",
+      "error": null
     }
   ]
 }

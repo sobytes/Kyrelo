@@ -24,6 +24,7 @@ beforeAll(async () => {
   const addedAt = new Date().toISOString();
   await saveAccount({ platform: "twitter", id: "acct", handle: "acct", addedAt });
   await saveAccount({ platform: "bluesky", id: "me.bsky.social", handle: "me.bsky.social", addedAt });
+  await saveAccount({ platform: "instagram", id: "me.insta", handle: "me.insta", addedAt });
 });
 
 function json(method: string, body: unknown) {
@@ -49,6 +50,16 @@ describe("scheduled post routes", () => {
     ["an image path outside uploads", { ...valid, imagePath: "../api-keys.json" }],
   ])("rejects %s", async (_label, body) => {
     expect((await posts.POST(json("POST", body))).status).toBe(400);
+  });
+
+  it("needs a JPEG or PNG photo for Instagram, including when editing", async () => {
+    const insta = { ...valid, platform: "instagram", accountId: "me.insta" };
+    expect(await (await posts.POST(json("POST", insta))).json()).toEqual({ error: "Instagram posts need a photo" });
+    expect((await posts.POST(json("POST", { ...insta, imagePath: "abcdef.webp" }))).status).toBe(400);
+    const created = await (await posts.POST(json("POST", { ...insta, imagePath: "abcdef.jpg" }))).json();
+    const ctx = { params: Promise.resolve({ id: created.post.id }) };
+    expect((await postById.PATCH(json("PATCH", { imagePath: null }), ctx)).status).toBe(400);
+    expect((await postById.PATCH(json("PATCH", { text: "new caption" }), ctx)).status).toBe(200);
   });
 
   it("applies the same text and date rules when editing", async () => {

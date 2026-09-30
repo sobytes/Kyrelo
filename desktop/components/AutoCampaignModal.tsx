@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { campaignLimit, fitsCampaign, PLATFORMS } from "@/lib/platforms";
+import { campaignLimit, fitsCampaign, PLATFORMS, postImageError } from "@/lib/platforms";
 import { Account, Campaign, CampaignDraft, MediaItem, PlatformId } from "@/lib/types";
 import { PlatformBadge } from "./PlatformBadge";
 
@@ -243,6 +243,12 @@ export function AutoCampaignModal({
                 <p className="mt-1 text-[11px] text-muted">
                   Each post goes to every account picked, written to fit the strictest limit (
                   {platforms.map((p) => `${PLATFORMS[p].label} ${campaignLimit(p)}`).join(", ")}).
+                </p>
+              )}
+              {platforms.some((p) => PLATFORMS[p].requiresImage) && (
+                <p className="mt-1 text-[11px] text-muted">
+                  Instagram only takes posts with a photo: Kyrelo asks for an image on every post, and any post without one
+                  skips Instagram.
                 </p>
               )}
             </div>
@@ -495,6 +501,16 @@ function DraftCard({
           );
         })}
       </div>
+      {platforms.map((p) => {
+        const problem = PLATFORMS[p].requiresImage ? postImageError(p, image ?? undefined) : null;
+        return (
+          problem && (
+            <p key={p} className="text-[11px] text-warning">
+              This post skips {PLATFORMS[p].label} ({problem}).
+            </p>
+          )
+        );
+      })}
       {image && (
         <div className="flex items-start gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}

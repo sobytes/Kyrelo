@@ -57,6 +57,8 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
   mastodon: "Your server gives Kyrelo its own sign-in, stored only on this computer. Remove it any time here or in your Mastodon settings.",
   threads:
     "Kyrelo posts with Meta's official Threads API, using your token, stored only on this computer and renewed as you post. Threads posts are text only.",
+  instagram:
+    "Each Instagram account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through instagram.com, the way you would. Every Instagram post needs a photo (JPEG or PNG). Instagram doesn't officially support posting this way, so it can break when they change their site.",
 };
 
 function BrowserConnectCard({

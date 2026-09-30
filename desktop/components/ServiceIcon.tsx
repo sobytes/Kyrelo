@@ -36,6 +36,13 @@ const PATHS: Record<PlatformId, React.ReactNode> = {
       fill="none"
     />
   ),
+  instagram: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="4.5" stroke="currentColor" strokeWidth="1.7" fill="none" />
+      <circle cx="12" cy="12" r="3.6" stroke="currentColor" strokeWidth="1.7" fill="none" />
+      <circle cx="16.6" cy="7.4" r="1.1" fill="currentColor" />
+    </>
+  ),
 };
 
 export function ServiceIcon({ service, className = "h-5 w-5" }: { service: PlatformId; className?: string }) {

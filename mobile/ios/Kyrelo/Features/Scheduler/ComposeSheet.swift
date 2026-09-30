@@ -27,6 +27,8 @@ struct ComposeSheet: View {
     private var overLimit: Bool { platforms.contains { $0.length(text) > $0.maxLength } }
     /// Chosen platforms Kyrelo can't send images to: their posts go without the photo.
     private var noPhoto: [PlatformId] { photo == nil ? [] : platforms.filter { $0.maxImageBytes == 0 } }
+    /// A chosen platform that needs a photo (Instagram) while there isn't one.
+    private var needsPhoto: PlatformId? { photo == nil ? platforms.first(where: \.requiresImage) : nil }
 
     var body: some View {
         NavigationStack {
@@ -43,6 +45,10 @@ struct ComposeSheet: View {
                 }
                 Section("Photo") {
                     PhotoField(photo: $photo)
+                    if let needsPhoto {
+                        Text("\(needsPhoto.label) posts need a photo. Add one, or turn \(needsPhoto.label) off below.")
+                            .font(.inter(.caption)).foregroundStyle(Theme.warning)
+                    }
                     if !noPhoto.isEmpty {
                         Text("\(noPhoto.map(\.label).joined(separator: " and ")) posts are sent without the photo: Kyrelo can't post images there.")
                             .font(.inter(.caption)).foregroundStyle(Theme.muted)
@@ -74,7 +80,7 @@ struct ComposeSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(sending ? "Scheduling…" : targets.count > 1 ? "Schedule \(targets.count)" : "Schedule", action: schedule)
-                        .disabled(sending || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || targets.isEmpty || overLimit)
+                        .disabled(sending || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || targets.isEmpty || overLimit || needsPhoto != nil)
                 }
             }
         }
@@ -133,6 +139,10 @@ struct EditPostSheet: View {
     }
 
     private var length: Int { post.platform.length(text) }
+    /// Instagram posts can't lose their photo.
+    private var needsPhoto: Bool {
+        post.platform.requiresImage && photo == nil && (removeExisting || post.imagePath == nil)
+    }
 
     var body: some View {
         NavigationStack {
@@ -150,6 +160,9 @@ struct EditPostSheet: View {
                             existing: post.imagePath.flatMap { removeExisting ? nil : (client, $0) },
                             onRemoveExisting: { removeExisting = true }
                         )
+                        if needsPhoto {
+                            Text("\(post.platform.label) posts need a photo.").font(.inter(.caption)).foregroundStyle(Theme.warning)
+                        }
                     }
                 }
                 Section { DatePicker("When", selection: $date) }
@@ -167,7 +180,7 @@ struct EditPostSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(saving ? "Saving…" : "Save") { run { try await save() } }
-                        .disabled(saving || length > post.platform.maxLength || text.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .disabled(saving || length > post.platform.maxLength || text.trimmingCharacters(in: .whitespaces).isEmpty || needsPhoto)
                 }
             }
         }
