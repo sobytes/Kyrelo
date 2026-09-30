@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 /// Each platform's name, post limit and how it counts length, shared with the
 /// desktop (desktop/lib/platforms.ts). Checked against
@@ -14,16 +14,9 @@ extension PlatformId {
         }
     }
 
-    /// A letter mark for the service, where there is no room for its name.
-    var mark: String {
-        switch self {
-        case .twitter: "X"
-        case .bluesky: "B"
-        case .mastodon: "M"
-        case .threads: "T"
-        case .instagram: "I"
-        }
-    }
+    /// The service's mark, as the desktop draws it (contracts/service-icons.json,
+    /// generated into the asset catalog by desktop/scripts/generate-service-icons.mjs).
+    var icon: Image { Image("Service-\(rawValue)") }
 
     var maxLength: Int {
         switch self {

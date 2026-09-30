@@ -18,7 +18,8 @@
     "release:mac:test": "node scripts/release-mac.js --test",
     "release:win": "node scripts/release-win.js",
     "release:win:test": "node scripts/release-win.js --test",
-    "icon": "node scripts/generate-icon.mjs"
+    "icon": "node scripts/generate-icon.mjs",
+    "service-icons": "node scripts/generate-service-icons.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

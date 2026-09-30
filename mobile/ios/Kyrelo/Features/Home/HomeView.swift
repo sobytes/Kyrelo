@@ -20,7 +20,7 @@ struct HomeView: View {
                         .navigationTitle("Scheduler")
                         .navigationBarTitleDisplayMode(.inline)
                 } label: {
-                    HomeRow(mark: "S", title: "Scheduler", status: accounts.map { "\($0.count) accounts" } ?? "…",
+                    HomeRow(icon: Image(systemName: "calendar"), title: "Scheduler", status: accounts.map { "\($0.count) accounts" } ?? "…",
                             detail: "Post and run campaigns across all your accounts")
                 }
                 .listRowBackground(Theme.canvas)
@@ -77,7 +77,7 @@ private struct ServiceRow: View {
 
     var body: some View {
         HomeRow(
-            mark: service.id.mark,
+            icon: service.id.icon,
             title: service.label,
             status: status,
             detail: service.sections.map(\.label).joined(separator: " · ")
@@ -95,15 +95,17 @@ private struct ServiceRow: View {
 }
 
 private struct HomeRow: View {
-    let mark: String
+    let icon: Image
     let title: String
     let status: String
     let detail: String
 
     var body: some View {
         HStack(spacing: 14) {
-            Text(mark)
-                .font(.inter(.headline, weight: .semibold))
+            icon
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
                 .foregroundStyle(Theme.fg)
                 .frame(width: 44, height: 44)
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.md))

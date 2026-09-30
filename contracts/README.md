@@ -15,6 +15,7 @@ side's logic drifts, its tests fail:
 | `scheduler.json` | Sample accounts, posts, campaigns and brand profile responses the phone must decode |
 | `monitor-feed.json` | A sample `/api/grok-state` + `/api/grok-settings` response the phone must decode |
 | `services.json` | The services (X, Bluesky, Mastodon, Threads, Instagram) and each one's own sections, plus the global ones (the Scheduler); the desktop's home screen, sidebar and routes, and the iPhone's screens, are built from it |
+| `service-icons.json` | Each service's icon (SVG shapes). The desktop draws them; `npm run service-icons` (in desktop/) writes the iPhone's copies into its asset catalog, and a test fails if they're out of date |
 | `design-tokens.json` | The design system: colours, radii (never over 12px), spacing and fonts. The desktop's Tailwind config reads it, the website builds from a checked copy (`website/design-tokens.json`), and the iPhone's `Theme.swift` must match it |
 
 Change a rule here first, then make both apps pass.

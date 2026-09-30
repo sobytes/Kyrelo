@@ -209,3 +209,20 @@ describe("contract: X tools sample (Deleter, Unfollow, finder)", () => {
   });
 });
 
+describe("contract: service icons", () => {
+  const sample = contract("service-icons.json");
+
+  it("has an icon for every platform", () => {
+    expect(Object.keys(sample.icons).sort()).toEqual([...PLATFORM_IDS].sort());
+  });
+
+  it("the iPhone's copies are up to date (npm run service-icons)", async () => {
+    const { iosIconFiles } = await import("../scripts/generate-service-icons.mjs");
+    for (const [id, markup] of Object.entries(sample.icons as Record<string, string>)) {
+      const { dir, files } = iosIconFiles(id, markup, sample.viewBox);
+      for (const [name, content] of Object.entries(files)) {
+        expect(readFileSync(path.join(dir, name), "utf8"), `${id}/${name}`).toBe(content);
+      }
+    }
+  });
+});

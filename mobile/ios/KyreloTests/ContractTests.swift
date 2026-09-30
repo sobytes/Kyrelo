@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 @testable import Kyrelo
 
@@ -138,6 +139,13 @@ final class ContractTests: XCTestCase {
                 XCTAssertEqual(p.connect, "credentials")
                 XCTAssertEqual(fields.map(\.key), p.credentials)
             }
+        }
+    }
+
+    func testEveryPlatformHasItsIcon() {
+        // Generated from contracts/service-icons.json into the asset catalog.
+        for platform in PlatformId.allCases {
+            XCTAssertNotNil(UIImage(named: "Service-\(platform.rawValue)"), platform.rawValue)
         }
     }
 

@@ -83,7 +83,7 @@ struct SchedulerView: View {
                 ForEach(model.accounts) { account in
                     let on = account.key == model.selectedKey
                     Button { model.selectedKey = account.key } label: {
-                        Text("\(account.platform.mark)  @\(account.handle)")
+                        Label { Text("@\(account.handle)") } icon: { account.platform.icon.resizable().frame(width: 14, height: 14) }
                             .font(.inter(.subheadline))
                             .padding(.horizontal, 12).padding(.vertical, 7)
                             .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.sm))
