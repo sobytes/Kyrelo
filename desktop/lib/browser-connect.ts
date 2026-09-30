@@ -52,15 +52,30 @@ const LOGINS: Partial<Record<PlatformId, BrowserLogin>> = {
     isSignedIn: (cookies) =>
       cookies.some((c) => c.name === "sessionid" && !!c.value && /(^|\.)instagram\.com$/.test(c.domain)),
     async readHandle(chrome) {
-      // Instagram's own web app asks this endpoint for the signed-in user, with
-      // its public web app id.
-      const res = await chrome.context.request.get("https://www.instagram.com/api/v1/accounts/current_user/?edit=true", {
-        headers: { "X-IG-App-ID": "936619743392459" },
-        timeout: 8_000,
-      });
-      if (!res.ok()) return null;
-      const json = (await res.json().catch(() => null)) as { user?: { username?: string } } | null;
-      return typeof json?.user?.username === "string" ? json.user.username : null;
+      const { page } = chrome;
+      await page.goto("https://www.instagram.com/", { waitUntil: "domcontentloaded", timeout: 10_000 });
+      // Ask Instagram's web API from inside the signed-in page, so the request
+      // carries the browser's own headers (from outside, Instagram refuses it).
+      const api = await page
+        .evaluate(async () => {
+          const res = await fetch("/api/v1/accounts/current_user/?edit=true", {
+            headers: { "X-IG-App-ID": "936619743392459", "X-Requested-With": "XMLHttpRequest" },
+            credentials: "include",
+          });
+          const json = res.ok ? ((await res.json()) as { user?: { username?: string } }) : null;
+          return { status: res.status, username: json?.user?.username ?? null };
+        })
+        .catch((err: unknown) => ({ status: 0, username: null, error: String(err) }));
+      if (api.username) return api.username;
+      console.warn("[connect] instagram: current_user didn't give a username:", api);
+
+      // Otherwise the sidebar's Profile link (its name may start with the
+      // profile picture's alt text), which points at /<username>/.
+      const profile = page.getByRole("link", { name: /profile$/i }).first();
+      const href = await profile.getAttribute("href", { timeout: 5_000 }).catch(() => null);
+      const fromLink = href?.match(/^\/([A-Za-z0-9._]+)\/?$/)?.[1] ?? null;
+      if (!fromLink) console.warn(`[connect] instagram: no Profile link (href=${href}), url=${page.url()}`);
+      return fromLink;
     },
   },
 };

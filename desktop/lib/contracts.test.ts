@@ -147,6 +147,11 @@ describe("contract: design tokens", () => {
     expect(copy).toEqual(contract("design-tokens.json"));
   });
 
+  it("the app window opens in the canvas colour", () => {
+    const main = readFileSync(path.join(__dirname, "..", "electron", "main.cjs"), "utf8");
+    expect(main).toContain(`const CANVAS = "${contract("design-tokens.json").color.canvas}";`);
+  });
+
   it("keeps every radius within 12px", () => {
     for (const r of Object.values(contract("design-tokens.json").radius as Record<string, number>)) {
       expect(r).toBeLessThanOrEqual(12);

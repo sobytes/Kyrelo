@@ -8,6 +8,11 @@ const net = require("node:net");
 const path = require("node:path");
 const fs = require("node:fs");
 
+// The window's colour before the page draws: the design system's canvas.
+// A literal, because the packaged app doesn't ship contracts/; a contract
+// test keeps it equal to design-tokens.json.
+const CANVAS = "#F5F3EE";
+
 const isDev = !app.isPackaged;
 // On Windows `npm` is a `.cmd` script, which Node refuses to spawn without a
 // shell (EINVAL since the CVE-2024-27980 fix). Run npm through a shell on
@@ -163,7 +168,7 @@ function createWindow() {
     minWidth: 1100,
     minHeight: 720,
     title: "Kyrelo",
-    backgroundColor: "#0b0d12",
+    backgroundColor: CANVAS,
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     trafficLightPosition: process.platform === "darwin" ? { x: 14, y: 14 } : undefined,
     webPreferences: {
@@ -218,6 +223,11 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.whenReady().then(async () => {
+  // A packaged app takes its icon from the bundle; in development the Dock
+  // would show Electron's own.
+  if (process.platform === "darwin" && !app.isPackaged) {
+    app.dock.setIcon(path.join(__dirname, "..", "build", "icon.png"));
+  }
   // Lost the single-instance lock above: we're quitting, start nothing.
   if (!app.hasSingleInstanceLock()) return;
   const port = isDev ? 3000 : await findFreePort();
