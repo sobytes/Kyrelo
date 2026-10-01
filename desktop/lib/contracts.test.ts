@@ -232,7 +232,9 @@ describe("contract: service icons", () => {
     for (const [name, id, markup] of all) {
       const { dir, files } = iosIconFiles(name, id, markup, sample.viewBox);
       for (const [name, content] of Object.entries(files)) {
-        expect(readFileSync(path.join(dir, name), "utf8"), `${id}/${name}`).toBe(content);
+        // Git on Windows may check these out with CRLF line endings.
+        const onDisk = readFileSync(path.join(dir, name), "utf8").replaceAll("\r\n", "\n");
+        expect(onDisk, `${id}/${name}`).toBe(content);
       }
     }
   });

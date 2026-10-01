@@ -74,7 +74,10 @@ On Windows, run `build.sh` from Git Bash.
 
 ### iPhone app
 
-Turn on **Settings → Phone app** in the desktop app, then scan the code in the iPhone app. The phone shows your Monitor feed and Autopilot's drafts; tap a draft, and it copies the reply and opens the tweet in X for you to send. You can also schedule posts (with photos) and run auto campaigns. Your computer keeps doing the work, so Kyrelo has to be running there. It works on the same Wi-Fi, or anywhere with [Tailscale](https://tailscale.com) on both devices (use Tailscale on public Wi-Fi: the plain-Wi-Fi connection isn't encrypted).
+Turn on **Settings → Phone app** in the desktop app, then scan the code in the iPhone app. The phone shows your Monitor feed and Autopilot's drafts; tap a draft, and it copies the reply and opens the tweet in X for you to send. You can also schedule posts (with photos) and run auto campaigns. Your computer keeps doing the work, so Kyrelo has to be running there. It works on the same Wi-Fi, or anywhere with [Tailscale](https://tailscale.com) on both devices.
+
+> [!WARNING]
+> On plain Wi-Fi the phone connection isn't encrypted. On a shared or public network, use Tailscale or turn phone access off. See [Known issues](#known-issues).
 
 ### Releasing (maintainers)
 
@@ -88,6 +91,23 @@ See `desktop/.env.example` for every variable.
 ### Website
 
 Plain Next.js + Tailwind. Vercel deploys it from `main` with **Root Directory = `website`**. See [`website/README.md`](./website/README.md).
+
+## Known issues
+
+### Phone connection isn't encrypted on plain Wi-Fi
+
+> [!CAUTION]
+> Pairing stops strangers from connecting to your computer, but the connection itself is plain HTTP. The phone sends its pairing token with every request, so anyone on the same network watching the traffic can copy it and pretend to be your phone.
+
+With the token, someone could do what the phone app can: post and schedule as you, run the tweet deleter or unfollow tool on your X account, and use your AI credits. They can't see your API keys or account logins, remove accounts, change phone access, or reach anything else on your computer.
+
+Until the connection is encrypted:
+
+- **Home Wi-Fi you trust:** fine.
+- **Shared or public Wi-Fi** (cafés, offices, hotels): install [Tailscale](https://tailscale.com) on both devices (it encrypts everything), or turn off **Settings → Phone app** on the desktop.
+- **If you think the token leaked:** reset pairing in **Settings → Phone app** and scan the new code. Old tokens stop working right away.
+
+Phone access is off until you turn it on, so if you don't use the iPhone app this doesn't affect you.
 
 ## Disclaimer
 
