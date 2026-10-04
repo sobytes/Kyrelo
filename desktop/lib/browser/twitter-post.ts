@@ -42,6 +42,20 @@ async function openReplyComposer(page: Page, tweetUrl: string): Promise<void> {
   await jitter(800, 1500);
 }
 
+const VIDEO_PROCESSING_MS = 10 * 60_000;
+
+async function waitForPostEnabled(page: Page): Promise<void> {
+  const deadline = Date.now() + VIDEO_PROCESSING_MS;
+  while (Date.now() < deadline) {
+    for (const sel of SUBMIT_SELECTORS) {
+      const btn = page.locator(sel).first();
+      if ((await btn.isVisible().catch(() => false)) && (await btn.isEnabled().catch(() => false))) return;
+    }
+    await page.waitForTimeout(2_000);
+  }
+  throw new Error("X was still processing the video after 10 minutes. Try a shorter or smaller video.");
+}
+
 export interface PostResult {
   url: string;
 }
@@ -65,6 +79,8 @@ export async function postTweetBrowser(
   options: {
     headless?: boolean;
     imagePath?: string;
+    /** A video instead of an image. X processes it after upload; Post stays disabled until then. */
+    videoPath?: string;
     /** Called once the browser is open, i.e. after any wait for another job. */
     onBrowserReady?: () => Promise<unknown>;
     /** Reply to this tweet (its x.com status URL) instead of posting on its own. */
@@ -140,12 +156,13 @@ export async function postTweetBrowser(
     await composer.click();
     await jitter(300, 800);
 
-    if (options.imagePath) {
-      console.log(`[twitter-post] attaching image: ${options.imagePath}`);
+    const mediaPath = options.imagePath ?? options.videoPath;
+    if (mediaPath) {
+      console.log(`[twitter-post] attaching ${options.videoPath ? "video" : "image"}: ${mediaPath}`);
       const fileInput = page.locator('input[data-testid="fileInput"]').first();
       try {
         await fileInput.waitFor({ state: "attached", timeout: 5_000 });
-        await fileInput.setInputFiles(options.imagePath);
+        await fileInput.setInputFiles(mediaPath);
         // Wait for the attached-image preview to render.
         await page
           .locator('[data-testid="attachments"]')
@@ -155,7 +172,7 @@ export async function postTweetBrowser(
         await jitter(700, 1400);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        throw new Error(`Couldn't attach image: ${msg}`);
+        throw new Error(`Couldn't attach the ${options.videoPath ? "video" : "image"}: ${msg}`);
       }
     }
 
@@ -181,6 +198,10 @@ export async function postTweetBrowser(
       .catch(() => null);
 
     let clicked = false;
+
+    // A video uploads and processes in the background; X keeps Post disabled
+    // until it's ready, which can take minutes for a long one.
+    if (options.videoPath) await waitForPostEnabled(page);
 
     // Prefer the accessible Post button — Playwright matches the visible
     // button by its rendered name, so the autocomplete popup can't steal it.

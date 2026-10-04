@@ -26,6 +26,7 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
     return postTweetBrowser(account.id, text, {
       headless: opts.headless,
       imagePath: opts.imagePath,
+      videoPath: opts.videoPath,
       onBrowserReady: opts.onSendingStarted,
     });
   },

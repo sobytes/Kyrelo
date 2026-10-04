@@ -66,8 +66,8 @@ extension PlatformId {
         case .bluesky: 100 * 1024 * 1024
         case .telegram: 50 * 1024 * 1024
         case .discord: 10 * 1024 * 1024
-        case .youtube, .tiktok: 256 * 1024 * 1024
-        case .twitter, .threads, .instagram, .facebook, .linkedin, .slack, .devto, .hashnode, .wordpress, .lemmy, .nostr: 0
+        case .youtube, .tiktok, .twitter: 256 * 1024 * 1024
+        case .threads, .instagram, .facebook, .linkedin, .slack, .devto, .hashnode, .wordpress, .lemmy, .nostr: 0
         }
     }
 

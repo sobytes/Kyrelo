@@ -64,7 +64,9 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxLength: 4000,
     length: tweetLength,
     maxImageBytes: 5 * 1024 * 1024,
-    maxVideoBytes: 0,
+    // Kyrelo's own upload limit (lib/uploads.ts); X takes up to 512 MB, and
+    // accounts without Premium up to 2 minutes 20 seconds.
+    maxVideoBytes: 256 * 1024 * 1024,
     campaignLimit: MAX_TWEET_LENGTH,
     requiresImage: false,
     requiresVideo: false,

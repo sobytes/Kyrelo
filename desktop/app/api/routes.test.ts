@@ -301,8 +301,10 @@ describe("videos on scheduled posts", () => {
     const toot = { ...valid, platform: "mastodon", accountId: "me@m.social" };
     const created = await (await posts.POST(json("POST", { ...toot, videoPath: video }))).json();
     expect(created.post.videoPath).toBe(video);
-    expect(await (await posts.POST(json("POST", { ...valid, videoPath: video }))).json()).toEqual({
-      error: "Kyrelo can't post videos to X yet",
+    // Instagram posts through its site with photos only.
+    const insta = { ...valid, platform: "instagram", accountId: "me.insta" };
+    expect(await (await posts.POST(json("POST", { ...insta, videoPath: video }))).json()).toEqual({
+      error: "Kyrelo can't post videos to Instagram yet",
     });
     expect((await posts.POST(json("POST", { ...toot, videoPath: video, imagePath: "abcdef.png" }))).status).toBe(400);
     expect(await (await posts.POST(json("POST", { ...toot, videoPath: "0123456789ab.mp4" }))).json()).toEqual({

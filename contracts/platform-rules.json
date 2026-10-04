@@ -5,7 +5,7 @@
       "label": "X",
       "maxLength": 4000,
       "maxImageBytes": 5242880,
-      "maxVideoBytes": 0,
+      "maxVideoBytes": 268435456,
       "connect": "browser",
       "credentials": [],
       "loginUrl": "https://x.com/login",
