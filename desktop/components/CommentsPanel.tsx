@@ -14,6 +14,8 @@ type View = "waiting" | "replied" | "dismissed";
 interface Data {
   state: CommentsState;
   accounts: Account[];
+  /** Instagram and Facebook accounts that need an API token before Comments can read them. */
+  needToken: Account[];
   platforms: PlatformId[];
 }
 
@@ -82,7 +84,7 @@ export function CommentsPanel() {
 
   return (
     <div className="space-y-6">
-      {data.accounts.length === 0 ? (
+      {data.accounts.length === 0 && data.needToken.length === 0 ? (
         <div className="card text-sm text-muted">
           Connect a {data.platforms.map((p) => PLATFORMS[p].label).join(", ")} account to answer comments on your posts.{" "}
           <Link href="/" className="text-fg underline">
@@ -104,6 +106,10 @@ export function CommentsPanel() {
           {checkMessage && <span className="text-xs text-error">{checkMessage}</span>}
         </div>
       )}
+
+      {data.needToken.map((a) => (
+        <TokenCard key={`${a.platform}:${a.id}`} account={a} onSaved={load} />
+      ))}
 
       {errors.map(([key, message]) => {
         const [platform, ...rest] = key.split(":");
@@ -278,6 +284,103 @@ function CommentCard({ comment, onChanged }: { comment: PostComment; onChanged: 
         </>
       )}
     </article>
+  );
+}
+
+// Where to get a token for comments, step by step.
+const TOKEN_GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
+  instagram: (
+    <ol className="list-decimal space-y-1 pl-5">
+      <li>Switch the account to a Business or Creator account in the Instagram app, if it isn&apos;t one.</li>
+      <li>
+        <ExtLinkButton href="https://developers.facebook.com/apps/creation/">Create a Meta app</ExtLinkButton> with the{" "}
+        <em>Instagram API</em> product, using <em>Instagram login</em>.
+      </li>
+      <li>
+        Add this account as an Instagram tester, then <em>Generate token</em> with{" "}
+        <em>instagram_business_basic</em> and <em>instagram_business_manage_comments</em>. Paste it below; Kyrelo keeps it
+        renewed.
+      </li>
+    </ol>
+  ),
+  facebook: (
+    <ol className="list-decimal space-y-1 pl-5">
+      <li>Comments can only be answered on a Facebook Page, not a personal profile.</li>
+      <li>
+        <ExtLinkButton href="https://developers.facebook.com/apps/creation/">Create a Meta app</ExtLinkButton>, then open
+        the <ExtLinkButton href="https://developers.facebook.com/tools/explorer/">Graph API Explorer</ExtLinkButton>.
+      </li>
+      <li>
+        Add <em>pages_read_engagement</em>, <em>pages_read_user_content</em> and <em>pages_manage_engagement</em>, choose
+        your Page under <em>User or Page</em>, and generate the token.
+      </li>
+      <li>
+        Make it last: paste it into the{" "}
+        <ExtLinkButton href="https://developers.facebook.com/tools/debug/accesstoken/">Access Token Debugger</ExtLinkButton>,
+        press <em>Extend Access Token</em>, then get the Page token again with the extended one. Paste it below.
+      </li>
+    </ol>
+  ),
+};
+
+function ExtLinkButton({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <button onClick={() => openExternal(href)} className="text-fg underline">
+      {children}
+    </button>
+  );
+}
+
+/** Instagram and Facebook post through the browser; answering comments needs Meta's API, so a token. */
+function TokenCard({ account, onSaved }: { account: Account; onSaved: () => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [token, setToken] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const spec = PLATFORMS[account.platform];
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await post({ action: "token", platform: account.platform, accountId: account.id, token });
+      if (r.error) setError(r.error);
+      else await onSaved();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card-tight space-y-3 text-xs">
+      <div className="flex items-center gap-3">
+        <PlatformBadge platform={account.platform} />
+        <div className="flex-1 text-muted">
+          <span className="font-semibold text-fg">@{account.handle}</span>: add an API token to answer {spec.label} comments.
+        </div>
+        <button onClick={() => setOpen(!open)} className="btn-ghost shrink-0 text-xs">
+          {open ? "Hide" : "Set up"}
+        </button>
+      </div>
+      {open && (
+        <div className="space-y-3 leading-relaxed text-muted">
+          {TOKEN_GUIDES[account.platform]}
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder={`${spec.label} access token`}
+              className="input"
+            />
+            <button onClick={save} disabled={busy || !token.trim()} className="btn-primary shrink-0">
+              {busy ? "Checking…" : "Save"}
+            </button>
+          </div>
+          {error && <p className="text-error">{error}</p>}
+        </div>
+      )}
+    </div>
   );
 }
 

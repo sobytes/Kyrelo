@@ -1,5 +1,13 @@
 import { aiErrorMessage, draftCommentReplies } from "./ai";
-import { getGrokSettings, getAccountSecret, getCommentSettings, getCommentsState, listAccounts, modifyCommentsState } from "./storage";
+import {
+  getAccountSecret,
+  getCommentSettings,
+  getCommentsState,
+  getGrokSettings,
+  listAccounts,
+  modifyCommentsState,
+  setAccountSecret,
+} from "./storage";
 import { connectingPlatform } from "./browser-connect";
 import { Account, PlatformId, PostComment, ReplyDraft } from "./types";
 
@@ -31,6 +39,21 @@ async function mastodonLogin(account: Account): Promise<{ instance: string; toke
   const secret = await getAccountSecret("mastodon", account.id);
   if (!secret?.instance || !secret.token) throw new Error("This Mastodon account isn't signed in any more. Reconnect it under Accounts.");
   return { instance: secret.instance, token: secret.token };
+}
+
+/**
+ * Instagram and Facebook post through the browser; their comments need a
+ * Meta API token the user adds on the Comments page (connectCommentsToken).
+ */
+async function metaLogin(account: Account): Promise<{ token: string; userId: string }> {
+  const secret = await getAccountSecret(account.platform, account.id);
+  if (!secret?.token || !secret.userId) throw new Error("Add an API token on the Comments page to answer comments here.");
+  if (account.platform !== "instagram") return { token: secret.token, userId: secret.userId };
+  const { refreshedInstagramToken } = await import("./meta");
+  const fresh = await refreshedInstagramToken(secret.token, secret.refreshedAt).catch(() => null);
+  if (!fresh) return { token: secret.token, userId: secret.userId };
+  await setAccountSecret("instagram", account.id, { ...secret, token: fresh, refreshedAt: new Date().toISOString() });
+  return { token: fresh, userId: secret.userId };
 }
 
 const SOURCES: Partial<Record<PlatformId, CommentSource>> = {
@@ -113,7 +136,69 @@ const SOURCES: Partial<Record<PlatformId, CommentSource>> = {
       return postToThreads(userId, token, text, comment.target.id);
     },
   },
+  instagram: {
+    async list(account) {
+      const { listInstagramComments } = await import("./meta");
+      const { token } = await metaLogin(account);
+      return (await listInstagramComments(account.handle, token)).map(({ id, ...c }) => ({ ...c, target: { id } }));
+    },
+    async reply(account, comment, text) {
+      const { replyOnInstagram } = await import("./meta");
+      await replyOnInstagram((await metaLogin(account)).token, comment.target.id, text);
+      // Replies have no link of their own; the post's shows them.
+      return { url: comment.url };
+    },
+  },
+  facebook: {
+    async list(account) {
+      const { listFacebookComments } = await import("./meta");
+      const { token, userId } = await metaLogin(account);
+      return (await listFacebookComments(userId, token)).map(({ id, ...c }) => ({ ...c, target: { id } }));
+    },
+    async reply(account, comment, text) {
+      const { replyOnFacebook } = await import("./meta");
+      return replyOnFacebook((await metaLogin(account)).token, comment.target.id, text);
+    },
+  },
 };
+
+/** Platforms whose comments need an API token added on the Comments page (they post through the browser). */
+export const TOKEN_PLATFORMS: PlatformId[] = ["instagram", "facebook"];
+
+/** The accounts Comments can check: every account on a supported platform, Instagram and Facebook once they have a token. */
+export async function commentAccounts(): Promise<{ ready: Account[]; needToken: Account[] }> {
+  const ready: Account[] = [];
+  const needToken: Account[] = [];
+  for (const account of (await listAccounts()).filter((a) => SOURCES[a.platform])) {
+    const hasToken = !TOKEN_PLATFORMS.includes(account.platform) || (await getAccountSecret(account.platform, account.id))?.token;
+    (hasToken ? ready : needToken).push(account);
+  }
+  return { ready, needToken };
+}
+
+/** Checks a pasted Meta token and saves it for an Instagram or Facebook account's comments. */
+export async function connectCommentsToken(platform: PlatformId, accountId: string, token: string): Promise<{ ok: true } | { error: string }> {
+  const account = (await listAccounts(platform)).find((a) => a.id === accountId);
+  if (!account || !TOKEN_PLATFORMS.includes(platform)) return { error: "That account isn't connected." };
+  const trimmed = token.trim();
+  if (!trimmed) return { error: "Paste the token first." };
+  const meta = await import("./meta");
+  try {
+    if (platform === "instagram") {
+      const me = await meta.verifyInstagramToken(trimmed);
+      if (me.username.toLowerCase() !== account.handle.toLowerCase()) {
+        return { error: `That token is for @${me.username}, not @${account.handle}.` };
+      }
+      await setAccountSecret(platform, accountId, { token: trimmed, userId: me.user_id, refreshedAt: new Date().toISOString() });
+    } else {
+      const page = await meta.verifyFacebookPageToken(trimmed);
+      await setAccountSecret(platform, accountId, { token: trimmed, userId: page.id });
+    }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+  return { ok: true };
+}
 
 /** The platforms whose comments Kyrelo can read and answer. */
 export const COMMENT_PLATFORMS = Object.keys(SOURCES) as PlatformId[];
@@ -146,7 +231,7 @@ export function runCommentsCheck(opts: { force?: boolean } = {}): Promise<Commen
 async function checkOnce(force: boolean): Promise<CommentsCheckResult> {
   const settings = await getCommentSettings();
   if (!settings.enabled && !force) return { skipped: "disabled" };
-  const accounts = (await listAccounts()).filter((a) => SOURCES[a.platform]);
+  const accounts = (await commentAccounts()).ready;
   if (accounts.length === 0) return { skipped: "no-account" };
 
   const now = new Date();

@@ -224,7 +224,9 @@ async function legacyXAccounts(): Promise<Account[]> {
  * Credentials for API-based accounts, keyed "platform:id". Kept out of the
  * accounts list so they never reach the UI. Which fields are set depends on
  * the platform: Bluesky an app password; Mastodon its server and token;
- * Threads a token (refreshed now and then) and the user's Threads id.
+ * Threads a token (refreshed now and then) and the user's Threads id;
+ * Instagram and Facebook (optional, for Comments) a Meta token and the
+ * Instagram user or Facebook Page id.
  */
 export interface AccountSecret {
   appPassword?: string;

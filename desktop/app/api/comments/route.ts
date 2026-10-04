@@ -1,25 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
-import { COMMENT_PLATFORMS, dismissComment, draftForComment, runCommentsCheck, sendCommentReply } from "@/lib/comments";
-import { getCommentsState, listAccounts } from "@/lib/storage";
+import {
+  COMMENT_PLATFORMS,
+  commentAccounts,
+  connectCommentsToken,
+  dismissComment,
+  draftForComment,
+  runCommentsCheck,
+  sendCommentReply,
+} from "@/lib/comments";
+import { isPlatformId } from "@/lib/platforms";
+import { getCommentsState } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 export async function GET() {
-  const accounts = (await listAccounts()).filter((a) => COMMENT_PLATFORMS.includes(a.platform));
-  return NextResponse.json({ state: await getCommentsState(), accounts, platforms: COMMENT_PLATFORMS });
+  const { ready, needToken } = await commentAccounts();
+  return NextResponse.json({ state: await getCommentsState(), accounts: ready, needToken, platforms: COMMENT_PLATFORMS });
 }
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
-    action?: "check" | "draft" | "send" | "dismiss";
+    action?: "check" | "draft" | "send" | "dismiss" | "token";
     id?: string;
+    platform?: string;
+    accountId?: string;
+    token?: string;
     text?: string;
     dismissed?: boolean;
   };
   if (body.action === "check") {
     // The user asked, so check even with background checks off.
     return NextResponse.json(await runCommentsCheck({ force: true }));
+  }
+  if (body.action === "token") {
+    if (!isPlatformId(body.platform) || !body.accountId) {
+      return NextResponse.json({ error: "platform and accountId required" }, { status: 400 });
+    }
+    const r = await connectCommentsToken(body.platform, body.accountId, body.token ?? "");
+    return NextResponse.json(r, { status: "error" in r ? 400 : 200 });
   }
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
   if (body.action === "draft") {

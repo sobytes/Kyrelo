@@ -132,9 +132,9 @@ export async function disconnectAccount(
     } finally {
       release();
     }
-  } else {
-    await setAccountSecret(platform, id, null);
   }
+  // Browser accounts can have one too: Instagram and Facebook's comment token.
+  await setAccountSecret(platform, id, null);
   await modifyAccounts((accounts) => accounts.filter((a) => !(a.platform === platform && a.id === id)));
   return { ok: true };
 }

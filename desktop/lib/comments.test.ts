@@ -114,3 +114,23 @@ describe("sending a reply", () => {
     expect(await comments.sendCommentReply(id, "   ")).toEqual({ error: "Write a reply first." });
   });
 });
+
+describe("Instagram and Facebook tokens", () => {
+  it("lists a browser account as needing a token, and checks the token is for that account", async () => {
+    const { saveAccount } = await import("./browser-connect");
+    await saveAccount({ platform: "instagram", id: "me.brand", handle: "me.brand", addedAt: "2026-01-01T00:00:00Z" });
+    expect((await comments.commentAccounts()).needToken.map((a) => a.id)).toEqual(["me.brand"]);
+
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ user_id: "17", username: "someone.else" })));
+    expect(await comments.connectCommentsToken("instagram", "me.brand", "tok")).toEqual({
+      error: "That token is for @someone.else, not @me.brand.",
+    });
+
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ user_id: "17", username: "Me.Brand" })));
+    expect(await comments.connectCommentsToken("instagram", "me.brand", " tok ")).toEqual({ ok: true });
+    const { ready, needToken } = await comments.commentAccounts();
+    expect(needToken).toEqual([]);
+    expect(ready.map((a) => a.platform)).toContain("instagram");
+    expect(await storage.getAccountSecret("instagram", "me.brand")).toMatchObject({ token: "tok", userId: "17" });
+  });
+});
