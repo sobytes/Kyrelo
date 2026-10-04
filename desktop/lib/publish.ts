@@ -65,6 +65,15 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
     });
   },
   async facebook(account, text, opts) {
+    // A Page with a token (added on the Comments page) posts through Meta's
+    // API; otherwise through facebook.com in the account's Chrome profile.
+    const secret = await getAccountSecret("facebook", account.id);
+    if (secret?.token && secret.userId) {
+      await opts.onSendingStarted();
+      const { postToFacebookPage } = await import("./meta");
+      return postToFacebookPage(secret.userId, secret.token, text, { imagePath: opts.imagePath, videoPath: opts.videoPath });
+    }
+    if (opts.videoPath) throw new Error("Videos go to Facebook through its API: add a Page token on the Comments page.");
     const { postToFacebookBrowser } = await import("./browser/facebook-post");
     return postToFacebookBrowser(account.id, text, {
       headless: opts.headless,

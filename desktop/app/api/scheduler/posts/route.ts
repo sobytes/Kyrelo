@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!(await listAccounts(platform)).some((a) => a.id === body.accountId)) {
     return NextResponse.json({ error: "that account isn't connected" }, { status: 400 });
   }
-  const mediaError = await postMediaError(platform, body.imagePath || undefined, body.videoPath || undefined);
+  const mediaError = await postMediaError(platform, body.imagePath || undefined, body.videoPath || undefined, body.accountId);
   if (mediaError) return NextResponse.json({ error: mediaError }, { status: 400 });
   const when = new Date(body.scheduledFor);
   if (Number.isNaN(when.getTime())) {

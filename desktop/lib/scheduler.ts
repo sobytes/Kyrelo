@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
   deleteScheduledPost,
+  getAccountSecret,
   getGrokSettings,
   insertScheduledPost,
   listScheduledPosts,
@@ -178,7 +179,12 @@ export async function cancelScheduledPost(id: string): Promise<void> {
  * The same rules for creating and editing a post. Filenames must be ones the
  * upload route made, so a request can't point at a file outside uploads/.
  */
-export async function postMediaError(platform: ScheduledPost["platform"], imagePath?: string, videoPath?: string): Promise<string | null> {
+export async function postMediaError(
+  platform: ScheduledPost["platform"],
+  imagePath?: string,
+  videoPath?: string,
+  accountId?: string,
+): Promise<string | null> {
   if (imagePath && !SAFE_IMAGE_FILENAME.test(imagePath)) return "invalid imagePath";
   if (videoPath && !SAFE_VIDEO_FILENAME.test(videoPath)) return "invalid videoPath";
   if (imagePath && videoPath) return "a post can have an image or a video, not both";
@@ -188,5 +194,9 @@ export async function postMediaError(platform: ScheduledPost["platform"], imageP
     .then((s) => s.size)
     .catch(() => undefined);
   if (bytes === undefined) return "that video isn't uploaded any more";
+  // Facebook videos go through the API, which needs the Page's token.
+  if (platform === "facebook" && !(accountId && (await getAccountSecret("facebook", accountId))?.token)) {
+    return "Facebook videos need a Page token: add one on the Comments page";
+  }
   return postVideoError(platform, videoPath, bytes);
 }

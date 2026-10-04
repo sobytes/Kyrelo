@@ -49,7 +49,8 @@ export async function PATCH(
   // null or "" removes the attachment; leaving it out keeps the current one.
   const image = "imagePath" in body ? body.imagePath || undefined : existing.imagePath;
   const video = "videoPath" in body ? body.videoPath || undefined : existing.videoPath;
-  const mediaError = await postMediaError(existing.platform, image, video);
+  const accountId = typeof body.accountId === "string" && body.accountId ? body.accountId : existing.accountId;
+  const mediaError = await postMediaError(existing.platform, image, video, accountId);
   if (mediaError) return NextResponse.json({ error: mediaError }, { status: 400 });
 
   // Applied to the latest stored copy, and only while it is still pending:

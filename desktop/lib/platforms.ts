@@ -158,7 +158,8 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Kyrelo's own upload limit (lib/uploads.ts); Facebook takes bigger.
     maxImageBytes: 5 * 1024 * 1024,
-    maxVideoBytes: 0,
+    // Pages with an API token only (lib/meta.ts); see postMediaError.
+    maxVideoBytes: 256 * 1024 * 1024,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: false,

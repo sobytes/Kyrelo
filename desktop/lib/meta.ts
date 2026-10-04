@@ -1,5 +1,6 @@
-// Comments on Instagram and Facebook through Meta's official Graph APIs.
-// Posting to both still goes through the browser (lib/browser/*-post.ts);
+// Comments on Instagram and Facebook through Meta's official Graph APIs, and
+// posting to a Facebook Page when it has a token. Otherwise posting goes
+// through the browser (lib/browser/*-post.ts);
 // these APIs only cover professional accounts, so they're an add-on: the
 // user pastes a token from their own Meta developer app on the Comments page,
 // as with Threads, and Kyrelo uses it to read and answer comments.
@@ -8,8 +9,12 @@
 // login" (graph.instagram.com), permissions instagram_business_basic and
 // instagram_business_manage_comments. Tokens last 60 days and are renewed in use.
 // Facebook: a Page access token with pages_read_engagement,
-// pages_read_user_content and pages_manage_engagement. Personal profiles have
-// no API for this.
+// pages_read_user_content, pages_manage_engagement and pages_manage_posts.
+// Personal profiles have no API for this.
+
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { imageTypeForFilename, videoTypeForFilename } from "./uploads";
 
 const INSTAGRAM = "https://graph.instagram.com/v23.0";
 const FACEBOOK = "https://graph.facebook.com/v23.0";
@@ -135,4 +140,35 @@ export async function replyOnFacebook(token: string, commentId: string, text: st
     `${FACEBOOK}/${id}?${q({ fields: "permalink_url", access_token: token })}`,
   ).catch(() => ({ permalink_url: undefined }));
   return { url: permalink_url ?? "https://www.facebook.com/" };
+}
+
+/**
+ * Posts to the Page through the Graph API, with the photo or video uploaded
+ * straight from this computer, and returns the post's link.
+ */
+export async function postToFacebookPage(
+  pageId: string,
+  token: string,
+  text: string,
+  media: { imagePath?: string; videoPath?: string } = {},
+): Promise<{ url: string }> {
+  const file = media.imagePath ?? media.videoPath;
+  if (!file) {
+    const { id } = await api<{ id: string }>("Facebook", `${FACEBOOK}/${pageId}/feed?${q({ message: text, access_token: token })}`, "POST");
+    return { url: `https://www.facebook.com/${id}` };
+  }
+  const name = path.basename(file);
+  const form = new FormData();
+  form.append("access_token", token);
+  form.append(media.videoPath ? "description" : "caption", text);
+  const type = (media.videoPath ? videoTypeForFilename(name) : imageTypeForFilename(name)) ?? "application/octet-stream";
+  form.append("source", new Blob([new Uint8Array(await fs.readFile(file))], { type }), name);
+  // Videos go to graph-video, Facebook's host for video uploads.
+  const endpoint = media.videoPath
+    ? `https://graph-video.facebook.com/v23.0/${pageId}/videos`
+    : `${FACEBOOK}/${pageId}/photos`;
+  const res = await fetch(endpoint, { method: "POST", body: form, signal: AbortSignal.timeout(10 * 60_000) });
+  const json = (await res.json().catch(() => ({}))) as { id?: string; post_id?: string; error?: { message?: string } };
+  if (!res.ok || !json.id) throw new Error(`Facebook: ${json.error?.message ?? `HTTP ${res.status}`}`);
+  return { url: `https://www.facebook.com/${json.post_id ?? json.id}` };
 }

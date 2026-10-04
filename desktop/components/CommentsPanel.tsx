@@ -312,8 +312,8 @@ const TOKEN_GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
         the <ExtLinkButton href="https://developers.facebook.com/tools/explorer/">Graph API Explorer</ExtLinkButton>.
       </li>
       <li>
-        Add <em>pages_read_engagement</em>, <em>pages_read_user_content</em> and <em>pages_manage_engagement</em>, choose
-        your Page under <em>User or Page</em>, and generate the token.
+        Add <em>pages_read_engagement</em>, <em>pages_read_user_content</em>, <em>pages_manage_engagement</em> and{" "}
+        <em>pages_manage_posts</em>, choose your Page under <em>User or Page</em>, and generate the token.
       </li>
       <li>
         Make it last: paste it into the{" "}
@@ -357,7 +357,8 @@ function TokenCard({ account, onSaved }: { account: Account; onSaved: () => Prom
       <div className="flex items-center gap-3">
         <PlatformBadge platform={account.platform} />
         <div className="flex-1 text-muted">
-          <span className="font-semibold text-fg">@{account.handle}</span>: add an API token to answer {spec.label} comments.
+          <span className="font-semibold text-fg">@{account.handle}</span>: add an API token to answer {spec.label} comments
+          {account.platform === "facebook" ? " (and post to the Page, videos included, through Meta's API)" : ""}.
         </div>
         <button onClick={() => setOpen(!open)} className="btn-ghost shrink-0 text-xs">
           {open ? "Hide" : "Set up"}

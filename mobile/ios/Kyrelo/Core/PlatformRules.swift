@@ -66,8 +66,9 @@ extension PlatformId {
         case .bluesky: 100 * 1024 * 1024
         case .telegram: 50 * 1024 * 1024
         case .discord: 10 * 1024 * 1024
-        case .youtube, .tiktok, .twitter: 256 * 1024 * 1024
-        case .threads, .instagram, .facebook, .linkedin, .slack, .devto, .hashnode, .wordpress, .lemmy, .nostr: 0
+        // Facebook: Pages with an API token on the computer.
+        case .youtube, .tiktok, .twitter, .facebook: 256 * 1024 * 1024
+        case .threads, .instagram, .linkedin, .slack, .devto, .hashnode, .wordpress, .lemmy, .nostr: 0
         }
     }
 

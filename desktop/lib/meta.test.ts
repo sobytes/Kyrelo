@@ -81,3 +81,30 @@ describe("Facebook Page comments", () => {
     expect(await replyOnFacebook("tok", "c1", "thanks!")).toEqual({ url: "https://facebook.com/r1" });
   });
 });
+
+describe("Facebook Page posts", () => {
+  it("posts text to the feed, and uploads a photo straight from this computer", async () => {
+    const { postToFacebookPage } = await import("./meta");
+    const { mkdtemp, writeFile } = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const requests = mockGraph({ "/p1/feed": { id: "p1_1" } });
+    expect(await postToFacebookPage("p1", "tok", "hello")).toEqual({ url: "https://www.facebook.com/p1_1" });
+    expect(requests[0].url.searchParams.get("message")).toBe("hello");
+
+    const dir = await mkdtemp(path.join(os.tmpdir(), "kyrelo-fb-"));
+    const image = path.join(dir, "0123456789ab.jpg");
+    await writeFile(image, Buffer.alloc(10));
+    const bodies: FormData[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        bodies.push(init.body as FormData);
+        return Response.json({ id: "photo1", post_id: "p1_2" });
+      }),
+    );
+    expect(await postToFacebookPage("p1", "tok", "pic", { imagePath: image })).toEqual({ url: "https://www.facebook.com/p1_2" });
+    expect(bodies[0].get("caption")).toBe("pic");
+    expect(bodies[0].get("source")).toBeInstanceOf(Blob);
+  });
+});

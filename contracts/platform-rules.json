@@ -85,7 +85,7 @@
       "label": "Facebook",
       "maxLength": 63206,
       "maxImageBytes": 5242880,
-      "maxVideoBytes": 0,
+      "maxVideoBytes": 268435456,
       "connect": "browser",
       "credentials": [],
       "loginUrl": "https://www.facebook.com/login/",
