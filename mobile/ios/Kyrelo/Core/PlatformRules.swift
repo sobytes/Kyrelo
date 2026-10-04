@@ -45,6 +45,17 @@ extension PlatformId {
         }
     }
 
+    /// Largest video file the desktop can post here; 0 where it can't post
+    /// videos (yet). The phone doesn't attach videos yet.
+    var maxVideoBytes: Int {
+        switch self {
+        case .mastodon: 40 * 1024 * 1024
+        case .telegram: 50 * 1024 * 1024
+        case .discord: 10 * 1024 * 1024
+        case .twitter, .bluesky, .threads, .instagram, .facebook, .linkedin: 0
+        }
+    }
+
     /// Every post needs an image (Instagram): text-only posts can't go there.
     var requiresImage: Bool { self == .instagram }
 

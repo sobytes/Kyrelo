@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createScheduledPost } from "@/lib/scheduler";
-import { isPlatformId, postImageError, postTextError } from "@/lib/platforms";
+import { createScheduledPost, postMediaError } from "@/lib/scheduler";
+import { isPlatformId, postTextError } from "@/lib/platforms";
 import { listAccounts, listScheduledPosts } from "@/lib/storage";
-import { SAFE_IMAGE_FILENAME } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +16,7 @@ export async function POST(req: NextRequest) {
     accountId?: string;
     text?: string;
     imagePath?: string;
+    videoPath?: string;
     scheduledFor?: string;
   };
   const text = body.text?.trim() ?? "";
@@ -32,11 +32,8 @@ export async function POST(req: NextRequest) {
   if (!(await listAccounts(platform)).some((a) => a.id === body.accountId)) {
     return NextResponse.json({ error: "that account isn't connected" }, { status: 400 });
   }
-  if (body.imagePath && !SAFE_IMAGE_FILENAME.test(body.imagePath)) {
-    return NextResponse.json({ error: "invalid imagePath" }, { status: 400 });
-  }
-  const imageError = postImageError(platform, body.imagePath || undefined);
-  if (imageError) return NextResponse.json({ error: imageError }, { status: 400 });
+  const mediaError = await postMediaError(platform, body.imagePath || undefined, body.videoPath || undefined);
+  if (mediaError) return NextResponse.json({ error: mediaError }, { status: 400 });
   const when = new Date(body.scheduledFor);
   if (Number.isNaN(when.getTime())) {
     return NextResponse.json({ error: "invalid scheduledFor date" }, { status: 400 });
@@ -46,6 +43,7 @@ export async function POST(req: NextRequest) {
     accountId: body.accountId,
     text,
     imagePath: body.imagePath || undefined,
+    videoPath: body.videoPath || undefined,
     scheduledFor: when.toISOString(),
   });
   return NextResponse.json({ post });

@@ -291,3 +291,22 @@ describe("phone account connect route", () => {
     expect((await finish.json()).error).toMatch(/expired/);
   });
 });
+
+describe("videos on scheduled posts", () => {
+  it("takes an uploaded video where the platform can post one, and refuses image + video or a missing file", async () => {
+    const { saveUpload } = await import("@/lib/uploads");
+    const { saveAccount } = await import("@/lib/browser-connect");
+    await saveAccount({ platform: "mastodon", id: "me@m.social", handle: "me@m.social", addedAt: new Date().toISOString() });
+    const video = await saveUpload(Buffer.from([0, 0, 0, 0x18, ...Buffer.from("ftypisom"), 0, 0, 2, 0]));
+    const toot = { ...valid, platform: "mastodon", accountId: "me@m.social" };
+    const created = await (await posts.POST(json("POST", { ...toot, videoPath: video }))).json();
+    expect(created.post.videoPath).toBe(video);
+    expect(await (await posts.POST(json("POST", { ...valid, videoPath: video }))).json()).toEqual({
+      error: "Kyrelo can't post videos to X yet",
+    });
+    expect((await posts.POST(json("POST", { ...toot, videoPath: video, imagePath: "abcdef.png" }))).status).toBe(400);
+    expect(await (await posts.POST(json("POST", { ...toot, videoPath: "0123456789ab.mp4" }))).json()).toEqual({
+      error: "that video isn't uploaded any more",
+    });
+  });
+});

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AutoCampaignModal } from "@/components/AutoCampaignModal";
 import { PlatformBadge } from "@/components/PlatformBadge";
-import { PLATFORMS, postImageError } from "@/lib/platforms";
+import { PLATFORMS, postImageError, postVideoError } from "@/lib/platforms";
 import { Account, GrokSettings, PlatformId, ScheduledPost } from "@/lib/types";
 
 interface ConnectStatus {
@@ -60,7 +60,9 @@ export function SchedulerPanel() {
   const [reschedulingPost, setReschedulingPost] = useState<ScheduledPost | null>(null);
   const [editingPost, setEditingPost] = useState<ScheduledPost | null>(null);
   const [aiProvider, setAiProvider] = useState<GrokSettings["aiProvider"]>("claude");
-  const { imagePath, imagePreviewUrl, uploadingImage, pickImage, clearImage } = useImageAttachment(null);
+  const attachment = useMediaAttachment(null);
+  const { media } = attachment;
+  const imagePath = media?.kind === "image" ? media.filename : null;
   const [campaignOpen, setCampaignOpen] = useState(false);
 
   useEffect(() => {
@@ -120,8 +122,12 @@ export function SchedulerPanel() {
             platform: account.platform,
             accountId: account.id,
             text,
-            // Platforms Kyrelo can't send images to get the text alone.
-            imagePath: (PLATFORMS[account.platform].maxImageBytes > 0 && imagePath) || undefined,
+            // Platforms that can't take the attachment get the text alone.
+            ...(media && attachmentFits(account.platform, media)
+              ? media.kind === "image"
+                ? { imagePath: media.filename }
+                : { videoPath: media.filename }
+              : {}),
             scheduledFor: new Date(scheduledFor).toISOString(),
           }),
         }).then((r) => r.json());
@@ -132,7 +138,7 @@ export function SchedulerPanel() {
       } else {
         setText("");
         setScheduledFor(defaultDateTime());
-        clearImage();
+        attachment.clear();
       }
       await loadPosts();
     } finally {
@@ -182,7 +188,8 @@ export function SchedulerPanel() {
   }
 
   const canAttachImage = targets.some((a) => PLATFORMS[a.platform].maxImageBytes > 0);
-  const imagesDropped = imagePath ? targets.filter((a) => PLATFORMS[a.platform].maxImageBytes === 0) : [];
+  const canAttachVideo = targets.some((a) => PLATFORMS[a.platform].maxVideoBytes > 0);
+  const mediaDropped = media ? targets.filter((a) => !attachmentFits(a.platform, media)) : [];
   // Instagram needs a photo, and only takes JPEG or PNG.
   const needsImage = targets.find((a) => PLATFORMS[a.platform].requiresImage)?.platform;
   const imageProblem = needsImage ? postImageError(needsImage, imagePath ?? undefined) : null;
@@ -240,42 +247,11 @@ export function SchedulerPanel() {
             </div>
           )}
 
-          {canAttachImage && (
-          <div>
-            <div className="label">{needsImage ? "Photo" : "Image (optional)"}</div>
-            {imagePreviewUrl ? (
-              <div className="flex items-start gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imagePreviewUrl}
-                  alt=""
-                  className="max-h-32 rounded-md border border-line object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={clearImage}
-                  className="btn-ghost text-xs"
-                >
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-xs text-fg hover:border-muted">
-                {uploadingImage ? "Uploading…" : "Attach image"}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/gif,image/webp"
-                  className="hidden"
-                  disabled={uploadingImage}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void pickImage(file);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-            )}
-          </div>
+          {(canAttachImage || canAttachVideo) && (
+            <div>
+              <div className="label">{needsImage ? "Photo" : canAttachVideo ? "Image or video (optional)" : "Image (optional)"}</div>
+              <MediaPicker attachment={attachment} images={canAttachImage} videos={canAttachVideo} />
+            </div>
           )}
 
           {imageProblem && (
@@ -284,10 +260,10 @@ export function SchedulerPanel() {
             </p>
           )}
 
-          {imagesDropped.length > 0 && (
+          {media && mediaDropped.length > 0 && (
             <p className="text-xs text-muted">
-              {[...new Set(imagesDropped.map((a) => PLATFORMS[a.platform].label))].join(" and ")} posts are sent without
-              the image: Kyrelo can&apos;t post images there.
+              {[...new Set(mediaDropped.map((a) => PLATFORMS[a.platform].label))].join(" and ")} posts are sent without
+              the {media.kind}: {mediaDropReason(mediaDropped[0].platform, media)}.
             </p>
           )}
 
@@ -378,18 +354,35 @@ export function SchedulerPanel() {
   );
 }
 
-/**
- * An image attached to a post being written or edited: uploads it via
- * /api/scheduler/upload and keeps a local preview. Used by the compose form
- * and the edit modal.
- */
-function useImageAttachment(initialPath: string | null) {
-  const [imagePath, setImagePath] = useState<string | null>(initialPath);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
+/** A post's attachment: an uploaded image or video. `bytes` is known for one picked in this session. */
+interface Media {
+  filename: string;
+  kind: "image" | "video";
+  bytes?: number;
+}
 
-  async function pickImage(file: File) {
-    setUploadingImage(true);
+/** Whether a platform takes this attachment; if not, its post goes out as text alone. */
+function attachmentFits(platform: PlatformId, media: Media): boolean {
+  return mediaDropReason(platform, media) === null;
+}
+
+function mediaDropReason(platform: PlatformId, media: Media): string | null {
+  if (media.kind === "video") return postVideoError(platform, media.filename, media.bytes);
+  return PLATFORMS[platform].maxImageBytes > 0 ? null : `Kyrelo can't post images to ${PLATFORMS[platform].label}`;
+}
+
+/**
+ * An image or video attached to a post being written or edited: uploads it
+ * via /api/scheduler/upload and keeps a local preview. Used by the compose
+ * form and the edit modal.
+ */
+function useMediaAttachment(initial: Media | null) {
+  const [media, setMedia] = useState<Media | null>(initial);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function pick(file: File) {
+    setUploading(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -398,23 +391,72 @@ function useImageAttachment(initialPath: string | null) {
         alert(r.error);
         return;
       }
-      setImagePath(r.filename);
-      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
-      setImagePreviewUrl(URL.createObjectURL(file));
+      setMedia({ filename: r.filename, kind: file.type.startsWith("video/") ? "video" : "image", bytes: file.size });
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(URL.createObjectURL(file));
     } finally {
-      setUploadingImage(false);
+      setUploading(false);
     }
   }
 
-  function clearImage() {
-    setImagePath(null);
-    if (imagePreviewUrl) {
-      URL.revokeObjectURL(imagePreviewUrl);
-      setImagePreviewUrl(null);
+  function clear() {
+    setMedia(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
     }
   }
 
-  return { imagePath, imagePreviewUrl, uploadingImage, pickImage, clearImage };
+  // A picked file previews from memory; a saved one from the uploads route.
+  const src = previewUrl ?? (media ? `/api/scheduler/uploads/${media.filename}` : null);
+  return { media, src, uploading, pick, clear };
+}
+
+function MediaPicker({
+  attachment,
+  images,
+  videos,
+}: {
+  attachment: ReturnType<typeof useMediaAttachment>;
+  images: boolean;
+  videos: boolean;
+}) {
+  const { media, src, uploading, pick, clear } = attachment;
+  if (media && src) {
+    return (
+      <div className="flex items-start gap-3">
+        {media.kind === "video" ? (
+          <video src={src} controls muted className="max-h-40 rounded-md border border-line" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt="" className="max-h-32 rounded-md border border-line object-cover" />
+        )}
+        <button type="button" onClick={clear} className="btn-ghost text-xs">
+          Remove
+        </button>
+      </div>
+    );
+  }
+  const accept = [
+    ...(images ? ["image/png", "image/jpeg", "image/gif", "image/webp"] : []),
+    ...(videos ? ["video/mp4", "video/quicktime"] : []),
+  ].join(",");
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-xs text-fg hover:border-muted">
+      {uploading ? "Uploading…" : images && videos ? "Attach image or video" : videos ? "Attach video" : "Attach image"}
+      <input
+        type="file"
+        accept={accept}
+        className="hidden"
+        disabled={uploading}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void pick(file);
+          e.target.value = "";
+        }}
+      />
+    </label>
+  );
 }
 
 function PostRow({
@@ -635,6 +677,17 @@ function TimelineRow({
             />
           </div>
         )}
+        {post.videoPath && (
+          <div className="mt-2">
+            <video
+              src={`/api/scheduler/uploads/${post.videoPath}`}
+              controls
+              muted
+              preload="metadata"
+              className="max-h-40 rounded-md border border-line"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -672,9 +725,15 @@ function EditPostModal({
   const [scheduledFor, setScheduledFor] = useState(() =>
     toDateTimeLocal(new Date(post.scheduledFor)),
   );
-  const { imagePath, imagePreviewUrl, uploadingImage, pickImage, clearImage } = useImageAttachment(
-    post.imagePath ?? null,
+  const attachment = useMediaAttachment(
+    post.imagePath
+      ? { filename: post.imagePath, kind: "image" }
+      : post.videoPath
+        ? { filename: post.videoPath, kind: "video" }
+        : null,
   );
+  const { media } = attachment;
+  const spec = PLATFORMS[post.platform];
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -691,7 +750,8 @@ function EditPostModal({
         body: JSON.stringify({
           text,
           accountId,
-          imagePath: imagePath ?? null,
+          imagePath: media?.kind === "image" ? media.filename : null,
+          videoPath: media?.kind === "video" ? media.filename : null,
           scheduledFor: new Date(scheduledFor).toISOString(),
         }),
       }).then((r) => r.json());
@@ -705,10 +765,6 @@ function EditPostModal({
     }
   }
 
-  // Preview source: local blob URL if user picked a new image, otherwise the
-  // stored image served from the uploads route.
-  const previewSrc =
-    imagePreviewUrl ?? (imagePath ? `/api/scheduler/uploads/${imagePath}` : null);
 
   return (
     <div
@@ -723,7 +779,7 @@ function EditPostModal({
           <div>
             <div className="label !mb-0">Edit scheduled post</div>
             <p className="mt-1 text-xs text-muted">
-              Change the text, time, account, or image. Saves in place.
+              Change the text, time, account, or attachment. Saves in place.
             </p>
           </div>
           <button
@@ -744,39 +800,15 @@ function EditPostModal({
           {error && <span className="text-error">{error}</span>}
         </div>
 
-        {/* Threads posts are text only (PLATFORMS[..].maxImageBytes 0). */}
-        {PLATFORMS[post.platform].maxImageBytes > 0 && (
-        <div className="mt-3">
-          <div className="label">Image</div>
-          {previewSrc ? (
-            <div className="flex items-start gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={previewSrc}
-                alt=""
-                className="max-h-32 rounded-md border border-line object-cover"
-              />
-              <button type="button" onClick={clearImage} className="btn-ghost text-xs">
-                Remove
-              </button>
-            </div>
-          ) : (
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-xs text-fg hover:border-muted">
-              {uploadingImage ? "Uploading…" : "Attach image"}
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/gif,image/webp"
-                className="hidden"
-                disabled={uploadingImage}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void pickImage(file);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-          )}
-        </div>
+        {/* Threads posts are text only (no images or videos). */}
+        {(spec.maxImageBytes > 0 || spec.maxVideoBytes > 0) && (
+          <div className="mt-3">
+            <div className="label">{spec.maxVideoBytes > 0 ? "Image or video" : "Image"}</div>
+            <MediaPicker attachment={attachment} images={spec.maxImageBytes > 0} videos={spec.maxVideoBytes > 0} />
+            {media && mediaDropReason(post.platform, media) && (
+              <p className="mt-1 text-xs text-warning">{mediaDropReason(post.platform, media)}.</p>
+            )}
+          </div>
         )}
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">

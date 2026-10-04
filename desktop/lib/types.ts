@@ -141,6 +141,8 @@ export interface ScheduledPost {
   text: string;
   /** Filename inside .data/uploads/ — set when the user attached an image. */
   imagePath?: string;
+  /** Filename inside .data/uploads/ — set when the user attached a video (never with an image). */
+  videoPath?: string;
   scheduledFor: string;
   createdAt: string;
   status: ScheduledStatus;

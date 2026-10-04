@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { imageTypeForFilename } from "./uploads";
+import { imageTypeForFilename, videoTypeForFilename } from "./uploads";
 
 // Mastodon through its public API. Connecting is the standard OAuth flow for
 // desktop apps, so the user only types their server: Kyrelo registers itself
@@ -82,30 +82,32 @@ export function verifyCredentials(instance: string, token: string): Promise<{ id
 }
 
 /**
- * Posts `text` (and an optional image) and returns the post's URL. Images
- * upload first; the server may process them in the background, so their id
- * is attached once they're ready. `idempotencyKey` (the scheduled post's id)
+ * Posts `text` (and an optional image or video) and returns the post's URL.
+ * Media uploads first; the server may process it in the background, so its
+ * id is attached once it's ready (a video can take a minute or two). `idempotencyKey` (the scheduled post's id)
  * makes the server ignore a repeat of the same post within the hour.
  */
 export async function postToMastodon(
   instance: string,
   token: string,
   text: string,
-  opts: { imagePath?: string; idempotencyKey: string },
+  opts: { imagePath?: string; videoPath?: string; idempotencyKey: string },
 ): Promise<{ url: string }> {
-  const { imagePath } = opts;
+  const mediaPath = opts.imagePath ?? opts.videoPath;
   const mediaIds: string[] = [];
-  if (imagePath) {
-    const data = await fs.readFile(imagePath);
+  if (mediaPath) {
+    const data = await fs.readFile(mediaPath);
     const form = new FormData();
-    const type = imageTypeForFilename(path.basename(imagePath)) ?? "image/png";
-    form.append("file", new Blob([new Uint8Array(data)], { type }), path.basename(imagePath));
+    const name = path.basename(mediaPath);
+    const type = imageTypeForFilename(name) ?? videoTypeForFilename(name) ?? "image/png";
+    form.append("file", new Blob([new Uint8Array(data)], { type }), name);
     let media = await api<{ id: string; url: string | null }>(`${instance}/api/v2/media`, { method: "POST", body: form, token });
-    for (let i = 0; i < 15 && !media.url; i++) {
+    const attempts = opts.videoPath ? 90 : 15;
+    for (let i = 0; i < attempts && !media.url; i++) {
       await new Promise((r) => setTimeout(r, 2000));
       media = await api(`${instance}/api/v1/media/${media.id}`, { token });
     }
-    if (!media.url) throw new Error("Mastodon: the image is still processing. Try again in a minute.");
+    if (!media.url) throw new Error(`Mastodon: the ${opts.videoPath ? "video" : "image"} is still processing. Try again in a few minutes.`);
     mediaIds.push(media.id);
   }
   const status = await api<{ url: string }>(`${instance}/api/v1/statuses`, {

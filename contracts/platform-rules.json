@@ -5,6 +5,7 @@
       "label": "X",
       "maxLength": 4000,
       "maxImageBytes": 5242880,
+      "maxVideoBytes": 0,
       "connect": "browser",
       "credentials": [],
       "loginUrl": "https://x.com/login",
@@ -17,6 +18,7 @@
       "label": "Bluesky",
       "maxLength": 300,
       "maxImageBytes": 1000000,
+      "maxVideoBytes": 0,
       "connect": "credentials",
       "credentials": [
         "handle",
@@ -32,6 +34,7 @@
       "label": "Mastodon",
       "maxLength": 500,
       "maxImageBytes": 5242880,
+      "maxVideoBytes": 41943040,
       "connect": "oauth",
       "credentials": [],
       "loginUrl": "https://joinmastodon.org/servers",
@@ -44,6 +47,7 @@
       "label": "Threads",
       "maxLength": 500,
       "maxImageBytes": 0,
+      "maxVideoBytes": 0,
       "connect": "credentials",
       "credentials": [
         "token"
@@ -58,6 +62,7 @@
       "label": "Instagram",
       "maxLength": 2200,
       "maxImageBytes": 5242880,
+      "maxVideoBytes": 0,
       "connect": "browser",
       "credentials": [],
       "loginUrl": "https://www.instagram.com/accounts/login/",
@@ -75,6 +80,7 @@
       "label": "Facebook",
       "maxLength": 63206,
       "maxImageBytes": 5242880,
+      "maxVideoBytes": 0,
       "connect": "browser",
       "credentials": [],
       "loginUrl": "https://www.facebook.com/login/",
@@ -87,6 +93,7 @@
       "label": "Telegram",
       "maxLength": 4096,
       "maxImageBytes": 5242880,
+      "maxVideoBytes": 52428800,
       "connect": "credentials",
       "credentials": [
         "token",
@@ -102,6 +109,7 @@
       "label": "Discord",
       "maxLength": 2000,
       "maxImageBytes": 5242880,
+      "maxVideoBytes": 10485760,
       "connect": "credentials",
       "credentials": [
         "webhookUrl"
@@ -116,6 +124,7 @@
       "label": "LinkedIn",
       "maxLength": 3000,
       "maxImageBytes": 5242880,
+      "maxVideoBytes": 0,
       "connect": "credentials",
       "credentials": [
         "token"

@@ -18,6 +18,8 @@ export interface PlatformSpec {
    * images there (Threads' API only takes images from a public web address).
    */
   maxImageBytes: number;
+  /** Largest video file Kyrelo can post here. 0: Kyrelo can't post videos there (yet). */
+  maxVideoBytes: number;
   /**
    * The longest post an auto campaign writes here: short enough to read as a
    * social post, even where the platform allows far more (Facebook).
@@ -58,6 +60,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxLength: 4000,
     length: tweetLength,
     maxImageBytes: 5 * 1024 * 1024,
+    maxVideoBytes: 0,
     campaignLimit: MAX_TWEET_LENGTH,
     requiresImage: false,
     connect: "browser",
@@ -72,6 +75,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Bluesky rejects image blobs over ~1 MB.
     maxImageBytes: 1_000_000,
+    maxVideoBytes: 0,
     campaignLimit: 300,
     requiresImage: false,
     connect: "credentials",
@@ -92,6 +96,8 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Kyrelo's own upload limit (lib/uploads.ts); every Mastodon server takes
     // at least 8 MB.
     maxImageBytes: 5 * 1024 * 1024,
+    // Mastodon's default limit for videos; servers can set their own.
+    maxVideoBytes: 40 * 1024 * 1024,
     campaignLimit: 500,
     requiresImage: false,
     // Type the server, approve Kyrelo there (startMastodonConnect).
@@ -105,6 +111,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxLength: 500,
     length: (text) => Array.from(graphemes.segment(text)).length,
     maxImageBytes: 0,
+    maxVideoBytes: 0,
     campaignLimit: 500,
     requiresImage: false,
     connect: "credentials",
@@ -120,6 +127,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Kyrelo's own upload limit (lib/uploads.ts); Instagram takes bigger.
     maxImageBytes: 5 * 1024 * 1024,
+    maxVideoBytes: 0,
     campaignLimit: 2200,
     requiresImage: true,
     imageTypes: ["jpg", "jpeg", "png"],
@@ -138,6 +146,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Kyrelo's own upload limit (lib/uploads.ts); Facebook takes bigger.
     maxImageBytes: 5 * 1024 * 1024,
+    maxVideoBytes: 0,
     campaignLimit: 500,
     requiresImage: false,
     // Posted through facebook.com in the account's own Chrome profile, like
@@ -155,6 +164,8 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => text.length,
     // Kyrelo's own upload limit (lib/uploads.ts); Telegram takes 10 MB.
     maxImageBytes: 5 * 1024 * 1024,
+    // What a bot may upload.
+    maxVideoBytes: 50 * 1024 * 1024,
     campaignLimit: 500,
     requiresImage: false,
     // A bot the user makes with @BotFather, admin of their channel.
@@ -173,6 +184,8 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Kyrelo's own upload limit (lib/uploads.ts); Discord takes 10 MB.
     maxImageBytes: 5 * 1024 * 1024,
+    // What a webhook may upload to a server without boosts.
+    maxVideoBytes: 10 * 1024 * 1024,
     campaignLimit: 500,
     requiresImage: false,
     // A channel webhook: no bot or app needed.
@@ -188,6 +201,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Kyrelo's own upload limit (lib/uploads.ts); LinkedIn takes bigger.
     maxImageBytes: 5 * 1024 * 1024,
+    maxVideoBytes: 0,
     // About what LinkedIn shows before "…see more".
     campaignLimit: 1300,
     requiresImage: false,
@@ -250,6 +264,18 @@ export function postImageError(platform: PlatformId, imagePath: string | undefin
   if (spec.maxImageBytes === 0) return `Kyrelo can't post images to ${spec.label}`;
   const ext = imagePath.split(".").pop()?.toLowerCase() ?? "";
   if (spec.imageTypes && !spec.imageTypes.includes(ext)) return `${spec.label} takes JPEG or PNG photos`;
+  return null;
+}
+
+/** Why a post with this video can't go to `platform`, or null if it can. `bytes` is checked when known. */
+export function postVideoError(platform: PlatformId, videoPath: string, bytes?: number): string | null {
+  const spec = PLATFORMS[platform];
+  if (spec.maxVideoBytes === 0) return `Kyrelo can't post videos to ${spec.label} yet`;
+  if (spec.requiresImage) return `${spec.label} posts need a photo`;
+  if (!/\.(mp4|mov)$/i.test(videoPath)) return `${spec.label} takes MP4 or MOV videos`;
+  if (bytes !== undefined && bytes > spec.maxVideoBytes) {
+    return `the video is too big for ${spec.label} (max ${Math.round(spec.maxVideoBytes / 1024 / 1024)} MB)`;
+  }
   return null;
 }
 

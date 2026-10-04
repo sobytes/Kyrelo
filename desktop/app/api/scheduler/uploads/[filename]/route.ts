@@ -1,6 +1,13 @@
-import { promises as fs } from "node:fs";
+import { createReadStream, promises as fs } from "node:fs";
 import path from "node:path";
-import { imageTypeForFilename, SAFE_IMAGE_FILENAME, uploadsDir } from "@/lib/uploads";
+import { Readable } from "node:stream";
+import {
+  imageTypeForFilename,
+  SAFE_IMAGE_FILENAME,
+  SAFE_VIDEO_FILENAME,
+  uploadsDir,
+  videoTypeForFilename,
+} from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +16,7 @@ export async function GET(
   ctx: { params: Promise<{ filename: string }> },
 ) {
   const { filename } = await ctx.params;
-  if (!SAFE_IMAGE_FILENAME.test(filename)) {
+  if (!SAFE_IMAGE_FILENAME.test(filename) && !SAFE_VIDEO_FILENAME.test(filename)) {
     return new Response("bad filename", { status: 400 });
   }
   const dir = path.resolve(uploadsDir());
@@ -18,16 +25,18 @@ export async function GET(
   if (!file.startsWith(dir + path.sep) && file !== dir) {
     return new Response("bad filename", { status: 400 });
   }
-  let data: Buffer;
+  let size: number;
   try {
-    data = await fs.readFile(file);
+    size = (await fs.stat(file)).size;
   } catch {
     return new Response("not found", { status: 404 });
   }
-  const type = imageTypeForFilename(filename) ?? "application/octet-stream";
-  return new Response(new Uint8Array(data), {
+  const type = imageTypeForFilename(filename) ?? videoTypeForFilename(filename) ?? "application/octet-stream";
+  // Streamed: a video can be hundreds of MB.
+  return new Response(Readable.toWeb(createReadStream(file)) as ReadableStream, {
     headers: {
       "Content-Type": type,
+      "Content-Length": String(size),
       // Never let a browser guess the type from the bytes.
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "private, max-age=300",

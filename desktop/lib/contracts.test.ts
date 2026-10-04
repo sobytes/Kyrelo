@@ -45,6 +45,7 @@ describe("contract: platform rules", () => {
         label: PLATFORMS[id].label,
         maxLength: PLATFORMS[id].maxLength,
         maxImageBytes: PLATFORMS[id].maxImageBytes,
+        maxVideoBytes: PLATFORMS[id].maxVideoBytes,
         requiresImage: PLATFORMS[id].requiresImage,
         campaignLimit: PLATFORMS[id].campaignLimit,
         imageTypes: PLATFORMS[id].imageTypes,

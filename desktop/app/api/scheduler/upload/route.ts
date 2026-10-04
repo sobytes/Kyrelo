@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { imageTypeFromBytes, imageUploadError, saveImage } from "@/lib/uploads";
+import { saveUpload, uploadError } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   let form: FormData;
@@ -16,12 +16,13 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "no file" }, { status: 400 });
   }
-  const invalid = imageUploadError(file);
+  const invalid = uploadError(file);
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
-  const data = Buffer.from(await file.arrayBuffer());
-  if (!imageTypeFromBytes(data)) {
-    return NextResponse.json({ error: "that file isn't a PNG, JPEG, GIF or WebP image" }, { status: 400 });
+  try {
+    // Stored by what the bytes are, not the type the upload claims.
+    const filename = await saveUpload(Buffer.from(await file.arrayBuffer()));
+    return NextResponse.json({ ok: true, filename });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 400 });
   }
-  const filename = await saveImage(data);
-  return NextResponse.json({ ok: true, filename });
 }

@@ -1,3 +1,4 @@
+import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
   deleteScheduledPost,
@@ -8,10 +9,10 @@ import {
   updateScheduledPost,
 } from "./storage";
 import { connectingPlatform } from "./browser-connect";
-import { PLATFORMS } from "./platforms";
+import { PLATFORMS, postImageError, postVideoError } from "./platforms";
 import { publish } from "./publish";
 import { ScheduledPost } from "./types";
-import { uploadsDir } from "./uploads";
+import { SAFE_IMAGE_FILENAME, SAFE_VIDEO_FILENAME, uploadsDir } from "./uploads";
 
 export interface DispatchOutcome {
   ran: number;
@@ -114,9 +115,11 @@ async function dispatchDuePosts(): Promise<DispatchOutcome> {
     // the user cancelled (deleted) the post mid-send, so it doesn't come back.
     try {
       const imagePath = post.imagePath ? path.join(uploadsDir(), post.imagePath) : undefined;
+      const videoPath = post.videoPath ? path.join(uploadsDir(), post.videoPath) : undefined;
       const r = await publish(account, post.text, {
         headless,
         imagePath,
+        videoPath,
         onSendingStarted: () =>
           updateScheduledPost(post.id, (latest) => ({ ...latest, sendingStartedAt: new Date().toISOString() })),
         idempotencyKey: post.id,
@@ -146,6 +149,7 @@ export async function createScheduledPost(input: {
   accountId: string;
   text: string;
   imagePath?: string;
+  videoPath?: string;
   scheduledFor: string;
   campaignId?: string;
 }): Promise<ScheduledPost> {
@@ -155,6 +159,7 @@ export async function createScheduledPost(input: {
     accountId: input.accountId,
     text: input.text,
     imagePath: input.imagePath,
+    videoPath: input.videoPath,
     scheduledFor: input.scheduledFor,
     createdAt: new Date().toISOString(),
     status: "pending",
@@ -166,4 +171,22 @@ export async function createScheduledPost(input: {
 
 export async function cancelScheduledPost(id: string): Promise<void> {
   await deleteScheduledPost(id);
+}
+
+/**
+ * Why a post on `platform` can't have this attachment, or null if it can.
+ * The same rules for creating and editing a post. Filenames must be ones the
+ * upload route made, so a request can't point at a file outside uploads/.
+ */
+export async function postMediaError(platform: ScheduledPost["platform"], imagePath?: string, videoPath?: string): Promise<string | null> {
+  if (imagePath && !SAFE_IMAGE_FILENAME.test(imagePath)) return "invalid imagePath";
+  if (videoPath && !SAFE_VIDEO_FILENAME.test(videoPath)) return "invalid videoPath";
+  if (imagePath && videoPath) return "a post can have an image or a video, not both";
+  if (!videoPath) return postImageError(platform, imagePath);
+  const bytes = await fs
+    .stat(path.join(uploadsDir(), videoPath))
+    .then((s) => s.size)
+    .catch(() => undefined);
+  if (bytes === undefined) return "that video isn't uploaded any more";
+  return postVideoError(platform, videoPath, bytes);
 }

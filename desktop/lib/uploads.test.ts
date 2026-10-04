@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { IMAGE_EXT_BY_TYPE, imageTypeForFilename, imageTypeFromBytes, imageUploadError, SAFE_IMAGE_FILENAME } from "./uploads";
+import {
+  IMAGE_EXT_BY_TYPE,
+  imageTypeForFilename,
+  imageTypeFromBytes,
+  imageUploadError,
+  SAFE_IMAGE_FILENAME,
+  SAFE_VIDEO_FILENAME,
+  uploadError,
+  videoTypeFromBytes,
+} from "./uploads";
 
 describe("image upload rules", () => {
   it("accepts filenames the upload routes produce", () => {
@@ -48,5 +57,23 @@ describe("imageTypeForFilename", () => {
     for (const notImage of ["<html><script>alert(1)</script>", "<svg xmlns='http://www.w3.org/2000/svg'/>", "RIFF\0\0\0\0WAVEfmt ", ""]) {
       expect(imageTypeFromBytes(Buffer.from(notImage))).toBeUndefined();
     }
+  });
+});
+
+describe("videos", () => {
+  const mp4 = Buffer.from([0, 0, 0, 0x18, ...Buffer.from("ftypisom"), 0, 0, 2, 0]);
+  const mov = Buffer.from([0, 0, 0, 0x14, ...Buffer.from("ftypqt  "), 0, 0, 2, 0]);
+
+  it("tells MP4 from QuickTime by the bytes, and isn't fooled by an image", () => {
+    expect(videoTypeFromBytes(mp4)).toBe("video/mp4");
+    expect(videoTypeFromBytes(mov)).toBe("video/quicktime");
+    expect(videoTypeFromBytes(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))).toBeUndefined();
+  });
+
+  it("accepts videos up to Kyrelo's limit and still refuses other types", () => {
+    expect(uploadError(new File([new Uint8Array(10)], "a.mp4", { type: "video/mp4" }))).toBeNull();
+    expect(uploadError(new File([new Uint8Array(10)], "a.avi", { type: "video/x-msvideo" }))).toMatch(/MP4 or MOV/);
+    expect(SAFE_VIDEO_FILENAME.test("0123456789ab.mp4")).toBe(true);
+    expect(SAFE_VIDEO_FILENAME.test("../x.mp4")).toBe(false);
   });
 });

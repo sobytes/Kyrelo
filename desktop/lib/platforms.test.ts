@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fitText, isPlatformId, PLATFORMS, postTextError } from "./platforms";
+import { fitText, isPlatformId, PLATFORMS, postTextError, postVideoError } from "./platforms";
 
 describe("platform rules", () => {
   it("counts length the way each platform does", () => {
@@ -42,5 +42,14 @@ describe("fitText", () => {
     expect(out).toContain("https://kyrelo.com");
     expect(out.endsWith("…")).toBe(true);
     expect(out).not.toMatch(/\bthr\b/); // no half words
+  });
+});
+
+describe("videos", () => {
+  it("says where a video can't go, and when it's too big", () => {
+    expect(postVideoError("mastodon", "a.mp4", 1000)).toBeNull();
+    expect(postVideoError("threads", "a.mp4")).toBe("Kyrelo can't post videos to Threads yet");
+    expect(postVideoError("discord", "a.mp4", 11 * 1024 * 1024)).toBe("the video is too big for Discord (max 10 MB)");
+    expect(postVideoError("telegram", "a.avi")).toBe("Telegram takes MP4 or MOV videos");
   });
 });

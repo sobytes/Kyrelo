@@ -106,6 +106,7 @@ final class ContractTests: XCTestCase {
             let label: String
             let maxLength: Int
             let maxImageBytes: Int
+            let maxVideoBytes: Int
             let connect: String
             let credentials: [String]
             let loginUrl: String
@@ -129,6 +130,7 @@ final class ContractTests: XCTestCase {
             XCTAssertEqual(platform.label, p.label)
             XCTAssertEqual(platform.maxLength, p.maxLength)
             XCTAssertEqual(platform.maxImageBytes, p.maxImageBytes)
+            XCTAssertEqual(platform.maxVideoBytes, p.maxVideoBytes)
             XCTAssertEqual(platform.loginUrl.absoluteString, p.loginUrl)
             XCTAssertEqual(platform.signupUrl.absoluteString, p.signupUrl)
             XCTAssertEqual(platform.requiresImage, p.requiresImage)

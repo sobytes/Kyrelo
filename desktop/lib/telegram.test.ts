@@ -55,7 +55,7 @@ describe("Telegram", () => {
     const message = { message_id: 5, chat: { id: -1001, type: "channel", username: "kyrelo" } };
     const calls = mockBot({ sendPhoto: message, sendMessage: message });
     const long = "x".repeat(1500);
-    expect(await postToTelegram("tok", "@kyrelo", long, image)).toEqual({ url: "https://t.me/kyrelo/5" });
+    expect(await postToTelegram("tok", "@kyrelo", long, { imagePath: image })).toEqual({ url: "https://t.me/kyrelo/5" });
     expect(calls.map((c) => c.method)).toEqual(["sendPhoto", "sendMessage"]);
     expect((calls[0].body as Record<string, unknown>).caption).toBeUndefined();
     expect((calls[1].body as { text: string }).text).toBe(long);

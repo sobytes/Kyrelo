@@ -26,6 +26,17 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
  */
 export const SAFE_IMAGE_FILENAME = /^[A-Za-z0-9_-]{6,}\.(png|jpg|jpeg|gif|webp)$/i;
 
+/** Video types Kyrelo takes, with the extension we store them under. */
+export const VIDEO_EXT_BY_TYPE: Record<string, string> = {
+  "video/mp4": ".mp4",
+  "video/quicktime": ".mov",
+};
+
+/** Kyrelo's own limit for a video upload; each platform's is in PLATFORMS[..].maxVideoBytes. */
+export const MAX_VIDEO_BYTES = 256 * 1024 * 1024;
+
+export const SAFE_VIDEO_FILENAME = /^[A-Za-z0-9_-]{6,}\.(mp4|mov)$/i;
+
 /** Content type for serving a stored file, from its extension. */
 export function imageTypeForFilename(filename: string): string | undefined {
   const ext = path.extname(filename).toLowerCase();
@@ -33,7 +44,21 @@ export function imageTypeForFilename(filename: string): string | undefined {
   return Object.keys(IMAGE_EXT_BY_TYPE).find((type) => IMAGE_EXT_BY_TYPE[type] === ext);
 }
 
+export function videoTypeForFilename(filename: string): string | undefined {
+  const ext = path.extname(filename).toLowerCase();
+  return Object.keys(VIDEO_EXT_BY_TYPE).find((type) => VIDEO_EXT_BY_TYPE[type] === ext);
+}
+
 /** Why an uploaded file breaks the rules, or null if it's fine. */
+export function uploadError(file: File): string | null {
+  if (VIDEO_EXT_BY_TYPE[file.type]) {
+    return file.size > MAX_VIDEO_BYTES ? `video must be ${MAX_VIDEO_BYTES / 1024 / 1024} MB or smaller` : null;
+  }
+  if (!IMAGE_EXT_BY_TYPE[file.type]) return "use a PNG, JPEG, GIF or WebP image, or an MP4 or MOV video";
+  return imageUploadError(file);
+}
+
+/** Why an uploaded image breaks the rules, or null if it's fine. */
 export function imageUploadError(file: File): string | null {
   if (!IMAGE_EXT_BY_TYPE[file.type]) return "use a PNG, JPEG, GIF or WebP image";
   if (file.size > MAX_IMAGE_BYTES) {
@@ -55,6 +80,12 @@ export function imageTypeFromBytes(data: Buffer): string | undefined {
   return undefined;
 }
 
+/** MP4 and QuickTime files both start with an "ftyp" box; its brand tells them apart. */
+export function videoTypeFromBytes(data: Buffer): string | undefined {
+  if (data.subarray(4, 8).toString("latin1") !== "ftyp") return undefined;
+  return data.subarray(8, 12).toString("latin1") === "qt  " ? "video/quicktime" : "video/mp4";
+}
+
 export function uploadsDir(): string {
   return path.join(dataDir, "uploads");
 }
@@ -68,6 +99,16 @@ export async function saveImage(data: Buffer): Promise<string> {
   const type = imageTypeFromBytes(data);
   if (!type) throw new Error("that file isn't a PNG, JPEG, GIF or WebP image");
   const filename = `${randomUUID()}${IMAGE_EXT_BY_TYPE[type]}`;
+  await fs.mkdir(uploadsDir(), { recursive: true });
+  await fs.writeFile(path.join(uploadsDir(), filename), data);
+  return filename;
+}
+
+/** Stores an image or video under a fresh random name, by what its bytes are; returns the filename. */
+export async function saveUpload(data: Buffer): Promise<string> {
+  const video = videoTypeFromBytes(data);
+  if (!video) return saveImage(data);
+  const filename = `${randomUUID()}${VIDEO_EXT_BY_TYPE[video]}`;
   await fs.mkdir(uploadsDir(), { recursive: true });
   await fs.writeFile(path.join(uploadsDir(), filename), data);
   return filename;

@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { imageTypeForFilename } from "./uploads";
+import { imageTypeForFilename, videoTypeForFilename } from "./uploads";
 
 // Telegram through the Bot API: the user makes a bot with @BotFather, adds it
 // to their channel (or group) as an admin that can post, and gives Kyrelo the
@@ -61,20 +61,28 @@ function messageUrl(chat: Chat, messageId: number): string {
   return chat.username ? `https://t.me/${chat.username}/${messageId}` : `https://t.me/c/${String(chat.id).replace(/^-100/, "")}/${messageId}`;
 }
 
-/** Posts `text` (and an optional photo) and returns the message's link. */
-export async function postToTelegram(token: string, chatId: string, text: string, imagePath?: string): Promise<{ url: string }> {
-  if (!imagePath) {
+/** Posts `text` (and an optional photo or video) and returns the message's link. */
+export async function postToTelegram(
+  token: string,
+  chatId: string,
+  text: string,
+  media: { imagePath?: string; videoPath?: string } = {},
+): Promise<{ url: string }> {
+  const file = media.imagePath ?? media.videoPath;
+  if (!file) {
     const sent = await call<{ message_id: number; chat: Chat }>(token, "sendMessage", { chat_id: chatId, text });
     return { url: messageUrl(sent.chat, sent.message_id) };
   }
-  const data = await fs.readFile(imagePath);
+  const data = await fs.readFile(file);
   const form = new FormData();
   form.append("chat_id", chatId);
   const fitsCaption = text.length <= CAPTION_MAX;
   if (fitsCaption) form.append("caption", text);
-  const type = imageTypeForFilename(path.basename(imagePath)) ?? "image/png";
-  form.append("photo", new Blob([new Uint8Array(data)], { type }), path.basename(imagePath));
-  const photo = await call<{ message_id: number; chat: Chat }>(token, "sendPhoto", form);
+  const name = path.basename(file);
+  const field = media.videoPath ? "video" : "photo";
+  const type = (media.videoPath ? videoTypeForFilename(name) : imageTypeForFilename(name)) ?? "application/octet-stream";
+  form.append(field, new Blob([new Uint8Array(data)], { type }), name);
+  const photo = await call<{ message_id: number; chat: Chat }>(token, media.videoPath ? "sendVideo" : "sendPhoto", form);
   if (!fitsCaption) await call(token, "sendMessage", { chat_id: chatId, text });
   return { url: messageUrl(photo.chat, photo.message_id) };
 }
