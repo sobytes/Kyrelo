@@ -388,7 +388,10 @@ function TokenCard({ account, onSaved }: { account: Account; onSaved: () => Prom
 function SettingsCard({ settings, onChange }: { settings: CommentSettings; onChange: (next: CommentSettings) => void }) {
   // Text and the slider edit a local copy and save when left / released.
   const [draft, setDraft] = useState(settings);
-  useEffect(() => setDraft(settings), [settings]);
+  // The page re-reads settings every few seconds; only a real change (saved
+  // here or elsewhere) replaces what's being typed or dragged.
+  const saved = JSON.stringify(settings);
+  useEffect(() => setDraft(JSON.parse(saved)), [saved]);
   const commit = (patch: Partial<CommentSettings> = {}) => onChange({ ...draft, ...patch });
 
   return (

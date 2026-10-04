@@ -9,6 +9,8 @@ import { imageTypeForFilename, videoTypeForFilename } from "./uploads";
 // (/api/accounts/mastodon/callback) that becomes the access token.
 
 const TIMEOUT_MS = 30_000;
+/** Sending a video of up to 40 MB on a slow connection takes minutes. */
+const UPLOAD_TIMEOUT_MS = 10 * 60_000;
 // read:notifications and read:statuses are for Comments. Accounts connected
 // before it don't have them and must reconnect (see MASTODON_RECONNECT).
 export const MASTODON_SCOPES = "read:accounts read:notifications read:statuses write:statuses write:media";
@@ -29,7 +31,7 @@ async function api<T>(url: string, init: RequestInit & { token?: string } = {}):
   const res = await fetch(url, {
     ...rest,
     headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...headers },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: rest.signal ?? AbortSignal.timeout(TIMEOUT_MS),
   });
   const json = (await res.json().catch(() => ({}))) as T & { error?: string; error_description?: string };
   if (!res.ok) throw new Error(`Mastodon: ${json.error_description ?? json.error ?? `HTTP ${res.status}`}`);
@@ -101,7 +103,12 @@ export async function postToMastodon(
     const name = path.basename(mediaPath);
     const type = imageTypeForFilename(name) ?? videoTypeForFilename(name) ?? "image/png";
     form.append("file", new Blob([new Uint8Array(data)], { type }), name);
-    let media = await api<{ id: string; url: string | null }>(`${instance}/api/v2/media`, { method: "POST", body: form, token });
+    let media = await api<{ id: string; url: string | null }>(`${instance}/api/v2/media`, {
+      method: "POST",
+      body: form,
+      token,
+      signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
+    });
     const attempts = opts.videoPath ? 90 : 15;
     for (let i = 0; i < attempts && !media.url; i++) {
       await new Promise((r) => setTimeout(r, 2000));

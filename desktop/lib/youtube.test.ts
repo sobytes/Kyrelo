@@ -73,3 +73,13 @@ describe("YouTube", () => {
     ]);
   });
 });
+
+describe("YouTube descriptions", () => {
+  it("are cut to 5000 bytes between characters", async () => {
+    const { fitBytes, videoMetadata } = await import("./youtube");
+    const cyrillic = "Привет ".repeat(600); // 2 bytes a letter: about 7800 bytes
+    expect(Buffer.byteLength(videoMetadata(cyrillic).description)).toBeLessThanOrEqual(5000);
+    expect(fitBytes("ab🎉", 5)).toBe("ab");
+    expect(fitBytes("short", 5000)).toBe("short");
+  });
+});

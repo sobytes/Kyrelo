@@ -200,6 +200,16 @@ export function SchedulerPanel() {
   const upcoming = sorted.filter((p) => p.status === "pending" || p.status === "posting");
   const history = sorted.filter((p) => p.status === "posted" || p.status === "failed").reverse();
 
+  // Per-account text needs several accounts. With one left, its own text
+  // becomes the post again (so nothing written there is lost).
+  useEffect(() => {
+    if (targets.length > 1 || !custom) return;
+    const own = targets[0] ? custom[accountKey(targets[0])] : undefined;
+    if (own !== undefined) setText(own);
+    setCustom(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targets.length]);
+
   /** What goes to this account: its own text if it has one, else the shared text. */
   function textFor(account: Account): string {
     return custom?.[accountKey(account)] ?? text;
@@ -534,7 +544,8 @@ function useMediaAttachment(initial: Media | null) {
         alert(r.error);
         return;
       }
-      setMedia({ filename: r.filename, kind: file.type.startsWith("video/") ? "video" : "image", bytes: file.size });
+      // What the server stored it as (by its bytes), not what the browser says it is.
+      setMedia({ filename: r.filename, kind: /\.(mp4|mov)$/i.test(r.filename) ? "video" : "image", bytes: file.size });
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(URL.createObjectURL(file));
     } finally {

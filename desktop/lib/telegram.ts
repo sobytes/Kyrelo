@@ -8,6 +8,8 @@ import { imageTypeForFilename, videoTypeForFilename } from "./uploads";
 
 const API = "https://api.telegram.org";
 const TIMEOUT_MS = 30_000;
+/** Sending a photo or video of up to 50 MB on a slow connection takes minutes. */
+const UPLOAD_TIMEOUT_MS = 10 * 60_000;
 /** A photo's caption is limited to this; longer text goes in its own message after the photo. */
 const CAPTION_MAX = 1024;
 
@@ -24,7 +26,7 @@ async function call<T>(token: string, method: string, body: object | FormData): 
     method: "POST",
     headers: isForm ? undefined : { "Content-Type": "application/json" },
     body: isForm ? body : JSON.stringify(body),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(isForm ? UPLOAD_TIMEOUT_MS : TIMEOUT_MS),
   });
   const json = (await res.json().catch(() => ({}))) as { ok?: boolean; result?: T; description?: string };
   if (!json.ok) throw new Error(`Telegram: ${json.description ?? `HTTP ${res.status}`}`);

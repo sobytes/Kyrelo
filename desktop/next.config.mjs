@@ -19,7 +19,14 @@ const nextConfig = {
     maxInactiveAge: 12 * 60 * 60 * 1000,
     pagesBufferLength: 100,
   },
-  outputFileTracingExcludes: {
+  experimental: {
+    // middleware.ts runs on every /api route, and Next keeps only this much
+    // of a request body for the route after it (10 MB by default), which cut
+    // video uploads short. Kyrelo's video limit (lib/uploads.ts
+    // MAX_VIDEO_BYTES, 256 MB) plus room for the multipart wrapping.
+    middlewareClientMaxBodySize: 260 * 1024 * 1024,
+  },
+    outputFileTracingExcludes: {
     "*": [".data/**/*", "dist/**/*", "build/**/*"],
   },
 };

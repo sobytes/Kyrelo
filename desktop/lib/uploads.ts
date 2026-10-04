@@ -107,7 +107,11 @@ export async function saveImage(data: Buffer): Promise<string> {
 /** Stores an image or video under a fresh random name, by what its bytes are; returns the filename. */
 export async function saveUpload(data: Buffer): Promise<string> {
   const video = videoTypeFromBytes(data);
-  if (!video) return saveImage(data);
+  if (!video) {
+    // The upload claimed to be a video; the size limit that counts is the image one.
+    if (data.length > MAX_IMAGE_BYTES) throw new Error(`image must be ${MAX_IMAGE_BYTES / 1024 / 1024} MB or smaller`);
+    return saveImage(data);
+  }
   const filename = `${randomUUID()}${VIDEO_EXT_BY_TYPE[video]}`;
   await fs.mkdir(uploadsDir(), { recursive: true });
   await fs.writeFile(path.join(uploadsDir(), filename), data);

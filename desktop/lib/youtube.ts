@@ -130,7 +130,21 @@ const clean = (s: string) => s.replace(/[<>]/g, "");
 /** The post's first line is the video's title (YouTube allows 100 characters); the whole text is its description. */
 export function videoMetadata(text: string): { title: string; description: string } {
   const { title } = splitTitle(clean(text), 100);
-  return { title: title || "Untitled", description: clean(text) };
+  return { title: title || "Untitled", description: fitBytes(clean(text), DESCRIPTION_MAX_BYTES) };
+}
+
+/** YouTube counts a description's limit in UTF-8 bytes, not characters. */
+const DESCRIPTION_MAX_BYTES = 5000;
+
+/** Cuts `text` to at most `max` UTF-8 bytes, between characters (never mid-emoji). */
+export function fitBytes(text: string, max: number): string {
+  if (Buffer.byteLength(text) <= max) return text;
+  let out = "";
+  for (const ch of new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)) {
+    if (Buffer.byteLength(out + ch.segment) > max) break;
+    out += ch.segment;
+  }
+  return out;
 }
 
 /** Uploads the video as public (unless YouTube keeps it private) and returns its URL. */

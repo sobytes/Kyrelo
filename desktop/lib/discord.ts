@@ -7,6 +7,8 @@ import { imageTypeForFilename, videoTypeForFilename } from "./uploads";
 // is a secret: anyone with it can post to the channel.
 
 const TIMEOUT_MS = 30_000;
+/** Sending a file on a slow connection takes a while. */
+const UPLOAD_TIMEOUT_MS = 5 * 60_000;
 const WEBHOOK_RE = /^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/(\d+)\/[\w-]+$/;
 
 export function isWebhookUrl(url: string): boolean {
@@ -14,7 +16,8 @@ export function isWebhookUrl(url: string): boolean {
 }
 
 async function api<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
+  const isUpload = init.body instanceof FormData;
+  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(isUpload ? UPLOAD_TIMEOUT_MS : TIMEOUT_MS) });
   const json = (await res.json().catch(() => ({}))) as T & { message?: string };
   if (!res.ok) throw new Error(`Discord: ${json.message ?? `HTTP ${res.status}`}`);
   return json;

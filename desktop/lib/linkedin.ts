@@ -12,7 +12,7 @@ import { imageTypeForFilename } from "./uploads";
 const API = "https://api.linkedin.com";
 const TIMEOUT_MS = 30_000;
 // LinkedIn's API is versioned by month; each version is supported for a year.
-const VERSION = "202509";
+const VERSION = "202609";
 
 export const LINKEDIN_EXPIRED = "LinkedIn tokens last 60 days. Make a new one in LinkedIn's token generator and reconnect under Accounts.";
 
@@ -28,6 +28,8 @@ async function api(url: string, token: string, init: RequestInit = {}): Promise<
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (res.status === 401) throw new Error(LINKEDIN_EXPIRED);
+  // The API version Kyrelo asks for has been retired: Kyrelo needs updating.
+  if (res.status === 426) throw new Error("LinkedIn no longer supports the API version this Kyrelo uses. Update Kyrelo.");
   if (!res.ok) {
     const json = (await res.json().catch(() => ({}))) as { message?: string };
     throw new Error(`LinkedIn: ${json.message ?? `HTTP ${res.status}`}`);
