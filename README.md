@@ -5,6 +5,7 @@ A local desktop app, iPhone companion and marketing site for **Kyrelo**, the ope
 - **Publish:** schedule posts, images and videos to X, Bluesky, Mastodon, Threads, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram, Discord, Slack, DEV, Hashnode, WordPress, Lemmy and Nostr. Give each account its own version of a post (the AI can adapt it to each platform), plan on a calendar, keep your images and videos in Media buckets for posts and campaigns, auto-post new articles from RSS feeds, or let an AI auto campaign research, write and space out a whole series. Sent posts show their likes, reposts, replies and views where the platform shares them.
 - **Answer comments:** one inbox for the comments people leave on your posts on X, Bluesky, Mastodon, Threads, YouTube, Instagram, Facebook Pages, Lemmy and Nostr. The AI drafts replies in your voice and skips spam; nothing is sent until you press Reply.
 - **Engage:** watch X handles and keywords in the Monitor; Autopilot drafts replies under new posts for you to pick, edit and send yourself.
+- **iPhone companion:** shoot a photo or video and send it straight into a Media bucket on your computer, answer comments, check the Monitor, schedule posts and run campaigns from your phone.
 - **Clean up:** bulk delete posts, replies and reposts, unlike likes, and unfollow dead, bot-like or never-engaging accounts with a reason for each.
 
 **Website:** [kyrelo.com](https://kyrelo.com/)
@@ -29,7 +30,7 @@ Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared inf
 | Folder | What it is |
 |---|---|
 | [`desktop/`](./desktop) | The Electron + Next.js + Playwright app, with a Scheduler and auto campaigns across every platform, and each service's own tools (X: Monitor + Autopilot, Deleter, Unfollow). Built for macOS first. |
-| [`mobile/ios/`](./mobile/ios) | Native iPhone app (SwiftUI), paired with the desktop app, which does the work: the Monitor feed and reply drafts, the Scheduler with photos, and auto campaigns. Xcode project generated from `project.yml` by XcodeGen and committed. |
+| [`mobile/ios/`](./mobile/ios) | Native iPhone app (SwiftUI), paired with the desktop app, which does the work: Media (photos and videos from the phone into your buckets), Comments, the Monitor feed and reply drafts, the Scheduler, and auto campaigns. Xcode project generated from `project.yml` by XcodeGen and committed. |
 | [`contracts/`](./contracts) | Rules the desktop and iOS apps must agree on, as test fixtures both apps' tests read. |
 | [`website/`](./website) | The marketing site at [kyrelo.com](https://kyrelo.com). Plain Next.js + Tailwind, deploys to Vercel with **Root Directory = `website`**. |
 
@@ -86,7 +87,13 @@ On Windows, run `build.sh` from Git Bash.
 
 ### iPhone app
 
-Turn on **Settings → Phone app** in the desktop app, then scan the code in the iPhone app. The phone shows your Monitor feed and Autopilot's drafts; tap a draft, and it copies the reply and opens the tweet in X for you to send. **Comments** shows the comments waiting for an answer, with their drafts, and replies from your computer when you tap Reply. **Media** is where the phone shines: take a photo or video (or pick one from your library) and send it straight into a bucket on your computer, ready for posts and auto campaigns. Videos are converted to 1080p MP4 on the phone first. New posts can use anything in your media too. You can also schedule posts (with photos) and run auto campaigns. Your computer keeps doing the work, so Kyrelo has to be running there. It works on the same Wi-Fi, or anywhere with [Tailscale](https://tailscale.com) on both devices.
+The iPhone app isn't on the App Store yet: you build it onto your phone with Xcode (free; you need a Mac and an Apple ID).
+
+1. Open `mobile/ios/Kyrelo.xcodeproj` in Xcode.
+2. Select the **Kyrelo** target → **Signing & Capabilities**, choose your own team (your Apple ID works), and change the bundle identifier if Xcode asks for a unique one.
+3. Plug in your iPhone (or pick it over Wi-Fi), select it as the destination and press **Run**. The first time, trust the developer on the phone in **Settings → General → VPN & Device Management**.
+
+Then turn on **Settings → Phone app** in the desktop app and scan the code in the iPhone app. The phone shows your Monitor feed and Autopilot's drafts; tap a draft, and it copies the reply and opens the tweet in X for you to send. **Comments** shows the comments waiting for an answer, with their drafts, and replies from your computer when you tap Reply. **Media** is where the phone shines: take a photo or video (or pick one from your library) and send it straight into a bucket on your computer, ready for posts and auto campaigns. Videos are converted to 1080p MP4 on the phone first. New posts can use anything in your media too. You can also schedule posts (with photos) and run auto campaigns. Your computer keeps doing the work, so Kyrelo has to be running there. It works on the same Wi-Fi, or anywhere with [Tailscale](https://tailscale.com) on both devices.
 
 > [!WARNING]
 > On plain Wi-Fi the phone connection isn't encrypted. On a shared or public network, use Tailscale or turn phone access off. See [Known issues](#known-issues).
@@ -111,7 +118,7 @@ Plain Next.js + Tailwind. Vercel deploys it from `main` with **Root Directory = 
 > [!CAUTION]
 > Pairing stops strangers from connecting to your computer, but the connection itself is plain HTTP. The phone sends its pairing token with every request, so anyone on the same network watching the traffic can copy it and pretend to be your phone.
 
-With the token, someone could do what the phone app can: post and schedule as you, run the tweet deleter or unfollow tool on your X account, and use your AI credits. They can't see your API keys or account logins, remove accounts, change phone access, or reach anything else on your computer.
+With the token, someone could do what the phone app can: post and schedule as you, reply to comments, add to or remove from your Media library, run the tweet deleter or unfollow tool on your X account, and use your AI credits. They can't see your API keys or account logins, remove accounts, change phone access, or reach anything else on your computer.
 
 Until the connection is encrypted:
 
