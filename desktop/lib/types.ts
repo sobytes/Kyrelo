@@ -248,6 +248,25 @@ export interface Campaign {
   createdAt: string;
 }
 
+/** A feed whose new articles become posts (lib/feeds.ts). */
+export interface FeedRule {
+  id: string;
+  url: string;
+  /** The feed's own title. */
+  title: string;
+  targets: CampaignTarget[];
+  /** The post, with {title}, {link} and {summary} filled in. */
+  template: string;
+  /** Have the AI write each post for its platform instead (the template is the fallback). */
+  useAi: boolean;
+  /** Article ids already posted or skipped, newest first. */
+  seen: string[];
+  createdAt: string;
+  lastCheckedAt?: string;
+  /** Why the last check failed. */
+  error?: string;
+}
+
 /** One follow change made by the Unfollow tab, kept so it can be undone. */
 export interface FollowChange {
   handle: string;

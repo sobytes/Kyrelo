@@ -6,6 +6,7 @@ import {
   BrandProfile,
   CommentSettings,
   CommentsState,
+  FeedRule,
   Campaign,
   GrokSettings,
   GrokState,
@@ -35,6 +36,7 @@ const UNFOLLOW_KEY = "unfollow";
 const HANDLE_FINDER_KEY = "handle-finder";
 const COMMENT_SETTINGS_KEY = "comment-settings";
 const COMMENTS_KEY = "comments";
+const FEEDS_KEY = "feeds";
 
 /** Root of all local app data. Electron sets STORAGE_DIR to the OS app-data folder. */
 export const dataDir = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
@@ -393,4 +395,14 @@ export async function modifyCommentsState(change: (state: CommentsState) => Comm
     const next = change({ ...EMPTY_COMMENTS, ...stored });
     return { ...next, comments: next.comments.slice(-MAX_COMMENTS) };
   });
+}
+
+// --- Feeds: RSS and Atom auto-posting (lib/feeds.ts) ---
+
+export async function getFeedRules(): Promise<FeedRule[]> {
+  return (await read<FeedRule[]>(FEEDS_KEY)) ?? [];
+}
+
+export async function modifyFeedRules(change: (rules: FeedRule[]) => FeedRule[]): Promise<FeedRule[]> {
+  return modify<FeedRule[]>(FEEDS_KEY, [], change);
 }

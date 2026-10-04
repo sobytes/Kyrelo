@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AutoCampaignModal } from "@/components/AutoCampaignModal";
 import { CalendarView } from "@/components/CalendarView";
+import { FeedsPanel } from "@/components/FeedsPanel";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { PLATFORMS, postImageError, postVideoError } from "@/lib/platforms";
 import { Account, GrokSettings, PlatformId, ScheduledPost } from "@/lib/types";
@@ -414,6 +415,8 @@ export function SchedulerPanel() {
 
       </>
       )}
+
+      <FeedsPanel accounts={accounts} />
       </div>
 
       {view === "calendar" && (
