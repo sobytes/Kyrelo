@@ -166,12 +166,26 @@ export async function saveApiKeys(keys: ApiKeys): Promise<void> {
 }
 
 /**
- * Posts and accounts on a platform Kyrelo no longer supports (LinkedIn, until
- * September 2026) stay in the files but aren't listed, so nothing tries to
- * post to or show a platform it has no rules for.
+ * Kyrelo posted to LinkedIn by driving Chrome until September 2026, then
+ * dropped it, and brought it back through LinkedIn's API in October 2026.
+ * Accounts and posts from the Chrome days have no API token, so they stay in
+ * the files but aren't listed: otherwise old pending posts would all fail at
+ * once, and the old accounts would show as connected.
+ */
+const LINKEDIN_API_SINCE = "2026-10-01";
+
+function isListed(item: { platform: string }, since: string): boolean {
+  if (!isPlatformId(item.platform)) return false;
+  return item.platform !== "linkedin" || since >= LINKEDIN_API_SINCE;
+}
+
+/**
+ * Posts and accounts on a platform Kyrelo doesn't support stay in the files
+ * but aren't listed, so nothing tries to post to or show a platform it has no
+ * rules for.
  */
 export async function listScheduledPosts(): Promise<ScheduledPost[]> {
-  return ((await read<ScheduledPost[]>(SCHEDULED_POSTS_KEY)) ?? []).filter((p) => isPlatformId(p.platform));
+  return ((await read<ScheduledPost[]>(SCHEDULED_POSTS_KEY)) ?? []).filter((p) => isListed(p, p.createdAt));
 }
 
 export async function insertScheduledPost(post: ScheduledPost): Promise<void> {
@@ -205,7 +219,7 @@ export async function deleteScheduledPost(id: string): Promise<void> {
 
 /** All connected accounts, or only those on `platform`. */
 export async function listAccounts(platform?: PlatformId): Promise<Account[]> {
-  const all = ((await read<Account[]>(ACCOUNTS_KEY)) ?? (await legacyXAccounts())).filter((a) => isPlatformId(a.platform));
+  const all = ((await read<Account[]>(ACCOUNTS_KEY)) ?? (await legacyXAccounts())).filter((a) => isListed(a, a.addedAt));
   return platform ? all.filter((a) => a.platform === platform) : all;
 }
 
@@ -227,7 +241,8 @@ async function legacyXAccounts(): Promise<Account[]> {
  * Threads a token (refreshed now and then) and the user's Threads id;
  * Instagram and Facebook (optional, for Comments) a Meta token and the
  * Instagram user or Facebook Page id; Telegram its bot token and chat id;
- * Discord its webhook URL (token) and server id.
+ * Discord its webhook URL (token) and server id; LinkedIn a token and the
+ * member id.
  */
 export interface AccountSecret {
   appPassword?: string;

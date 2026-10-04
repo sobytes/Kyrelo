@@ -118,20 +118,36 @@ describe("reply drafts", () => {
 describe("platforms Kyrelo no longer supports", () => {
   it("hides their accounts and posts, and leaves them in the files", async () => {
     const addedAt = new Date().toISOString();
-    // As saved by a version that still had LinkedIn.
+    // As saved by a version that had a platform this one doesn't.
     await storage.modifyAccounts(() => [
       { platform: "twitter", id: "x-acct", handle: "x-acct", addedAt },
-      { platform: "linkedin" as never, id: "li-acct", handle: "li-acct", addedAt },
+      { platform: "myspace" as never, id: "ms-acct", handle: "ms-acct", addedAt },
     ]);
-    await storage.insertScheduledPost(post("old-linkedin", { platform: "linkedin" as never, accountId: "li-acct" }));
+    await storage.insertScheduledPost(post("old-myspace", { platform: "myspace" as never, accountId: "ms-acct" }));
 
     expect((await storage.listAccounts()).map((a) => a.id)).toEqual(["x-acct"]);
-    expect((await storage.listScheduledPosts()).some((p) => p.id === "old-linkedin")).toBe(false);
+    expect((await storage.listScheduledPosts()).some((p) => p.id === "old-myspace")).toBe(false);
     // Still stored: a change to another post keeps it rather than dropping it.
     const raw = JSON.parse(
       await (await import("node:fs/promises")).readFile(path.join(process.env.STORAGE_DIR!, "scheduled-posts.json"), "utf8"),
     ) as ScheduledPost[];
-    expect(raw.some((p) => p.id === "old-linkedin")).toBe(true);
+    expect(raw.some((p) => p.id === "old-myspace")).toBe(true);
   });
 });
 
+
+describe("LinkedIn from before its API", () => {
+  it("keeps Chrome-era LinkedIn accounts and posts unlisted, and lists API ones", async () => {
+    const { modifyAccounts, insertScheduledPost } = storage;
+    await modifyAccounts((all) => [
+      ...all,
+      { platform: "linkedin", id: "old-vanity", handle: "old-vanity", addedAt: "2026-09-20T10:00:00.000Z" },
+      { platform: "linkedin", id: "abc123", handle: "Sam", addedAt: "2026-10-04T10:00:00.000Z" },
+    ]);
+    const base = { platform: "linkedin" as const, text: "hi", scheduledFor: "2030-01-01T00:00:00Z", status: "pending" as const };
+    await insertScheduledPost({ ...base, id: "old-post", accountId: "old-vanity", createdAt: "2026-09-21T10:00:00.000Z" });
+    await insertScheduledPost({ ...base, id: "new-post", accountId: "abc123", createdAt: "2026-10-04T10:00:00.000Z" });
+    expect((await storage.listAccounts("linkedin")).map((a) => a.id)).toEqual(["abc123"]);
+    expect((await storage.listScheduledPosts()).filter((p) => p.platform === "linkedin").map((p) => p.id)).toEqual(["new-post"]);
+  });
+});

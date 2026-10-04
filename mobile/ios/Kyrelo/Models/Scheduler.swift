@@ -4,13 +4,13 @@ import Foundation
 // contracts/scheduler.json is a sample both apps are tested against.
 
 enum PlatformId: String, Codable, CaseIterable {
-    case twitter, bluesky, mastodon, threads, instagram, facebook, telegram, discord
+    case twitter, bluesky, mastodon, threads, instagram, facebook, telegram, discord, linkedin
 }
 
 /// A list from the desktop, skipping items this app can't read. The desktop
 /// and the phone update separately: an older desktop may still send an
-/// account or post on a platform this app has dropped (LinkedIn, removed in
-/// September 2026), and one of those mustn't hide all the others.
+/// account or post on a platform this app doesn't know yet (or a newer one
+/// it has no rules for), and one of those mustn't hide all the others.
 struct LossyList<Element: Decodable>: Decodable {
     let items: [Element]
 

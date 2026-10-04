@@ -63,6 +63,8 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
     "Each Facebook account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through facebook.com as whichever profile you were using: to post as a Page, switch to it (your picture at the top right → the Page) before clicking I'm logged in. Connect again to add another Page. Facebook doesn't officially support posting this way, so it can break when they change their site.",
   telegram:
     "Kyrelo posts to your channel through your own Telegram bot, with Telegram's official Bot API. The bot token is stored only on this computer.",
+  linkedin:
+    "Kyrelo posts with LinkedIn's official API, using a token from your own LinkedIn app, stored only on this computer. LinkedIn tokens last 60 days; then make a new one and connect again.",
   discord:
     "Kyrelo posts to the channel through its webhook, Discord's official way for apps to post. The webhook link is stored only on this computer; anyone with it can post there, so keep it private.",
 };
@@ -264,6 +266,21 @@ const GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
         Open your channel → <em>Administrators</em> → <em>Add admin</em>, pick your bot and let it post messages.
       </li>
       <li>Paste the token and your channel&apos;s @name below (or its numeric id, for a private channel).</li>
+    </ol>
+  ),
+  linkedin: (
+    <ol className="list-decimal space-y-1 pl-5">
+      <li>
+        <ExtLink href="https://www.linkedin.com/developers/apps/new">Create a LinkedIn app</ExtLink> (it asks for a
+        company Page; any Page you manage works).
+      </li>
+      <li>
+        Under <em>Products</em>, add <em>Share on LinkedIn</em> and <em>Sign In with LinkedIn using OpenID Connect</em>.
+      </li>
+      <li>
+        Open the <ExtLink href={PLATFORMS.linkedin.loginUrl}>token generator</ExtLink>, pick your app and the{" "}
+        <em>openid</em>, <em>profile</em> and <em>w_member_social</em> scopes, and paste the token below. It lasts 60 days.
+      </li>
     </ol>
   ),
   discord: (

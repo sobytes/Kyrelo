@@ -110,6 +110,20 @@
       "signupUrl": "https://discord.com/register",
       "requiresImage": false,
       "campaignLimit": 500
+    },
+    {
+      "id": "linkedin",
+      "label": "LinkedIn",
+      "maxLength": 3000,
+      "maxImageBytes": 5242880,
+      "connect": "credentials",
+      "credentials": [
+        "token"
+      ],
+      "loginUrl": "https://www.linkedin.com/developers/tools/oauth/token-generator",
+      "signupUrl": "https://www.linkedin.com/signup",
+      "requiresImage": false,
+      "campaignLimit": 1300
     }
   ],
   "lengthCases": [

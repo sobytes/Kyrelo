@@ -8,6 +8,7 @@ import { CredentialField, PLATFORMS } from "./platforms";
 import { verifyToken } from "./threads";
 import { verifyTelegram } from "./telegram";
 import { verifyDiscordWebhook } from "./discord";
+import { verifyLinkedInToken } from "./linkedin";
 import { listAccounts, modifyAccounts, setAccountSecret } from "./storage";
 import { PlatformId } from "./types";
 
@@ -72,6 +73,19 @@ const CONNECTORS: Partial<Record<PlatformId, (fields: Fields) => Promise<Connect
     await setAccountSecret("discord", hook.id, { token: webhookUrl.trim(), userId: hook.guild_id });
     await saveAccount({ platform: "discord", id: hook.id, handle: hook.name, addedAt: new Date().toISOString() });
     return { ok: true, handle: hook.name };
+  },
+  async linkedin({ token = "" }) {
+    if (!token.trim()) return { error: "Paste your LinkedIn access token." };
+    let me;
+    try {
+      me = await verifyLinkedInToken(token.trim());
+    } catch (err) {
+      return { error: message(err) };
+    }
+    // LinkedIn has no @handle through this API, so the member id identifies the account.
+    await setAccountSecret("linkedin", me.sub, { token: token.trim(), userId: me.sub });
+    await saveAccount({ platform: "linkedin", id: me.sub, handle: me.name, addedAt: new Date().toISOString() });
+    return { ok: true, handle: me.name };
   },
 };
 

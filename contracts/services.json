@@ -75,6 +75,14 @@
       "sections": [
         "accounts"
       ]
+    },
+    {
+      "id": "linkedin",
+      "slug": "linkedin",
+      "label": "LinkedIn",
+      "sections": [
+        "accounts"
+      ]
     }
   ]
 }

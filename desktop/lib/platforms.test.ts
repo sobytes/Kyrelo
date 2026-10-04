@@ -22,7 +22,8 @@ describe("platform rules", () => {
     expect(isPlatformId("mastodon")).toBe(true);
     expect(isPlatformId("myspace")).toBe(false);
     // Removed in September 2026.
-    expect(isPlatformId("linkedin")).toBe(false);
+    expect(isPlatformId("linkedin")).toBe(true);
+    expect(isPlatformId("myspace")).toBe(false);
     expect(isPlatformId(undefined)).toBe(false);
   });
 });

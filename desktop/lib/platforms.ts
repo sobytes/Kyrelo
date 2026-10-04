@@ -181,6 +181,23 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     signupUrl: "https://discord.com/register",
     credentials: [{ key: "webhookUrl", label: "Webhook URL", placeholder: "https://discord.com/api/webhooks/…", secret: true }],
   },
+  linkedin: {
+    id: "linkedin",
+    label: "LinkedIn",
+    maxLength: 3000,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    // Kyrelo's own upload limit (lib/uploads.ts); LinkedIn takes bigger.
+    maxImageBytes: 5 * 1024 * 1024,
+    // About what LinkedIn shows before "…see more".
+    campaignLimit: 1300,
+    requiresImage: false,
+    // A token from the user's own LinkedIn app (lib/linkedin.ts). Earlier
+    // versions posted by driving Chrome, which LinkedIn's terms forbid.
+    connect: "credentials",
+    loginUrl: "https://www.linkedin.com/developers/tools/oauth/token-generator",
+    signupUrl: "https://www.linkedin.com/signup",
+    credentials: [{ key: "token", label: "Access token", placeholder: "Your LinkedIn access token", secret: true }],
+  },
 };
 
 /** The longest post a campaign writes for a platform (PlatformSpec.campaignLimit). */

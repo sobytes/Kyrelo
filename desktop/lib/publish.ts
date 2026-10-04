@@ -79,6 +79,13 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
     const { postToDiscord } = await import("./discord");
     return postToDiscord(secret.token, secret.userId, text, opts.imagePath);
   },
+  async linkedin(account, text, opts) {
+    const secret = await getAccountSecret("linkedin", account.id);
+    if (!secret?.token || !secret.userId) throw new Error("This LinkedIn account isn't connected any more. Reconnect it under Accounts.");
+    await opts.onSendingStarted();
+    const { postToLinkedIn } = await import("./linkedin");
+    return postToLinkedIn(secret.token, secret.userId, text, opts.imagePath);
+  },
 };
 
 export function publish(account: Account, text: string, opts: PublishOptions): Promise<{ url: string }> {

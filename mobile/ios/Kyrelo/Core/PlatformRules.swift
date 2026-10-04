@@ -14,6 +14,7 @@ extension PlatformId {
         case .facebook: "Facebook"
         case .telegram: "Telegram"
         case .discord: "Discord"
+        case .linkedin: "LinkedIn"
         }
     }
 
@@ -30,13 +31,14 @@ extension PlatformId {
         case .facebook: 63_206
         case .telegram: 4096
         case .discord: 2000
+        case .linkedin: 3000
         }
     }
 
     /// Largest image file the platform accepts on a post.
     var maxImageBytes: Int {
         switch self {
-        case .twitter, .mastodon, .instagram, .facebook, .telegram, .discord: 5 * 1024 * 1024
+        case .twitter, .mastodon, .instagram, .facebook, .telegram, .discord, .linkedin: 5 * 1024 * 1024
         case .bluesky: 1_000_000
         // Threads' API only takes images from a public web address.
         case .threads: 0
@@ -70,6 +72,7 @@ extension PlatformId {
         case .facebook: URL(string: "https://www.facebook.com/login/")!
         case .telegram: URL(string: "https://t.me/BotFather")!
         case .discord: URL(string: "https://support.discord.com/hc/en-us/articles/228383668")!
+        case .linkedin: URL(string: "https://www.linkedin.com/developers/tools/oauth/token-generator")!
         }
     }
 
@@ -78,6 +81,7 @@ extension PlatformId {
         switch self {
         case .bluesky: ("Use an app password, not your main password.", "Create an app password")
         case .telegram: ("Make a bot with @BotFather, add it to your channel as an admin that can post, then paste its token and the channel's @name.", "Open @BotFather")
+        case .linkedin: ("LinkedIn needs a token from your own LinkedIn app. The steps are on the LinkedIn page in Kyrelo on your computer; paste the token here.", "LinkedIn's token generator")
         case .discord: ("In the channel's settings, open Integrations → Webhooks, make one and paste its URL.", "Discord's webhook guide")
         case .threads: ("Threads needs a token from a Meta developer app. The steps are on the Threads page in Kyrelo on your computer; paste the token here.", "Meta's Threads API guide")
         // Not credentials platforms: they never show this screen.
@@ -96,6 +100,7 @@ extension PlatformId {
         case .facebook: URL(string: "https://www.facebook.com/r.php")!
         case .telegram: URL(string: "https://telegram.org/")!
         case .discord: URL(string: "https://discord.com/register")!
+        case .linkedin: URL(string: "https://www.linkedin.com/signup")!
         }
     }
 
@@ -114,6 +119,7 @@ extension PlatformId {
             CredentialField(key: "handle", placeholder: "@yourchannel", secret: false),
         ])
         case .discord: .credentials([CredentialField(key: "webhookUrl", placeholder: "Webhook URL", secret: true)])
+        case .linkedin: .credentials([CredentialField(key: "token", placeholder: "LinkedIn access token", secret: true)])
         }
     }
 
@@ -126,6 +132,7 @@ extension PlatformId {
         case .bluesky: 300
         case .mastodon, .threads, .facebook, .telegram, .discord: 500
         case .instagram: 2200
+        case .linkedin: 1300
         }
     }
 
@@ -133,7 +140,7 @@ extension PlatformId {
     func length(_ text: String) -> Int {
         switch self {
         case .twitter: ReplyRules.length(text) // links count 23
-        case .bluesky, .threads, .instagram, .facebook, .discord: text.count // what a person sees; links in full
+        case .bluesky, .threads, .instagram, .facebook, .discord, .linkedin: text.count // what a person sees; links in full
         case .telegram: text.utf16.count // Telegram counts UTF-16 units
         case .mastodon: Self.mastodonCountable(text).count
         }

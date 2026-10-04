@@ -216,10 +216,10 @@ final class ContractTests: XCTestCase {
     // MARK: scheduler.json
 
     func testSkipsAccountsOnPlatformsThisAppDoesntSupport() throws {
-        // An older desktop, from before LinkedIn was removed.
+        // A newer desktop, with a platform this app doesn't know yet.
         let json = Data("""
         [{"platform":"twitter","id":"a","handle":"a","addedAt":"2026-09-20T10:00:00.000Z"},
-         {"platform":"linkedin","id":"b","handle":"b","addedAt":"2026-09-20T10:00:00.000Z"},
+         {"platform":"myspace","id":"b","handle":"b","addedAt":"2026-09-20T10:00:00.000Z"},
          {"platform":"bluesky","id":"c","handle":"c","addedAt":"2026-09-20T10:00:00.000Z"}]
         """.utf8)
         let accounts = try JSONDecoder().decode(LossyList<Account>.self, from: json).items
