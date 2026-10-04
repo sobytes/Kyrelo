@@ -77,6 +77,40 @@ final class BridgeClient {
 
     // MARK: - Scheduler
 
+    // MARK: Comments
+
+    func comments() async throws -> CommentsResponse {
+        try await request(CommentsResponse.self, "GET", "/api/comments")
+    }
+
+    func commentSettings() async throws -> CommentSettings {
+        try await request(CommentSettingsResponse.self, "GET", "/api/comments/settings").settings
+    }
+
+    func saveCommentSettings(_ settings: CommentSettings) async throws -> CommentSettings {
+        try await request(CommentSettingsResponse.self, "PUT", "/api/comments/settings", body: settings).settings
+    }
+
+    /// Reads new comments now, even with background checks off.
+    func checkComments() async throws {
+        _ = try await request(Empty.self, "POST", "/api/comments", body: ["action": "check"], slow: true)
+    }
+
+    func draftComment(id: String) async throws -> ReplyDraft {
+        let r = try await request(DraftResponse.self, "POST", "/api/comments", body: ["action": "draft", "id": id], slow: true)
+        guard let draft = r.draft else { throw BridgeError.server(r.error ?? "Couldn't draft replies.") }
+        return draft
+    }
+
+    /// Sends the reply from the computer, on the comment's platform.
+    func replyToComment(id: String, text: String) async throws {
+        _ = try await request(Empty.self, "POST", "/api/comments", body: ["action": "send", "id": id, "text": text], slow: true)
+    }
+
+    func dismissComment(id: String) async throws {
+        _ = try await request(Empty.self, "POST", "/api/comments", body: CommentDismiss(id: id))
+    }
+
     func accounts() async throws -> [Account] {
         try await request(AccountsResponse.self, "GET", "/api/accounts").accounts.items
     }
@@ -314,6 +348,12 @@ final class BridgeClient {
     private struct ErrorResponse: Decodable { let error: String? }
     private struct StateResponse: Decodable { let state: GrokState }
     private struct SettingsResponse: Decodable { let settings: MonitorSettings }
+    private struct CommentSettingsResponse: Decodable { let settings: CommentSettings }
+    private struct CommentDismiss: Encodable {
+        let action = "dismiss"
+        let id: String
+        let dismissed = true
+    }
     private struct CheckResponse: Decodable { let error: String? }
     private struct DraftResponse: Decodable { let draft: ReplyDraft?; let error: String? }
     private struct AutopilotPatch: Encodable { let autopilot: AutopilotSettings }

@@ -220,6 +220,22 @@ final class ContractTests: XCTestCase {
         XCTAssertEqual(tokens.radius, ["sm": Double(Radius.sm), "md": Double(Radius.md), "lg": Double(Radius.lg)])
     }
 
+    // MARK: comments.json
+
+    func testDecodesTheCommentsSample() throws {
+        struct Sample: Decodable {
+            let comments: CommentsResponse
+            let settings: CommentSettings
+        }
+        let sample = try JSONDecoder().decode(Sample.self, from: contract("comments"))
+        let comments = sample.comments.state.comments.items
+        XCTAssertEqual(comments.map(\.platform), [.bluesky, .youtube])
+        XCTAssertEqual(comments.filter(\.isWaiting).count, 1)
+        XCTAssertEqual(comments[0].draft?.options.count, 1)
+        XCTAssertEqual(sample.comments.needToken.items.map(\.platform), [.instagram])
+        XCTAssertEqual(sample.settings, CommentSettings(enabled: true, tone: .supportive, voiceNotes: "Friendly and brief.", minScore: 30))
+    }
+
     // MARK: scheduler.json
 
     func testSkipsAccountsOnPlatformsThisAppDoesntSupport() throws {

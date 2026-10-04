@@ -1,0 +1,49 @@
+{
+  "comments": {
+    "state": {
+      "lastCheckedAt": "2026-10-04T09:00:00.000Z",
+      "accountErrors": {
+        "mastodon:me@mastodon.social": "Reconnect this Mastodon account under Accounts so Kyrelo can read comments."
+      },
+      "comments": [
+        {
+          "id": "bluesky:me.bsky.social:at://did:plc:fan/app.bsky.feed.post/3abc",
+          "platform": "bluesky",
+          "accountId": "me.bsky.social",
+          "author": "fan.bsky.social",
+          "text": "How does the comment inbox decide what to skip?",
+          "url": "https://bsky.app/profile/fan.bsky.social/post/3abc",
+          "postedAt": "2026-10-04T08:50:00.000Z",
+          "postText": "Kyrelo now answers comments across every platform.",
+          "seenAt": "2026-10-04T09:00:00.000Z",
+          "target": { "uri": "at://did:plc:fan/app.bsky.feed.post/3abc", "cid": "bafy", "rootUri": "at://did:plc:me/app.bsky.feed.post/1", "rootCid": "bafx" },
+          "draft": {
+            "score": 82,
+            "reason": "A real question about how it works",
+            "options": ["It scores each comment and skips spam, bots and abuse. You choose the bar."],
+            "generatedAt": "2026-10-04T09:00:05.000Z"
+          }
+        },
+        {
+          "id": "youtube:UC1:Ugx1",
+          "platform": "youtube",
+          "accountId": "UC1",
+          "author": "viewer",
+          "text": "Great video",
+          "url": "https://www.youtube.com/watch?v=v1&lc=Ugx1",
+          "postedAt": "2026-10-04T07:00:00.000Z",
+          "postText": "How we built it",
+          "seenAt": "2026-10-04T07:05:00.000Z",
+          "target": { "id": "Ugx1", "videoId": "v1" },
+          "repliedAt": "2026-10-04T07:10:00.000Z",
+          "replyText": "Thanks for watching!",
+          "replyUrl": "https://www.youtube.com/watch?v=v1&lc=Ugx1.r1"
+        }
+      ]
+    },
+    "accounts": [{ "platform": "bluesky", "id": "me.bsky.social", "handle": "me.bsky.social", "addedAt": "2026-09-20T10:00:00.000Z" }],
+    "needToken": [{ "platform": "instagram", "id": "me.brand", "handle": "me.brand", "addedAt": "2026-09-20T10:00:00.000Z" }],
+    "platforms": ["twitter", "bluesky", "mastodon", "threads", "youtube", "lemmy", "nostr", "instagram", "facebook"]
+  },
+  "settings": { "enabled": true, "tone": "supportive", "voiceNotes": "Friendly and brief.", "minScore": 30 }
+}

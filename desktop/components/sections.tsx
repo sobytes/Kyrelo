@@ -84,7 +84,9 @@ export const SCHEDULER_ICON = (
   <svg viewBox={icons.viewBox} aria-hidden dangerouslySetInnerHTML={{ __html: icons.globals.scheduler }} />
 );
 
-export const COMMENTS_ICON = icon(<path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z" />);
+export const COMMENTS_ICON = (
+  <svg viewBox={icons.viewBox} aria-hidden dangerouslySetInnerHTML={{ __html: icons.globals.comments }} />
+);
 
 export const SETTINGS_ICON = icon(
   <>

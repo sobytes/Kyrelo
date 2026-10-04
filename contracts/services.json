@@ -1,6 +1,7 @@
 {
   "global": [
-    "scheduler"
+    "scheduler",
+    "comments"
   ],
   "sections": [
     "monitor",

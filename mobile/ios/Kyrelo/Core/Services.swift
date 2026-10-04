@@ -28,7 +28,7 @@ struct ServiceSpec: Identifiable, Hashable {
 
 enum Services {
     /// Sections that cover every service.
-    static let global = ["scheduler"]
+    static let global = ["scheduler", "comments"]
 
     static let all: [ServiceSpec] = [
         ServiceSpec(id: .twitter, slug: "x", sections: [.monitor, .deleter, .unfollow, .accounts]),

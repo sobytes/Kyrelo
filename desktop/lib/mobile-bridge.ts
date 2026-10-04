@@ -32,6 +32,11 @@ const ALLOWED: [method: string, path: RegExp][] = [
   ["PUT", /^\/api\/grok-settings$/], // watching on/off, Autopilot settings
   ["POST", /^\/api\/grok-reply$/], // draft replies, mark as replied
   ["POST", /^\/api\/grok-run$/], // check now
+  // Comments: read, draft, reply, dismiss, check now, and its settings
+  ["GET", /^\/api\/comments$/],
+  ["POST", /^\/api\/comments$/],
+  ["GET", /^\/api\/comments\/settings$/],
+  ["PUT", /^\/api\/comments\/settings$/],
   // Scheduler
   ["GET", /^\/api\/accounts$/], // the list only: it never contains credentials
   ["GET", /^\/api\/scheduler\/posts$/],

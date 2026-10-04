@@ -40,8 +40,10 @@
 		B1017DF278641F065FBDAC4E /* IBMPlexMono-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = F772E91FDF9B21B78B296FEC /* IBMPlexMono-OFL.txt */; };
 		BDEF2DDB735F3D02CBABDC28 /* contracts in Resources */ = {isa = PBXBuildFile; fileRef = 482BEEAD1F871EB8ACB432BF /* contracts */; };
 		CA89A31096077BC26233EBD4 /* SchedulerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B9AF8B4E38E751CCD849A0 /* SchedulerModel.swift */; };
+		CD748B38AA37CBC7C878CD60 /* Comments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA1089B49EE6813EB48A659 /* Comments.swift */; };
 		D8FBBA61DDB471273751DE05 /* AccountsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C43F1516B5CE8A7BA6E9612D /* AccountsView.swift */; };
 		DB898C0A90C21A087E8D01E8 /* WatchListSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275352C61E0F5B23A82D56F9 /* WatchListSheet.swift */; };
+		DE1B00455F7342DD9E52EAF9 /* CommentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB687A1254FBA434BC193A84 /* CommentsView.swift */; };
 		E80B812F8E38316361A62799 /* PairView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3DF1CD38AD16C85A46C68C /* PairView.swift */; };
 		F09F9B03C24507B6B6BC46F7 /* XTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69E54EA8736B467B3D67A627 /* XTools.swift */; };
 		FEB5F5F40645EB19EFDAC2DC /* ReplySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E134E95736207463E2A2D0 /* ReplySheet.swift */; };
@@ -62,6 +64,7 @@
 		02916DB1BB57F6B515272490 /* KyreloTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = KyreloTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0334BEB85151A4B523B5866F /* Inter-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Inter-OFL.txt"; sourceTree = "<group>"; };
 		0675E8CB4CF60117E2A71424 /* PlatformRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformRules.swift; sourceTree = "<group>"; };
+		0AA1089B49EE6813EB48A659 /* Comments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Comments.swift; sourceTree = "<group>"; };
 		0EDC1DD2178E7D129B675A6F /* Pairing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pairing.swift; sourceTree = "<group>"; };
 		1C06956099474C430820B9B1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		275352C61E0F5B23A82D56F9 /* WatchListSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchListSheet.swift; sourceTree = "<group>"; };
@@ -92,6 +95,7 @@
 		B4B9AF8B4E38E751CCD849A0 /* SchedulerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulerModel.swift; sourceTree = "<group>"; };
 		B59F12805961635C4248F56B /* DeleterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleterView.swift; sourceTree = "<group>"; };
 		B97D7645D288E2599B4370A2 /* UnfollowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnfollowView.swift; sourceTree = "<group>"; };
+		BB687A1254FBA434BC193A84 /* CommentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsView.swift; sourceTree = "<group>"; };
 		C43F1516B5CE8A7BA6E9612D /* AccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountsView.swift; sourceTree = "<group>"; };
 		CE80A37744425D8C029551B3 /* CampaignSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CampaignSheet.swift; sourceTree = "<group>"; };
 		D4AD1E16A478647FD3AE2A5C /* IBMPlexMono-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexMono-Medium.ttf"; sourceTree = "<group>"; };
@@ -171,6 +175,7 @@
 				23D34F4A3E69ADE4CAA4E826 /* Accounts */,
 				40623FC3C225E5202EE8BB9D /* Autopilot */,
 				0EF6991425F347C37AECB52E /* Campaign */,
+				5FE5A677D9010B2CA6056619 /* Comments */,
 				A60FEF81FFCE87E19F23EAE0 /* Feed */,
 				78C47B7F11C6C45CADE5FF5C /* Home */,
 				8BE9AFF56DD9E6ABF8CBC00E /* Pair */,
@@ -187,6 +192,14 @@
 				35ED055D0549A2C9014DB264 /* AutopilotSheet.swift */,
 			);
 			path = Autopilot;
+			sourceTree = "<group>";
+		};
+		5FE5A677D9010B2CA6056619 /* Comments */ = {
+			isa = PBXGroup;
+			children = (
+				BB687A1254FBA434BC193A84 /* CommentsView.swift */,
+			);
+			path = Comments;
 			sourceTree = "<group>";
 		};
 		71AF43A51CC9C4AB56644ADB /* XTools */ = {
@@ -283,6 +296,7 @@
 		C3508A852FE9EAA8B1C9F7DE /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				0AA1089B49EE6813EB48A659 /* Comments.swift */,
 				DFF3E4FD91F35F915EDFBF8B /* Monitor.swift */,
 				AF5E8FD08129DCB4568014D7 /* Scheduler.swift */,
 				69E54EA8736B467B3D67A627 /* XTools.swift */,
@@ -433,6 +447,8 @@
 				3FF285A433827E3DE3B3CAEE /* AutopilotSheet.swift in Sources */,
 				31376F0C7CCECE209878C13B /* BridgeClient.swift in Sources */,
 				42A9E55065A70803C7751A67 /* CampaignSheet.swift in Sources */,
+				CD748B38AA37CBC7C878CD60 /* Comments.swift in Sources */,
+				DE1B00455F7342DD9E52EAF9 /* CommentsView.swift in Sources */,
 				70065F336A9A75DCC92A204E /* ComposeSheet.swift in Sources */,
 				0ABCB29DC2922B707845FC15 /* DeleterView.swift in Sources */,
 				8858F1B26DF619265AC4797A /* FeedModel.swift in Sources */,

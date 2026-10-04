@@ -110,6 +110,31 @@ describe("contract: monitor feed sample", () => {
   });
 });
 
+describe("contract: comments sample", () => {
+  const sample = contract("comments.json");
+
+  it("has exactly the settings fields the desktop returns", async () => {
+    const { getCommentSettings } = await import("./storage");
+    expect(keyPaths(sample.settings).sort()).toEqual(keyPaths(await getCommentSettings()).sort());
+  });
+
+  it("uses only fields PostComment and ReplyDraft define", () => {
+    const known = [
+      "id", "platform", "accountId", "author", "text", "url", "postedAt", "postText", "seenAt", "target",
+      "draft", "draft.score", "draft.reason", "draft.options", "draft.generatedAt",
+      "repliedAt", "replyText", "replyUrl", "replyError", "dismissedAt",
+    ];
+    for (const key of keyPaths(sample.comments.state.comments)) {
+      if (!key.startsWith("target.")) expect(known).toContain(key);
+    }
+  });
+
+  it("lists only platforms Comments supports", async () => {
+    const { COMMENT_PLATFORMS } = await import("./comments");
+    expect([...sample.comments.platforms].sort()).toEqual([...COMMENT_PLATFORMS].sort());
+  });
+});
+
 describe("contract: scheduler sample", () => {
   const sample = contract("scheduler.json");
   // Every field the desktop types define (lib/types.ts). The sample may leave
@@ -171,8 +196,8 @@ describe("contract: services", () => {
     expect(new Set(SERVICES.map((s) => s.slug)).size).toBe(SERVICES.length);
   });
 
-  it("keeps the Scheduler global, not a section of a service", () => {
-    expect(sample.global).toEqual(["scheduler"]);
+  it("keeps the Scheduler and Comments global, not sections of a service", () => {
+    expect(sample.global).toEqual(["scheduler", "comments"]);
     expect(sample.sections).not.toContain("scheduler");
   });
 

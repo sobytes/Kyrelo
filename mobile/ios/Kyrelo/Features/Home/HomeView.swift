@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The home screen, as on the desktop: the Scheduler (every account), then
-/// one row per service, each opening its sections.
+/// The home screen, as on the desktop: the Scheduler (every account) and
+/// Comments, then one row per service, each opening its sections.
 struct HomeView: View {
     let client: BridgeClient
     let onUnpair: () -> Void
@@ -22,6 +22,16 @@ struct HomeView: View {
                 } label: {
                     HomeRow(icon: Image("Global-scheduler"), title: "Scheduler", status: accounts.map { "\($0.count) accounts" } ?? "…",
                             detail: "Post and run campaigns across all your accounts")
+                }
+                .listRowBackground(Theme.canvas)
+
+                NavigationLink {
+                    CommentsView(client: client)
+                        .navigationTitle("Comments")
+                        .navigationBarTitleDisplayMode(.inline)
+                } label: {
+                    HomeRow(icon: Image("Global-comments"), title: "Comments", status: "AI reply drafts",
+                            detail: "Answer comments on your posts, on every service")
                 }
                 .listRowBackground(Theme.canvas)
 
