@@ -275,9 +275,9 @@ export function SettingsPanel() {
         <div className="label">About Kyrelo</div>
         <p>
           Kyrelo is an independent, open-source experiment, provided as is under the MIT license. It
-          isn&apos;t affiliated with, endorsed by or sponsored by X Corp., Bluesky, Buffer, TweetDelete,
-          Anthropic or OpenAI; their names are used only to say what Kyrelo works with or compares
-          to.
+          isn&apos;t affiliated with, endorsed by or sponsored by any platform it works with (X Corp.,
+          Bluesky, Meta, Google, TikTok, LinkedIn and the others), Buffer, Postiz, TweetDelete, Anthropic or
+          OpenAI; their names are used only to say what Kyrelo works with or compares to.
         </p>
         <p>
           You&apos;re responsible for how you use it, including following each platform&apos;s terms and

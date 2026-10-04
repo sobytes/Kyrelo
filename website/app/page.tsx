@@ -6,7 +6,7 @@ const APP_JSON_LD = {
   "@type": "SoftwareApplication",
   name: "Kyrelo",
   description:
-    "Free, open-source desktop app to schedule posts to X, Bluesky, Mastodon and Threads, plan AI campaigns, draft replies you send yourself, bulk delete tweets and unfollow inactive accounts.",
+    "Free, open-source desktop app to schedule posts, images and videos to 17 platforms, answer comments with AI drafts you approve, plan AI campaigns, bulk delete tweets and unfollow inactive accounts.",
   applicationCategory: "SocialNetworkingApplication",
   operatingSystem: "macOS, Windows",
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
@@ -59,10 +59,10 @@ function Hero() {
           Run your socials from your own computer.
         </h1>
         <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted">
-          Kyrelo is a free, open-source Buffer alternative for X, Bluesky, Mastodon and Threads.
-          Schedule posts, let AI
-          plan a whole campaign, get reply drafts under the posts you care about, and clean up old
-          tweets and dead follows. No SaaS and no outages: it runs on your machine with your own
+          Kyrelo is a free, open-source alternative to Buffer and Postiz for 17 platforms, from X,
+          LinkedIn and Instagram to YouTube, TikTok and Bluesky. Schedule posts and videos, answer
+          every comment from one inbox with AI drafts you approve, let AI plan a whole campaign,
+          and clean up old tweets and dead follows. No SaaS and no outages: it runs on your machine with your own
           accounts and your own AI key.
         </p>
         <div id="download" className="mt-8 flex flex-wrap items-center gap-3">
@@ -162,8 +162,8 @@ const FEATURE_GROUPS = [
     heading: "Publish",
     features: [
       {
-        title: "Schedule to X, Bluesky, Mastodon and Threads",
-        body: "Each service has its own space in the app. Write once, post to one account or several across services, with each network's character limit checked as you type. Connecting is quick: sign in to X, an app password for Bluesky, just your server's name for Mastodon.",
+        title: "Schedule to 17 platforms",
+        body: "X, Bluesky, Mastodon, Threads, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram, Discord, Slack, DEV, Hashnode, WordPress, Lemmy and Nostr. Write once or give each account its own version, which AI can adapt to each platform, attach an image or video, and see everything on a calendar. Official APIs wherever the platform offers one.",
         icon: "calendar",
       },
       {
@@ -176,6 +176,11 @@ const FEATURE_GROUPS = [
   {
     heading: "Engage",
     features: [
+      {
+        title: "Answer every comment from one inbox",
+        body: "Comments on your posts on X, Bluesky, Mastodon, Threads, YouTube, Instagram and Facebook Pages arrive in one place, with reply drafts in your voice. Spam and trolls are skipped. You pick a draft, edit it and press Reply: nothing is sent without you.",
+        icon: "reply",
+      },
       {
         title: "Monitor the accounts that matter",
         body: "Add the X handles you care about and Kyrelo checks them every 90 seconds, with a desktop notification when they post, so you can be among the first to reply.",
@@ -385,12 +390,12 @@ const STEPS = [
   {
     n: 2,
     title: "Connect your accounts",
-    body: "Sign in to X in a real Chrome window, including Google or Apple sign-in, and your session is saved on your computer. Bluesky connects with an app password. Add a Claude or OpenAI key if you want the AI features.",
+    body: "Each platform's screen walks you through it: sign in to X, Instagram or Facebook in a real Chrome window, paste an app password or token for most others, or approve your own developer app for YouTube and TikTok. Add a Claude or OpenAI key if you want the AI features.",
   },
   {
     n: 3,
     title: "Publish, engage, clean up",
-    body: "Queue posts in the Scheduler or let an auto campaign plan them. Watch handles in the Monitor and send the reply drafts you like. Clear out old tweets with the Deleter and dead follows with Unfollow.",
+    body: "Queue posts in the Scheduler or let an auto campaign plan them. Answer comments from the Comments inbox, watch handles in the Monitor and send the reply drafts you like. Clear out old tweets with the Deleter and dead follows with Unfollow.",
   },
 ];
 

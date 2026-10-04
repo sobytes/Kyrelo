@@ -4,9 +4,9 @@ import "./globals.css";
 import { SITE_URL } from "./site";
 
 const url = SITE_URL;
-const title = "Kyrelo — Free, Open-Source Buffer Alternative for X, Bluesky, Mastodon & Threads";
+const title = "Kyrelo — Free, Open-Source Buffer & Postiz Alternative with AI Comment Replies";
 const description =
-  "Schedule posts to X, Bluesky, Mastodon and Threads, plan AI campaigns, get reply drafts, bulk delete tweets and unfollow inactive accounts. Free and open source for Mac and Windows, running on your own computer.";
+  "Schedule posts, images and videos to 17 platforms including X, LinkedIn, Instagram, YouTube, TikTok and Bluesky, answer comments with AI drafts you approve, plan AI campaigns, bulk delete tweets and unfollow inactive accounts. Free and open source for Mac and Windows, running on your own computer.";
 
 export const metadata: Metadata = {
   title,
@@ -15,6 +15,13 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   keywords: [
     "Buffer alternative",
+    "Postiz alternative",
+    "AI comment replies",
+    "social media comment inbox",
+    "LinkedIn scheduler",
+    "YouTube scheduler",
+    "TikTok scheduler",
+    "Instagram scheduler",
     "open source social media scheduler",
     "X scheduler",
     "schedule tweets",

@@ -3,7 +3,7 @@ import path from "node:path";
 import { ImageResponse } from "next/og";
 import tokens from "../design-tokens.json";
 
-export const alt = "Kyrelo — free, open-source Buffer alternative for X, Bluesky, Mastodon and Threads";
+export const alt = "Kyrelo — free, open-source Buffer and Postiz alternative for 17 platforms, with AI comment replies";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -61,7 +61,7 @@ export default async function Image() {
             <span>from your own computer.</span>
           </div>
           <div style={{ display: "flex", marginTop: 24, fontSize: 24, color: c.muted }}>
-            For X, Bluesky, Mastodon &amp; Threads
+            17 platforms · AI comment replies
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 36 }}>
             {["Free", "Open source", "macOS & Windows"].map((t) => (

@@ -1,9 +1,10 @@
 # Kyrelo — Community Driven Buffer Alternative
 
-A local desktop app, iPhone companion and marketing site for **Kyrelo**, the open-source, community-driven Buffer alternative for X, Bluesky, Mastodon and Threads.
+A local desktop app, iPhone companion and marketing site for **Kyrelo**, the open-source, community-driven alternative to Buffer and Postiz. It runs on your own computer, posts to 17 platforms, and answers your comments with AI drafts you approve.
 
-- **Publish:** schedule posts to X, Bluesky, Mastodon and Threads, or let an AI auto campaign research, write and space out a series of X posts.
-- **Engage:** watch X handles in the Monitor; Autopilot drafts replies under new posts for you to pick, edit and send yourself.
+- **Publish:** schedule posts, images and videos to X, Bluesky, Mastodon, Threads, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram, Discord, Slack, DEV, Hashnode, WordPress, Lemmy and Nostr. Give each account its own version of a post (the AI can adapt it to each platform), plan on a calendar, or let an AI auto campaign research, write and space out a whole series.
+- **Answer comments:** one inbox for the comments people leave on your posts on X, Bluesky, Mastodon, Threads, YouTube, Instagram and Facebook Pages. The AI drafts replies in your voice and skips spam; nothing is sent until you press Reply.
+- **Engage:** watch X handles and keywords in the Monitor; Autopilot drafts replies under new posts for you to pick, edit and send yourself.
 - **Clean up:** bulk delete posts, replies and reposts, unlike likes, and unfollow dead, bot-like or never-engaging accounts with a reason for each.
 
 **Website:** [kyrelo.com](https://kyrelo.com/)
@@ -30,7 +31,7 @@ Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared inf
 
 ## Running it
 
-You need **Node.js 20+**, **npm** and **Google Chrome**. You log in to X through Chrome, and Kyrelo drives it to post and scrape. Bluesky connects with an app password.
+You need **Node.js 20+**, **npm** and **Google Chrome**. X, Instagram and Facebook connect by logging in through Chrome, which Kyrelo drives to post. Every other platform uses its official API.
 
 ```bash
 git clone https://github.com/sobytes/Kyrelo.git
@@ -40,19 +41,25 @@ cd Kyrelo
 
 The first run installs dependencies and downloads Playwright's Chromium, so give it a minute. The app window opens on its own.
 
-The app opens on a home screen: the **Scheduler**, which posts to all your accounts, and the services (X, Bluesky, Mastodon, Threads), each with its own tools. Settings are shared by all of them. In the app:
+The app opens on a home screen: the **Scheduler**, which posts to all your accounts, **Comments**, and the services, each with its own tools. Settings are shared by all of them. In the app:
 
-1. **A service → Accounts** → connect it:
-   - **X**: log in through a normal Chrome window.
-   - **Bluesky**: your handle and an app password.
-   - **Mastodon**: just your server's name; your browser asks you to approve Kyrelo.
-   - **Threads**: a token from a Meta developer app (Meta requires it; the screen walks you through it, about five minutes, once). Threads posts are text only.
+1. **A service → Accounts** → connect it. Each screen walks you through it:
+
+   | How it connects | Platforms |
+   |---|---|
+   | Log in through a normal Chrome window | X, Instagram, Facebook |
+   | Your server's name; approve Kyrelo in the browser | Mastodon |
+   | An app password, token or key you paste | Bluesky, Threads, LinkedIn, Telegram (your bot), Discord and Slack (a channel webhook), DEV, Hashnode, WordPress (an application password), Lemmy, Nostr |
+   | Your own developer app's client ID and secret, then approve it in the browser | YouTube (Google Cloud), TikTok |
+
+   Where a platform needs a developer app (Threads, LinkedIn, YouTube, TikTok, and Instagram or Facebook comments), you make your own, so its limits and approvals are yours: YouTube keeps uploads private until Google audits your project, and TikTok videos land in your TikTok inbox to finish there. Reddit and Pinterest now approve every new API app by hand, so they're not supported yet.
 2. **Settings → API keys** → add a Claude or OpenAI key for AI replies, rewrites and auto campaigns. The page has step-by-step instructions for getting one.
-3. **Scheduler** → write and schedule posts to any of your accounts at once. **Auto-generate campaign** plans a whole series and posts it to every account you pick, written to fit the strictest platform's limit.
+3. **Scheduler** → write and schedule posts to any of your accounts at once, with an image or a video, and switch to the **Calendar** to see everything planned. **Auto-generate campaign** plans a whole series and posts it to every account you pick, written to fit the strictest platform's limit.
+4. **Comments** → turn on background checks; new comments on your posts arrive with reply drafts. Pick one, edit it, and reply.
 
-The Scheduler and campaigns cover every platform; a service's own tools are set in [`contracts/services.json`](./contracts/services.json): X has Monitor, Deleter, Unfollow and Accounts, the others Accounts for now.
+The Scheduler, Comments and campaigns cover every platform they can; a service's own tools are set in [`contracts/services.json`](./contracts/services.json): X has Monitor, Deleter, Unfollow and Accounts, the others Accounts for now.
 
-Your data (keys, X session, scheduled posts, uploads) stays on your machine in the app's data folder and is never committed.
+Your data (keys, tokens, browser sessions, scheduled posts, uploads) stays on your machine in the app's data folder and is never committed.
 
 ### build.sh
 
@@ -111,7 +118,7 @@ Phone access is off until you turn it on, so if you don't use the iPhone app thi
 
 ## Disclaimer
 
-Kyrelo is an independent, open-source experiment, provided as is under the [MIT license](./LICENSE). It isn't affiliated with, endorsed by or sponsored by X Corp., Bluesky, Buffer, TweetDelete, Anthropic or OpenAI; their names are used only to describe what Kyrelo works with or compares to, and remain their owners' trademarks.
+Kyrelo is an independent, open-source experiment, provided as is under the [MIT license](./LICENSE). It isn't affiliated with, endorsed by or sponsored by X Corp., Bluesky, Meta, Google, TikTok, LinkedIn, Buffer, Postiz, TweetDelete, Anthropic, OpenAI or any other platform it works with; their names are used only to describe what Kyrelo works with or compares to, and remain their owners' trademarks.
 
-You're responsible for how you use it, including following each platform's terms and automation rules. Kyrelo drives your own logged-in browser to post, delete, follow and read X, which X's terms restrict, and X may limit or suspend accounts it thinks are automated. Kyrelo never sends replies for you, and paces bulk actions, but use it at your own risk.
+You're responsible for how you use it, including following each platform's terms and automation rules. Kyrelo drives your own logged-in browser to post, delete, follow and read X (and to post to Instagram and Facebook), which those platforms' terms restrict, and they may limit or suspend accounts they think are automated. Kyrelo never sends a reply without you pressing Reply, and paces bulk actions, but use it at your own risk.
 
