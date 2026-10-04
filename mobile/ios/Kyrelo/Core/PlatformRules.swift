@@ -15,6 +15,7 @@ extension PlatformId {
         case .telegram: "Telegram"
         case .discord: "Discord"
         case .linkedin: "LinkedIn"
+        case .youtube: "YouTube"
         }
     }
 
@@ -32,6 +33,7 @@ extension PlatformId {
         case .telegram: 4096
         case .discord: 2000
         case .linkedin: 3000
+        case .youtube: 5000
         }
     }
 
@@ -40,8 +42,8 @@ extension PlatformId {
         switch self {
         case .twitter, .mastodon, .instagram, .facebook, .telegram, .discord, .linkedin: 5 * 1024 * 1024
         case .bluesky: 1_000_000
-        // Threads' API only takes images from a public web address.
-        case .threads: 0
+        // Threads' API only takes images from a public web address; YouTube takes videos.
+        case .threads, .youtube: 0
         }
     }
 
@@ -52,6 +54,7 @@ extension PlatformId {
         case .mastodon: 40 * 1024 * 1024
         case .telegram: 50 * 1024 * 1024
         case .discord: 10 * 1024 * 1024
+        case .youtube: 256 * 1024 * 1024
         case .twitter, .bluesky, .threads, .instagram, .facebook, .linkedin: 0
         }
     }
@@ -59,12 +62,16 @@ extension PlatformId {
     /// Every post needs an image (Instagram): text-only posts can't go there.
     var requiresImage: Bool { self == .instagram }
 
+    /// Every post needs a video (YouTube).
+    var requiresVideo: Bool { self == .youtube }
+
     /// The image files it takes, by extension, if not all of Kyrelo's.
     var imageTypes: [String]? { self == .instagram ? ["jpg", "jpeg", "png"] : nil }
 
     /// Why a post with this image (or none) can't go here, or nil if it can.
     /// Same rules and words as the desktop's postImageError.
     func imageError(_ imagePath: String?) -> String? {
+        if requiresVideo { return "\(label) posts need a video" }
         guard let imagePath else { return requiresImage ? "\(label) posts need a photo" : nil }
         if maxImageBytes == 0 { return "Kyrelo can't post images to \(label)" }
         let ext = (imagePath as NSString).pathExtension.lowercased()
@@ -84,6 +91,7 @@ extension PlatformId {
         case .telegram: URL(string: "https://t.me/BotFather")!
         case .discord: URL(string: "https://support.discord.com/hc/en-us/articles/228383668")!
         case .linkedin: URL(string: "https://www.linkedin.com/developers/tools/oauth/token-generator")!
+        case .youtube: URL(string: "https://console.cloud.google.com/apis/credentials")!
         }
     }
 
@@ -96,7 +104,7 @@ extension PlatformId {
         case .discord: ("In the channel's settings, open Integrations → Webhooks, make one and paste its URL.", "Discord's webhook guide")
         case .threads: ("Threads needs a token from a Meta developer app. The steps are on the Threads page in Kyrelo on your computer; paste the token here.", "Meta's Threads API guide")
         // Not credentials platforms: they never show this screen.
-        case .twitter, .mastodon, .instagram, .facebook: ("", "Open \(label)")
+        case .twitter, .mastodon, .instagram, .facebook, .youtube: ("", "Open \(label)")
         }
     }
 
@@ -112,6 +120,7 @@ extension PlatformId {
         case .telegram: URL(string: "https://telegram.org/")!
         case .discord: URL(string: "https://discord.com/register")!
         case .linkedin: URL(string: "https://www.linkedin.com/signup")!
+        case .youtube: URL(string: "https://www.youtube.com/create_channel")!
         }
     }
 
@@ -131,6 +140,7 @@ extension PlatformId {
         ])
         case .discord: .credentials([CredentialField(key: "webhookUrl", placeholder: "Webhook URL", secret: true)])
         case .linkedin: .credentials([CredentialField(key: "token", placeholder: "LinkedIn access token", secret: true)])
+        case .youtube: .app(["clientId", "clientSecret"])
         }
     }
 
@@ -141,7 +151,7 @@ extension PlatformId {
         switch self {
         case .twitter: ReplyRules.campaignMaxLength // X's standard 280, not Premium's
         case .bluesky: 300
-        case .mastodon, .threads, .facebook, .telegram, .discord: 500
+        case .mastodon, .threads, .facebook, .telegram, .discord, .youtube: 500
         case .instagram: 2200
         case .linkedin: 1300
         }
@@ -151,7 +161,7 @@ extension PlatformId {
     func length(_ text: String) -> Int {
         switch self {
         case .twitter: ReplyRules.length(text) // links count 23
-        case .bluesky, .threads, .instagram, .facebook, .discord, .linkedin: text.count // what a person sees; links in full
+        case .bluesky, .threads, .instagram, .facebook, .discord, .linkedin, .youtube: text.count // what a person sees; links in full
         case .telegram: text.utf16.count // Telegram counts UTF-16 units
         case .mastodon: Self.mastodonCountable(text).count
         }
@@ -166,11 +176,14 @@ extension PlatformId {
 }
 
 /// Signing in through Chrome on the computer (so not from the phone),
-/// fields the user types, or approving Kyrelo on the platform's own page.
+/// fields the user types, approving Kyrelo on the platform's own page, or
+/// approving the user's own developer app (its client id and secret, the
+/// desktop's field keys) in the computer's browser.
 enum ConnectMethod {
     case browser
     case credentials([CredentialField])
     case oauth
+    case app([String])
 }
 
 struct CredentialField {

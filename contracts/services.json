@@ -83,6 +83,14 @@
       "sections": [
         "accounts"
       ]
+    },
+    {
+      "id": "youtube",
+      "slug": "youtube",
+      "label": "YouTube",
+      "sections": [
+        "accounts"
+      ]
     }
   ]
 }

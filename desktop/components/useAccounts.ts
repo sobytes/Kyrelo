@@ -124,6 +124,17 @@ export function useAccounts() {
     return r.error ?? null;
   }
 
+  /**
+   * The user's own developer app (PLATFORMS[..].connect "app"): opens the
+   * platform's approval page in the browser. The account appears here once
+   * the user approves.
+   */
+  async function startApp(platform: PlatformId, fields: Record<string, string>): Promise<string | null> {
+    const r = (await post({ action: "app-start", platform, fields })) as { error?: string; authorizeUrl?: string };
+    if (r.authorizeUrl) openExternal(r.authorizeUrl);
+    return r.error ?? null;
+  }
+
   async function disconnect(account: Account) {
     const what =
       PLATFORMS[account.platform].connect === "browser"
@@ -135,5 +146,5 @@ export function useAccounts() {
     refresh();
   }
 
-  return { status, phase, phasePlatform, start, done, cancel, connectWithCredentials, startMastodon, disconnect, refresh };
+  return { status, phase, phasePlatform, start, done, cancel, connectWithCredentials, startMastodon, startApp, disconnect, refresh };
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hasApiKey } from "@/lib/ai";
 import { startCampaign } from "@/lib/campaign";
+import { PLATFORMS } from "@/lib/platforms";
 import { getGrokSettings, listAccounts, listCampaigns, saveBrandProfile } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -49,8 +50,9 @@ export async function POST(req: NextRequest) {
     : body.accountId
       ? [{ platform: "twitter", accountId: body.accountId }]
       : [];
-  // Only connected accounts, each once.
-  const connected = await listAccounts();
+  // Only connected accounts, each once. Campaigns write text and images, so
+  // not to platforms that only take videos.
+  const connected = (await listAccounts()).filter((a) => !PLATFORMS[a.platform].requiresVideo);
   const targets = connected
     .filter((a) => wanted.some((t) => t.platform === a.platform && t.accountId === a.id))
     .map((a) => ({ platform: a.platform, accountId: a.id }));

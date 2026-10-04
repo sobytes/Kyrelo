@@ -119,3 +119,33 @@ describe("accounts", () => {
   });
 });
 
+
+describe("connecting with your own developer app", () => {
+  it("sends the user to approve it, then saves the channel when the platform redirects back", async () => {
+    const { startAppConnect, finishAppConnect } = await import("./accounts");
+    const { getAccountSecret, listAccounts } = await import("./storage");
+    expect(startAppConnect("youtube", { clientId: " id " }, "http://127.0.0.1:3000/cb")).toEqual({
+      error: "Paste your app's client ID and client secret.",
+    });
+    const started = startAppConnect("youtube", { clientId: "id", clientSecret: "secret" }, "http://127.0.0.1:3000/cb");
+    if (!("authorizeUrl" in started)) throw new Error(started.error);
+    const url = new URL(started.authorizeUrl);
+    expect(url.searchParams.get("access_type")).toBe("offline");
+    const state = url.searchParams.get("state")!;
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (u: string) =>
+        u.includes("oauth2.googleapis.com")
+          ? Response.json({ refresh_token: "rt", access_token: "at", expires_in: 3600 })
+          : Response.json({ items: [{ id: "UC1", snippet: { title: "Kyrelo", customUrl: "@kyrelo" } }] }),
+      ),
+    );
+    expect(await finishAppConnect(state, "code")).toEqual({ ok: true, handle: "kyrelo", platform: "youtube" });
+    expect((await listAccounts("youtube")).map((a) => a.id)).toEqual(["UC1"]);
+    expect(await getAccountSecret("youtube", "UC1")).toEqual({ clientId: "id", clientSecret: "secret", token: "rt", userId: "UC1" });
+    // A state is used once.
+    expect(await finishAppConnect(state, "code")).toMatchObject({ error: expect.stringMatching(/expired/) });
+    vi.unstubAllGlobals();
+  });
+});

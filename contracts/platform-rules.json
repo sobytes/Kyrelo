@@ -11,6 +11,7 @@
       "loginUrl": "https://x.com/login",
       "signupUrl": "https://x.com/i/flow/signup",
       "requiresImage": false,
+      "requiresVideo": false,
       "campaignLimit": 280
     },
     {
@@ -27,6 +28,7 @@
       "loginUrl": "https://bsky.app/settings/app-passwords",
       "signupUrl": "https://bsky.app/",
       "requiresImage": false,
+      "requiresVideo": false,
       "campaignLimit": 300
     },
     {
@@ -40,6 +42,7 @@
       "loginUrl": "https://joinmastodon.org/servers",
       "signupUrl": "https://joinmastodon.org/servers",
       "requiresImage": false,
+      "requiresVideo": false,
       "campaignLimit": 500
     },
     {
@@ -55,6 +58,7 @@
       "loginUrl": "https://developers.facebook.com/docs/threads/get-started",
       "signupUrl": "https://www.threads.com/login",
       "requiresImage": false,
+      "requiresVideo": false,
       "campaignLimit": 500
     },
     {
@@ -68,6 +72,7 @@
       "loginUrl": "https://www.instagram.com/accounts/login/",
       "signupUrl": "https://www.instagram.com/accounts/emailsignup/",
       "requiresImage": true,
+      "requiresVideo": false,
       "campaignLimit": 2200,
       "imageTypes": [
         "jpg",
@@ -86,6 +91,7 @@
       "loginUrl": "https://www.facebook.com/login/",
       "signupUrl": "https://www.facebook.com/r.php",
       "requiresImage": false,
+      "requiresVideo": false,
       "campaignLimit": 500
     },
     {
@@ -102,6 +108,7 @@
       "loginUrl": "https://t.me/BotFather",
       "signupUrl": "https://telegram.org/",
       "requiresImage": false,
+      "requiresVideo": false,
       "campaignLimit": 500
     },
     {
@@ -117,6 +124,7 @@
       "loginUrl": "https://support.discord.com/hc/en-us/articles/228383668",
       "signupUrl": "https://discord.com/register",
       "requiresImage": false,
+      "requiresVideo": false,
       "campaignLimit": 500
     },
     {
@@ -132,7 +140,25 @@
       "loginUrl": "https://www.linkedin.com/developers/tools/oauth/token-generator",
       "signupUrl": "https://www.linkedin.com/signup",
       "requiresImage": false,
+      "requiresVideo": false,
       "campaignLimit": 1300
+    },
+    {
+      "id": "youtube",
+      "label": "YouTube",
+      "maxLength": 5000,
+      "maxImageBytes": 0,
+      "maxVideoBytes": 268435456,
+      "connect": "app",
+      "credentials": [
+        "clientId",
+        "clientSecret"
+      ],
+      "loginUrl": "https://console.cloud.google.com/apis/credentials",
+      "signupUrl": "https://www.youtube.com/create_channel",
+      "requiresImage": false,
+      "requiresVideo": true,
+      "campaignLimit": 500
     }
   ],
   "lengthCases": [
@@ -242,6 +268,11 @@
       "platform": "facebook",
       "imagePath": "abcdef.webp",
       "error": null
+    },
+    {
+      "platform": "youtube",
+      "imagePath": null,
+      "error": "YouTube posts need a video"
     }
   ]
 }

@@ -26,6 +26,9 @@ struct AccountsView: View {
                         .foregroundStyle(Theme.muted)
                 case .oauth:
                     MastodonConnect(client: client, onDone: onChange)
+                case .app:
+                    Text("\(service.label) connects in Kyrelo on your computer, with your own developer app: the steps are on its \(service.label) page, and approving it opens in the computer's browser.")
+                        .foregroundStyle(Theme.muted)
                 case let .credentials(fields):
                     CredentialsConnect(platform: service.id, fields: fields, client: client, onDone: onChange)
                 }

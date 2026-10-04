@@ -92,6 +92,17 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
     const { postToLinkedIn } = await import("./linkedin");
     return postToLinkedIn(secret.token, secret.userId, text, opts.imagePath);
   },
+  async youtube(account, text, opts) {
+    if (!opts.videoPath) throw new Error("YouTube posts need a video. Attach one and reschedule.");
+    const secret = await getAccountSecret("youtube", account.id);
+    if (!secret?.token || !secret.clientId || !secret.clientSecret) {
+      throw new Error("This YouTube channel isn't connected any more. Reconnect it under Accounts.");
+    }
+    const youtube = await import("./youtube");
+    const token = await youtube.accessToken({ clientId: secret.clientId, clientSecret: secret.clientSecret }, secret.token);
+    await opts.onSendingStarted();
+    return youtube.uploadToYouTube(token, opts.videoPath, text);
+  },
 };
 
 export function publish(account: Account, text: string, opts: PublishOptions): Promise<{ url: string }> {

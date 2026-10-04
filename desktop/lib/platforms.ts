@@ -27,13 +27,17 @@ export interface PlatformSpec {
   campaignLimit: number;
   /** Every post needs an image (Instagram): text-only posts can't go there. */
   requiresImage: boolean;
+  /** Every post needs a video (YouTube). */
+  requiresVideo: boolean;
   /** The image files it takes, by extension, if not all of Kyrelo's (png, jpg, gif, webp). */
   imageTypes?: string[];
   /**
    * How an account is connected: logging in through Chrome, credentials the
-   * user pastes, or approving Kyrelo on the platform's own page (OAuth).
+   * user pastes, approving Kyrelo on the platform's own page (OAuth, as
+   * Mastodon), or approving the user's own developer app there ("app": they
+   * paste its client id and secret first; lib/accounts.ts startAppConnect).
    */
-  connect: "browser" | "credentials" | "oauth";
+  connect: "browser" | "credentials" | "oauth" | "app";
   /** Where to log in (browser platforms) or create the credentials. */
   loginUrl: string;
   /** Where to make an account, for someone who doesn't have one yet. */
@@ -43,7 +47,7 @@ export interface PlatformSpec {
 }
 
 export interface CredentialField {
-  key: "handle" | "appPassword" | "token" | "webhookUrl";
+  key: "handle" | "appPassword" | "token" | "webhookUrl" | "clientId" | "clientSecret";
   label: string;
   placeholder: string;
   secret?: boolean;
@@ -63,6 +67,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxVideoBytes: 0,
     campaignLimit: MAX_TWEET_LENGTH,
     requiresImage: false,
+    requiresVideo: false,
     connect: "browser",
     loginUrl: "https://x.com/login",
     signupUrl: "https://x.com/i/flow/signup",
@@ -78,6 +83,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxVideoBytes: 0,
     campaignLimit: 300,
     requiresImage: false,
+    requiresVideo: false,
     connect: "credentials",
     loginUrl: "https://bsky.app/settings/app-passwords",
     signupUrl: "https://bsky.app/",
@@ -100,6 +106,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxVideoBytes: 40 * 1024 * 1024,
     campaignLimit: 500,
     requiresImage: false,
+    requiresVideo: false,
     // Type the server, approve Kyrelo there (startMastodonConnect).
     connect: "oauth",
     loginUrl: "https://joinmastodon.org/servers",
@@ -114,6 +121,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxVideoBytes: 0,
     campaignLimit: 500,
     requiresImage: false,
+    requiresVideo: false,
     connect: "credentials",
     loginUrl: "https://developers.facebook.com/docs/threads/get-started",
     signupUrl: "https://www.threads.com/login",
@@ -130,6 +138,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxVideoBytes: 0,
     campaignLimit: 2200,
     requiresImage: true,
+    requiresVideo: false,
     imageTypes: ["jpg", "jpeg", "png"],
     // Posted through instagram.com in the account's own Chrome profile, like X,
     // so images come straight from this computer (Meta's API only takes them
@@ -149,6 +158,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxVideoBytes: 0,
     campaignLimit: 500,
     requiresImage: false,
+    requiresVideo: false,
     // Posted through facebook.com in the account's own Chrome profile, like
     // Instagram, to the user's own profile.
     connect: "browser",
@@ -168,6 +178,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxVideoBytes: 50 * 1024 * 1024,
     campaignLimit: 500,
     requiresImage: false,
+    requiresVideo: false,
     // A bot the user makes with @BotFather, admin of their channel.
     connect: "credentials",
     loginUrl: "https://t.me/BotFather",
@@ -188,6 +199,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxVideoBytes: 10 * 1024 * 1024,
     campaignLimit: 500,
     requiresImage: false,
+    requiresVideo: false,
     // A channel webhook: no bot or app needed.
     connect: "credentials",
     loginUrl: "https://support.discord.com/hc/en-us/articles/228383668",
@@ -205,12 +217,34 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // About what LinkedIn shows before "…see more".
     campaignLimit: 1300,
     requiresImage: false,
+    requiresVideo: false,
     // A token from the user's own LinkedIn app (lib/linkedin.ts). Earlier
     // versions posted by driving Chrome, which LinkedIn's terms forbid.
     connect: "credentials",
     loginUrl: "https://www.linkedin.com/developers/tools/oauth/token-generator",
     signupUrl: "https://www.linkedin.com/signup",
     credentials: [{ key: "token", label: "Access token", placeholder: "Your LinkedIn access token", secret: true }],
+  },
+  youtube: {
+    id: "youtube",
+    label: "YouTube",
+    // The description's limit. The first line becomes the title (lib/youtube.ts).
+    maxLength: 5000,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    maxImageBytes: 0,
+    // Kyrelo's own upload limit (lib/uploads.ts); YouTube takes far bigger.
+    maxVideoBytes: 256 * 1024 * 1024,
+    campaignLimit: 500,
+    requiresImage: false,
+    requiresVideo: true,
+    // The user's own Google Cloud OAuth client (Desktop app type).
+    connect: "app",
+    loginUrl: "https://console.cloud.google.com/apis/credentials",
+    signupUrl: "https://www.youtube.com/create_channel",
+    credentials: [
+      { key: "clientId", label: "Client ID", placeholder: "….apps.googleusercontent.com" },
+      { key: "clientSecret", label: "Client secret", placeholder: "GOCSPX-…", secret: true },
+    ],
   },
 };
 
@@ -260,6 +294,7 @@ export function fitText(text: string, max: number, length: (t: string) => number
 /** Why a post with this image (or none) can't go to `platform`, or null if it can. */
 export function postImageError(platform: PlatformId, imagePath: string | undefined): string | null {
   const spec = PLATFORMS[platform];
+  if (spec.requiresVideo) return `${spec.label} posts need a video`;
   if (!imagePath) return spec.requiresImage ? `${spec.label} posts need a photo` : null;
   if (spec.maxImageBytes === 0) return `Kyrelo can't post images to ${spec.label}`;
   const ext = imagePath.split(".").pop()?.toLowerCase() ?? "";

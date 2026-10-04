@@ -112,6 +112,7 @@ final class ContractTests: XCTestCase {
             let loginUrl: String
             let signupUrl: String
             let requiresImage: Bool
+            let requiresVideo: Bool
             let imageTypes: [String]?
             let campaignLimit: Int
         }
@@ -134,11 +135,15 @@ final class ContractTests: XCTestCase {
             XCTAssertEqual(platform.loginUrl.absoluteString, p.loginUrl)
             XCTAssertEqual(platform.signupUrl.absoluteString, p.signupUrl)
             XCTAssertEqual(platform.requiresImage, p.requiresImage)
+            XCTAssertEqual(platform.requiresVideo, p.requiresVideo)
             XCTAssertEqual(platform.campaignLimit, p.campaignLimit)
             XCTAssertEqual(platform.imageTypes, p.imageTypes)
             switch platform.connect {
             case .browser: XCTAssertEqual(p.connect, "browser")
             case .oauth: XCTAssertEqual(p.connect, "oauth")
+            case let .app(fields):
+                XCTAssertEqual(p.connect, "app")
+                XCTAssertEqual(fields, p.credentials)
             case let .credentials(fields):
                 XCTAssertEqual(p.connect, "credentials")
                 XCTAssertEqual(fields.map(\.key), p.credentials)

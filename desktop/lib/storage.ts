@@ -245,6 +245,9 @@ async function legacyXAccounts(): Promise<Account[]> {
  * member id.
  */
 export interface AccountSecret {
+  /** The user's own developer app (YouTube): its OAuth client; `token` is then the refresh token. */
+  clientId?: string;
+  clientSecret?: string;
   appPassword?: string;
   instance?: string;
   token?: string;

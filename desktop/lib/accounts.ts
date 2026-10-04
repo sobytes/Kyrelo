@@ -9,7 +9,8 @@ import { verifyToken } from "./threads";
 import { verifyTelegram } from "./telegram";
 import { verifyDiscordWebhook } from "./discord";
 import { verifyLinkedInToken } from "./linkedin";
-import { listAccounts, modifyAccounts, setAccountSecret } from "./storage";
+import * as youtube from "./youtube";
+import { AccountSecret, listAccounts, modifyAccounts, setAccountSecret } from "./storage";
 import { PlatformId } from "./types";
 
 type ConnectResult = { ok: true; handle: string } | { error: string };
@@ -157,6 +158,78 @@ export async function finishMastodonConnect(state: string, code: string): Promis
     return { ok: true, handle };
   } catch (err) {
     return { error: message(err) };
+  }
+}
+
+// --- Your own developer app: approve Kyrelo in the browser -------------------------
+
+interface AppConnector {
+  authorizeUrl: (clientId: string, redirectUri: string, state: string) => string;
+  /** Swaps the code for credentials and reads which account they're for. */
+  finish: (app: { clientId: string; clientSecret: string }, code: string, redirectUri: string) => Promise<{
+    id: string;
+    handle: string;
+    secret: AccountSecret;
+  }>;
+}
+
+/**
+ * Platforms that connect through an OAuth client the user makes in their own
+ * developer account (PLATFORMS[..].connect "app"): they paste its id and
+ * secret, approve Kyrelo in the browser, and the platform redirects back to
+ * /api/accounts/oauth/callback on this computer.
+ */
+const APP_CONNECTORS: Partial<Record<PlatformId, AppConnector>> = {
+  youtube: {
+    authorizeUrl: (clientId, redirectUri, state) => youtube.authorizeUrl(clientId, redirectUri, state),
+    async finish(app, code, redirectUri) {
+      const refreshToken = await youtube.exchangeCode(app, code, redirectUri);
+      const channel = await youtube.myChannel(await youtube.accessToken(app, refreshToken));
+      return {
+        id: channel.id,
+        handle: channel.handle?.replace(/^@/, "") ?? channel.title,
+        secret: { clientId: app.clientId, clientSecret: app.clientSecret, token: refreshToken, userId: channel.id },
+      };
+    },
+  },
+};
+
+interface PendingApp {
+  platform: PlatformId;
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  expires: number;
+}
+
+const pendingApps = ((globalThis as { __kyreloAppConnects?: Map<string, PendingApp> }).__kyreloAppConnects ??= new Map<string, PendingApp>());
+
+/** Returns the platform's page where the user approves their own app's access to their account. */
+export function startAppConnect(platform: PlatformId, fields: Fields, redirectUri: string): { authorizeUrl: string } | { error: string } {
+  const connector = APP_CONNECTORS[platform];
+  if (!connector) return { error: `${PLATFORMS[platform].label} doesn't connect this way.` };
+  const clientId = fields.clientId?.trim() ?? "";
+  const clientSecret = fields.clientSecret?.trim() ?? "";
+  if (!clientId || !clientSecret) return { error: "Paste your app's client ID and client secret." };
+  const state = randomBytes(24).toString("base64url");
+  for (const [key, p] of pendingApps) if (p.expires < Date.now()) pendingApps.delete(key);
+  pendingApps.set(state, { platform, clientId, clientSecret, redirectUri, expires: Date.now() + SIGN_IN_WINDOW_MS });
+  return { authorizeUrl: connector.authorizeUrl(clientId, redirectUri, state) };
+}
+
+/** The platform redirected back: finish signing in and save the account. */
+export async function finishAppConnect(state: string, code: string): Promise<ConnectResult & { platform?: PlatformId }> {
+  const pending = pendingApps.get(state);
+  pendingApps.delete(state);
+  if (!pending || pending.expires < Date.now()) return { error: "This sign-in link has expired. Start again from Kyrelo." };
+  const { platform } = pending;
+  try {
+    const { id, handle, secret } = await APP_CONNECTORS[platform]!.finish(pending, code, pending.redirectUri);
+    await setAccountSecret(platform, id, secret);
+    await saveAccount({ platform, id, handle, addedAt: new Date().toISOString() });
+    return { ok: true, handle, platform };
+  } catch (err) {
+    return { error: message(err), platform };
   }
 }
 

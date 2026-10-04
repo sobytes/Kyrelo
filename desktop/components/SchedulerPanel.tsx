@@ -192,7 +192,14 @@ export function SchedulerPanel() {
   const mediaDropped = media ? targets.filter((a) => !attachmentFits(a.platform, media)) : [];
   // Instagram needs a photo, and only takes JPEG or PNG.
   const needsImage = targets.find((a) => PLATFORMS[a.platform].requiresImage)?.platform;
-  const imageProblem = needsImage ? postImageError(needsImage, imagePath ?? undefined) : null;
+  // YouTube needs a video.
+  const needsVideo = targets.find((a) => PLATFORMS[a.platform].requiresVideo)?.platform;
+  const imageProblem =
+    needsVideo && media?.kind !== "video"
+      ? `${PLATFORMS[needsVideo].label} posts need a video`
+      : needsImage
+        ? postImageError(needsImage, imagePath ?? undefined)
+        : null;
 
   return (
     <div className="space-y-5">
@@ -249,14 +256,17 @@ export function SchedulerPanel() {
 
           {(canAttachImage || canAttachVideo) && (
             <div>
-              <div className="label">{needsImage ? "Photo" : canAttachVideo ? "Image or video (optional)" : "Image (optional)"}</div>
+              <div className="label">
+                {needsVideo ? "Video" : needsImage ? "Photo" : canAttachVideo ? "Image or video (optional)" : "Image (optional)"}
+              </div>
               <MediaPicker attachment={attachment} images={canAttachImage} videos={canAttachVideo} />
             </div>
           )}
 
           {imageProblem && (
             <p className="text-xs text-warning">
-              {imageProblem}. {imagePath ? "Pick a different image" : "Add one"}, or untick {PLATFORMS[needsImage!].label}.
+              {imageProblem}. {media ? "Pick a different file" : "Add one"}, or untick{" "}
+              {PLATFORMS[(needsVideo && media?.kind !== "video" ? needsVideo : needsImage)!].label}.
             </p>
           )}
 
@@ -332,7 +342,8 @@ export function SchedulerPanel() {
 
       {campaignOpen && selected && (
         <AutoCampaignModal
-          accounts={accounts}
+          // Campaigns write text and images: not for video-only platforms.
+          accounts={accounts.filter((a) => !PLATFORMS[a.platform].requiresVideo)}
           defaultAccount={selected}
           onClose={() => setCampaignOpen(false)}
           onScheduled={loadPosts}

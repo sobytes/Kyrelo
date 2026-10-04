@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectWithCredentials, disconnectAccount, startMastodonConnect } from "@/lib/accounts";
+import { connectWithCredentials, disconnectAccount, startAppConnect, startMastodonConnect } from "@/lib/accounts";
 import {
   cancelBrowserConnect,
   connectingPlatform,
@@ -51,6 +51,15 @@ export async function POST(req: NextRequest) {
       // back to /api/accounts/mastodon/callback.
       case "mastodon-start":
         return NextResponse.json(await startMastodonConnect(body.server ?? "", `${req.nextUrl.origin}/api/accounts/mastodon/callback`));
+      // The user's own developer app (YouTube): returns the platform's
+      // approval page; it redirects back to /api/accounts/oauth/callback.
+      case "app-start": {
+        if (!isPlatformId(body.platform)) return badRequest("unknown platform");
+        const fields = Object.fromEntries(
+          Object.entries(body.fields ?? {}).filter(([, v]) => typeof v === "string"),
+        ) as Record<string, string>;
+        return NextResponse.json(startAppConnect(body.platform, fields, `${req.nextUrl.origin}/api/accounts/oauth/callback`));
+      }
       case "disconnect":
         if (!isPlatformId(body.platform) || !body.accountId) return badRequest("platform and accountId required");
         return NextResponse.json(await disconnectAccount(body.platform, body.accountId));

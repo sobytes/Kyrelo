@@ -56,6 +56,15 @@ async function metaLogin(account: Account): Promise<{ token: string; userId: str
   return { token: fresh, userId: secret.userId };
 }
 
+async function youtubeLogin(account: Account): Promise<{ token: string; channelId: string }> {
+  const secret = await getAccountSecret("youtube", account.id);
+  if (!secret?.token || !secret.clientId || !secret.clientSecret || !secret.userId) {
+    throw new Error("This YouTube channel isn't connected any more. Reconnect it under Accounts.");
+  }
+  const { accessToken } = await import("./youtube");
+  return { token: await accessToken({ clientId: secret.clientId, clientSecret: secret.clientSecret }, secret.token), channelId: secret.userId };
+}
+
 const SOURCES: Partial<Record<PlatformId, CommentSource>> = {
   twitter: {
     async list(account, known) {
@@ -134,6 +143,22 @@ const SOURCES: Partial<Record<PlatformId, CommentSource>> = {
       const { postToThreads, threadsCredentials } = await import("./threads");
       const { userId, token } = await threadsCredentials(account.id);
       return postToThreads(userId, token, text, comment.target.id);
+    },
+  },
+  youtube: {
+    async list(account) {
+      const youtube = await import("./youtube");
+      const { token, channelId } = await youtubeLogin(account);
+      return (await youtube.listYouTubeComments(token, channelId)).map(({ id, videoId, ...c }) => ({
+        ...c,
+        url: `https://www.youtube.com/watch?v=${videoId}&lc=${id}`,
+        target: { id, videoId },
+      }));
+    },
+    async reply(account, comment, text) {
+      const { replyOnYouTube } = await import("./youtube");
+      const { token } = await youtubeLogin(account);
+      return replyOnYouTube(token, { id: comment.target.id, videoId: comment.target.videoId }, text);
     },
   },
   instagram: {

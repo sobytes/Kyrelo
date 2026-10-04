@@ -63,6 +63,8 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
     "Each Facebook account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through facebook.com as whichever profile you were using: to post as a Page, switch to it (your picture at the top right → the Page) before clicking I'm logged in. Connect again to add another Page. Facebook doesn't officially support posting this way, so it can break when they change their site.",
   telegram:
     "Kyrelo posts to your channel through your own Telegram bot, with Telegram's official Bot API. The bot token is stored only on this computer.",
+  youtube:
+    "Kyrelo uploads with the YouTube Data API through your own Google Cloud project, so Google's limits are yours: about six uploads a day. Google keeps uploads from projects it hasn't audited private; request its free audit (YouTube API Services → Audit and quota extension form) to post publicly. Comments work either way.",
   linkedin:
     "Kyrelo posts with LinkedIn's official API, using a token from your own LinkedIn app, stored only on this computer. LinkedIn tokens last 60 days; then make a new one and connect again.",
   discord:
@@ -182,7 +184,11 @@ function MastodonConnectCard({ title, connect }: { title: string; connect: Retur
   );
 }
 
-/** Platforms where the user pastes credentials: the fields come from PLATFORMS[..].credentials. */
+/**
+ * Platforms where the user pastes credentials: the fields come from
+ * PLATFORMS[..].credentials. For their own developer app ("app"), those are
+ * its client id and secret, and the browser then opens to approve it.
+ */
 function CredentialsConnectCard({
   title,
   platform,
@@ -196,16 +202,19 @@ function CredentialsConnectCard({
   const fields = spec.credentials ?? [];
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const complete = fields.every((f) => values[f.key]?.trim());
+  const viaApp = spec.connect === "app";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
     try {
-      const err = await connect.connectWithCredentials(platform, values);
+      const err = viaApp ? await connect.startApp(platform, values) : await connect.connectWithCredentials(platform, values);
       if (err) setError(err);
+      else if (viaApp) setWaiting(true);
       else setValues({});
     } finally {
       setSaving(false);
@@ -233,6 +242,11 @@ function CredentialsConnectCard({
         ))}
       </div>
       {error && <div className="text-xs text-error">{error}</div>}
+      {waiting && (
+        <p className="text-xs text-muted">
+          Approve Kyrelo in the browser tab that opened. Your account appears here when you do.
+        </p>
+      )}
       <button type="submit" disabled={saving || !complete} className="btn-primary text-sm">
         {saving ? "Checking…" : `Connect ${spec.label}`}
       </button>
@@ -266,6 +280,23 @@ const GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
         Open your channel → <em>Administrators</em> → <em>Add admin</em>, pick your bot and let it post messages.
       </li>
       <li>Paste the token and your channel&apos;s @name below (or its numeric id, for a private channel).</li>
+    </ol>
+  ),
+  youtube: (
+    <ol className="list-decimal space-y-1 pl-5">
+      <li>
+        In <ExtLink href="https://console.cloud.google.com/projectcreate">Google Cloud</ExtLink>, create a project and
+        enable the <ExtLink href="https://console.cloud.google.com/apis/library/youtube.googleapis.com">YouTube Data API v3</ExtLink>.
+      </li>
+      <li>
+        Under <em>OAuth consent screen</em>, choose <em>External</em>, add yourself as a test user, then set the publishing
+        status to <em>In production</em> (otherwise Google signs Kyrelo out after a week).
+      </li>
+      <li>
+        Under <ExtLink href={PLATFORMS.youtube.loginUrl}>Credentials</ExtLink>, create an <em>OAuth client ID</em> of type{" "}
+        <em>Desktop app</em> and paste its ID and secret below. Google then asks you to approve it; it may warn that the
+        app isn&apos;t verified, which is expected for your own app.
+      </li>
     </ol>
   ),
   linkedin: (
