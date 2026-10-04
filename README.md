@@ -3,7 +3,7 @@
 A local desktop app, iPhone companion and marketing site for **Kyrelo**, the open-source, community-driven alternative to Buffer and Postiz. It runs on your own computer, posts to 17 platforms, and answers your comments with AI drafts you approve.
 
 - **Publish:** schedule posts, images and videos to X, Bluesky, Mastodon, Threads, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram, Discord, Slack, DEV, Hashnode, WordPress, Lemmy and Nostr. Give each account its own version of a post (the AI can adapt it to each platform), plan on a calendar, or let an AI auto campaign research, write and space out a whole series.
-- **Answer comments:** one inbox for the comments people leave on your posts on X, Bluesky, Mastodon, Threads, YouTube, Instagram and Facebook Pages. The AI drafts replies in your voice and skips spam; nothing is sent until you press Reply.
+- **Answer comments:** one inbox for the comments people leave on your posts on X, Bluesky, Mastodon, Threads, YouTube, Instagram, Facebook Pages, Lemmy and Nostr. The AI drafts replies in your voice and skips spam; nothing is sent until you press Reply.
 - **Engage:** watch X handles and keywords in the Monitor; Autopilot drafts replies under new posts for you to pick, edit and send yourself.
 - **Clean up:** bulk delete posts, replies and reposts, unlike likes, and unfollow dead, bot-like or never-engaging accounts with a reason for each.
 

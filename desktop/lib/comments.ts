@@ -65,6 +65,24 @@ async function youtubeLogin(account: Account): Promise<{ token: string; channelI
   return { token: await accessToken({ clientId: secret.clientId, clientSecret: secret.clientSecret }, secret.token), channelId: secret.userId };
 }
 
+async function lemmyLogin(account: Account) {
+  const secret = await getAccountSecret("lemmy", account.id);
+  if (!secret?.instance || !secret.userId || !secret.appPassword || !secret.targetId) {
+    throw new Error("This Lemmy account isn't connected any more. Reconnect it under Accounts.");
+  }
+  return {
+    login: { instance: secret.instance, username: secret.userId, password: secret.appPassword },
+    communityId: Number(secret.targetId),
+  };
+}
+
+async function nostrKey(account: Account): Promise<Uint8Array> {
+  const secret = await getAccountSecret("nostr", account.id);
+  if (!secret?.token) throw new Error("This Nostr key isn't saved any more. Reconnect it under Accounts.");
+  const { parseSecretKey } = await import("./nostr");
+  return parseSecretKey(secret.token);
+}
+
 const SOURCES: Partial<Record<PlatformId, CommentSource>> = {
   twitter: {
     async list(account, known) {
@@ -159,6 +177,35 @@ const SOURCES: Partial<Record<PlatformId, CommentSource>> = {
       const { replyOnYouTube } = await import("./youtube");
       const { token } = await youtubeLogin(account);
       return replyOnYouTube(token, { id: comment.target.id, videoId: comment.target.videoId }, text);
+    },
+  },
+  lemmy: {
+    async list(account) {
+      const { listLemmyComments } = await import("./lemmy");
+      const { login, communityId } = await lemmyLogin(account);
+      return (await listLemmyComments(login, communityId)).map(({ id, postId, ...c }) => ({
+        ...c,
+        target: { id: String(id), postId: String(postId) },
+      }));
+    },
+    async reply(account, comment, text) {
+      const { replyOnLemmy } = await import("./lemmy");
+      const { login } = await lemmyLogin(account);
+      return replyOnLemmy(login, { id: Number(comment.target.id), postId: Number(comment.target.postId) }, text);
+    },
+  },
+  nostr: {
+    async list(account) {
+      const { listNostrComments } = await import("./nostr");
+      return (await listNostrComments(await nostrKey(account))).map(({ id, rootId, authorPubkey, ...c }) => ({
+        ...c,
+        target: { id, rootId, authorPubkey },
+      }));
+    },
+    async reply(account, comment, text) {
+      const { replyOnNostr } = await import("./nostr");
+      const { id, rootId, authorPubkey } = comment.target;
+      return replyOnNostr(await nostrKey(account), { id, rootId, authorPubkey }, text);
     },
   },
   instagram: {

@@ -85,3 +85,58 @@ export async function postToLemmy(login: LemmyLogin, communityId: number, text: 
   });
   return { url: `${login.instance}/post/${post_view.post.id}` };
 }
+
+/** A reply to one of your posts or comments, on a post in the given community. */
+export interface LemmyComment {
+  id: number;
+  postId: number;
+  author: string;
+  text: string;
+  url: string;
+  postedAt: string;
+  /** Your post it's under. */
+  postText: string;
+}
+
+interface ReplyView {
+  comment: { id: number; content: string; published: string; ap_id: string; deleted?: boolean; removed?: boolean };
+  creator: { name: string; actor_id: string };
+  post: { id: number; name: string; body?: string; community_id: number };
+}
+
+/** host of an actor URL: https://lemmy.ml/u/fan → fan@lemmy.ml */
+function actorHandle(name: string, actorId: string): string {
+  try {
+    return `${name}@${new URL(actorId).host}`;
+  } catch {
+    return name;
+  }
+}
+
+/** The newest replies to you on posts in this community (each connected account is one community). */
+export async function listLemmyComments(login: LemmyLogin, communityId: number): Promise<LemmyComment[]> {
+  const jwt = await lemmyLogin(login);
+  const { replies } = await api<{ replies: ReplyView[] }>(login.instance, "user/replies?sort=New&limit=50&unread_only=false", { jwt });
+  return replies
+    .filter((r) => r.post.community_id === communityId && !r.comment.deleted && !r.comment.removed)
+    .map((r) => ({
+      id: r.comment.id,
+      postId: r.post.id,
+      author: actorHandle(r.creator.name, r.creator.actor_id),
+      text: r.comment.content,
+      url: r.comment.ap_id,
+      postedAt: r.comment.published.endsWith("Z") ? r.comment.published : `${r.comment.published}Z`,
+      postText: [r.post.name, r.post.body ?? ""].join("\n\n").trim(),
+    }));
+}
+
+export async function replyOnLemmy(login: LemmyLogin, comment: { id: number; postId: number }, text: string): Promise<{ url: string }> {
+  const jwt = await lemmyLogin(login);
+  const { comment_view } = await api<{ comment_view: { comment: { ap_id: string } } }>(login.instance, "comment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: text, post_id: comment.postId, parent_id: comment.id }),
+    jwt,
+  });
+  return { url: comment_view.comment.ap_id };
+}

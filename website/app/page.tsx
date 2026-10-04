@@ -178,7 +178,7 @@ const FEATURE_GROUPS = [
     features: [
       {
         title: "Answer every comment from one inbox",
-        body: "Comments on your posts on X, Bluesky, Mastodon, Threads, YouTube, Instagram and Facebook Pages arrive in one place, with reply drafts in your voice. Spam and trolls are skipped. You pick a draft, edit it and press Reply: nothing is sent without you.",
+        body: "Comments on your posts on X, Bluesky, Mastodon, Threads, YouTube, Instagram, Facebook Pages, Lemmy and Nostr arrive in one place, with reply drafts in your voice. Spam and trolls are skipped. You pick a draft, edit it and press Reply: nothing is sent without you.",
         icon: "reply",
       },
       {
