@@ -86,7 +86,8 @@ export function CommentsPanel() {
     <div className="space-y-6">
       {data.accounts.length === 0 && data.needToken.length === 0 ? (
         <div className="card text-sm text-muted">
-          Connect a {data.platforms.map((p) => PLATFORMS[p].label).join(", ")} account to answer comments on your posts.{" "}
+          Connect an account on {listNames(data.platforms.map((p) => PLATFORMS[p].label))} to answer comments on your
+          posts.{" "}
           <Link href="/" className="text-fg underline">
             Go to services
           </Link>
@@ -452,6 +453,11 @@ function SettingsCard({ settings, onChange }: { settings: CommentSettings; onCha
       </div>
     </div>
   );
+}
+
+/** "X, Bluesky or Threads". */
+function listNames(names: string[]): string {
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} or ${names.at(-1)}` : (names[0] ?? "");
 }
 
 function timeAgo(iso: string): string {

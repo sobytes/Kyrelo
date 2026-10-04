@@ -50,7 +50,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="text-sm font-semibold tracking-tight text-fg">Kyrelo</span>
         </Link>
 
-        <nav className="flex-1 space-y-0.5 p-2">
+        {/* Scrolls on its own when the services don't fit, keeping Settings in view. */}
+        <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2">
           <NavLink item={{ href: "/scheduler", label: "Scheduler", icon: SCHEDULER_ICON }} active={pathname === "/scheduler"} />
           <NavLink item={{ href: "/comments", label: "Comments", icon: COMMENTS_ICON }} active={pathname === "/comments"} />
           <div className="my-2 border-t border-line" />
