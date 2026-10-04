@@ -107,6 +107,27 @@ describe("scheduleCampaign", () => {
     expect(done.postIds).toHaveLength(3);
   });
 
+  it("sends a library video only to the accounts that can post one; Instagram skips it", async () => {
+    const { uploadsDir } = await import("./uploads");
+    await mkdir(uploadsDir(), { recursive: true });
+    const video = "aaaaaaaa-0000-4000-8000-000000000003.mp4";
+    await writeFile(path.join(uploadsDir(), video), Buffer.alloc(2_000_000));
+    const c = reviewCampaign("video", [
+      { platform: "mastodon", accountId: "me@m.social" },
+      { platform: "threads", accountId: "me" },
+      { platform: "instagram", accountId: "me" },
+    ]);
+    c.drafts = [{ ...c.drafts[0], media: { kind: "library", videoPath: video } }];
+    await storage.upsertCampaign(c);
+
+    await campaign.scheduleCampaign("video");
+    const posts = (await storage.listScheduledPosts()).filter((p) => p.campaignId === "video");
+    expect(posts.map((p) => [p.platform, p.videoPath ?? null, p.imagePath ?? null])).toEqual([
+      ["mastodon", video, null],
+      ["threads", null, null],
+    ]);
+  });
+
   it("refuses an edit too long for one of the platforms", async () => {
     const c = reviewCampaign("strict", [
       { platform: "mastodon", accountId: "me@mastodon.social" },

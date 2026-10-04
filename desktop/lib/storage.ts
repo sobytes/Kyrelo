@@ -10,6 +10,7 @@ import {
   Campaign,
   GrokSettings,
   GrokState,
+  MediaBucket,
   MediaItem,
   Account,
   PlatformId,
@@ -32,6 +33,7 @@ const MOBILE_BRIDGE_KEY = "mobile-bridge";
 const CAMPAIGNS_KEY = "campaigns";
 const BRAND_PROFILE_KEY = "brand-profile";
 const MEDIA_LIBRARY_KEY = "media-library";
+const MEDIA_BUCKETS_KEY = "media-buckets";
 const UNFOLLOW_KEY = "unfollow";
 const HANDLE_FINDER_KEY = "handle-finder";
 const COMMENT_SETTINGS_KEY = "comment-settings";
@@ -312,6 +314,14 @@ export async function listMediaItems(): Promise<MediaItem[]> {
 
 export async function modifyMediaItems(change: (items: MediaItem[]) => MediaItem[]): Promise<MediaItem[]> {
   return modify<MediaItem[]>(MEDIA_LIBRARY_KEY, [], change);
+}
+
+export async function listMediaBuckets(): Promise<MediaBucket[]> {
+  return (await read<MediaBucket[]>(MEDIA_BUCKETS_KEY)) ?? [];
+}
+
+export async function modifyMediaBuckets(change: (buckets: MediaBucket[]) => MediaBucket[]): Promise<MediaBucket[]> {
+  return modify<MediaBucket[]>(MEDIA_BUCKETS_KEY, [], change);
 }
 
 /** Phone app access (lib/mobile-bridge.ts). Off until the user turns it on. */

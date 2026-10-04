@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { campaignLimit, fitsCampaign, PLATFORMS, postImageError } from "@/lib/platforms";
-import { Account, Campaign, CampaignDraft, MediaItem, PlatformId } from "@/lib/types";
+import { Account, Campaign, CampaignDraft, PlatformId } from "@/lib/types";
+import { inFilter, useMediaLibrary } from "./MediaPanel";
 import { PlatformBadge } from "./PlatformBadge";
 
 interface CampaignsInfo {
@@ -48,6 +49,7 @@ export function AutoCampaignModal({
   const [duration, setDuration] = useState(1);
   const [unit, setUnit] = useState<Unit>("hours");
   const [useAiImages, setUseAiImages] = useState(true);
+  const [mediaBucketId, setMediaBucketId] = useState("");
   const [reviewFirst, setReviewFirst] = useState(true);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +118,7 @@ export function AutoCampaignModal({
           count,
           windowMinutes: Math.round(duration * UNITS[unit]),
           useAiImages: info?.openaiKey && useAiImages,
+          mediaBucketId: mediaBucketId || undefined,
           autoSchedule: !reviewFirst,
         }),
       }).then((r) => r.json());
@@ -316,7 +319,7 @@ export function AutoCampaignModal({
               </div>
             </div>
 
-            <MediaLibrary />
+            <MediaChoice value={mediaBucketId} onChange={setMediaBucketId} />
 
             <div className="space-y-2 text-xs text-fg">
               <label className={"flex items-center gap-2 " + (info?.openaiKey ? "" : "opacity-50")}>
@@ -475,6 +478,7 @@ function DraftCard({
     );
   }
   const image = draft.media.imagePath && !draft.removeImage ? draft.media.imagePath : null;
+  const video = draft.media.videoPath && !draft.removeImage ? draft.media.videoPath : null;
   return (
     <div className="card space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -524,6 +528,14 @@ function DraftCard({
           </button>
         </div>
       )}
+      {video && (
+        <div className="flex items-start gap-3">
+          <video src={`/api/scheduler/uploads/${video}`} controls muted preload="metadata" className="max-h-40 rounded-md border border-line" />
+          <button onClick={() => onChange({ removeImage: true })} className="btn-ghost text-xs">
+            Remove video
+          </button>
+        </div>
+      )}
       {draft.media.note && <div className="text-[10px] text-muted">{draft.media.note}</div>}
       <div className="flex flex-wrap items-center gap-3">
         <input
@@ -547,97 +559,33 @@ function DraftCard({
   );
 }
 
-function MediaLibrary() {
-  const [items, setItems] = useState<MediaItem[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function load() {
-    const r = await fetch("/api/media-library").then((r) => r.json());
-    setItems(r.items ?? []);
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function upload(files: FileList) {
-    setUploading(true);
-    setError(null);
-    try {
-      for (const file of Array.from(files)) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const r = await fetch("/api/media-library", { method: "POST", body: fd }).then((r) => r.json());
-        if (r.error) setError(`${file.name}: ${r.error}`);
-      }
-      await load();
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  async function saveDescription(id: string, description: string) {
-    const r = await fetch(`/api/media-library/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description }),
-    }).then((r) => r.json());
-    if (r.error) setError(r.error);
-  }
-
-  async function remove(id: string) {
-    const r = await fetch(`/api/media-library/${id}`, { method: "DELETE" }).then((r) => r.json());
-    if (r.error) {
-      setError(r.error);
-      return;
-    }
-    setItems((xs) => xs.filter((x) => x.id !== id));
-  }
-
+/**
+ * Which media the campaign may use: the whole library or one bucket. The
+ * library itself is managed on the Media page.
+ */
+function MediaChoice({ value, onChange }: { value: string; onChange: (bucketId: string) => void }) {
+  const { items, buckets } = useMediaLibrary();
+  const count = (filter: string) => items.filter((m) => inFilter(m, filter)).length;
   return (
     <div>
-      <div className="label">Your images</div>
-      <p className="mb-2 text-[11px] text-muted">
-        Upload product shots, logos or photos. The automator picks from these when one fits a post. Each image
-        gets a short description so the AI knows what it shows; edit it if it&apos;s wrong.
-      </p>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {items.map((m) => (
-          <div key={m.id} className="flex gap-2 rounded-md border border-line bg-canvas p-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/scheduler/uploads/${m.filename}`} alt="" className="h-14 w-14 shrink-0 rounded object-cover" />
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <input
-                className="w-full rounded border border-line bg-surface px-1.5 py-1 text-[11px] text-fg"
-                defaultValue={m.description}
-                placeholder="What does this show?"
-                onBlur={(e) => {
-                  if (e.target.value !== m.description) void saveDescription(m.id, e.target.value);
-                }}
-              />
-              <button onClick={() => remove(m.id)} className="self-start text-[10px] text-muted hover:text-error">
-                Remove
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="label">Media to use</div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select className="select w-auto text-sm" value={value} onChange={(e) => onChange(e.target.value)}>
+          <option value="">Whole library ({count("all")})</option>
+          {buckets.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name} ({count(b.id)})
+            </option>
+          ))}
+        </select>
+        <Link href="/media" className="text-xs text-muted underline hover:text-fg">
+          Manage media
+        </Link>
       </div>
-      <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-xs text-fg hover:border-muted">
-        {uploading ? "Uploading and describing…" : "+ Upload images"}
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/gif,image/webp"
-          multiple
-          className="hidden"
-          disabled={uploading}
-          onChange={(e) => {
-            if (e.target.files?.length) void upload(e.target.files);
-            e.target.value = "";
-          }}
-        />
-      </label>
-      {error && <div className="mt-1 text-[11px] text-error">{error}</div>}
+      <p className="mt-1 text-[11px] text-muted">
+        The AI picks the image or video that best fits each post, from what each one shows. Videos only go to the
+        accounts that can post them.
+      </p>
     </div>
   );
 }

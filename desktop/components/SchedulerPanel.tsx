@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { AutoCampaignModal } from "@/components/AutoCampaignModal";
 import { CalendarView } from "@/components/CalendarView";
 import { FeedsPanel } from "@/components/FeedsPanel";
+import { LibraryPicker } from "@/components/MediaPanel";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { PLATFORMS, postImageError, postVideoError } from "@/lib/platforms";
-import { Account, GrokSettings, PlatformId, PostStats, ScheduledPost } from "@/lib/types";
+import { Account, GrokSettings, MediaItem, PlatformId, PostStats, ScheduledPost } from "@/lib/types";
 
 interface ConnectStatus {
   accounts: Account[];
@@ -577,9 +578,15 @@ function useMediaAttachment(initial: Media | null) {
     }
   }
 
+  /** An item from the Media library: already uploaded, so it's attached as it is. */
+  function attachItem(item: MediaItem) {
+    clear();
+    setMedia({ filename: item.filename, kind: item.kind ?? "image", bytes: item.bytes });
+  }
+
   // A picked file previews from memory; a saved one from the uploads route.
   const src = previewUrl ?? (media ? `/api/scheduler/uploads/${media.filename}` : null);
-  return { media, src, uploading, pick, clear };
+  return { media, src, uploading, pick, clear, attachItem };
 }
 
 function MediaPicker({
@@ -591,7 +598,8 @@ function MediaPicker({
   images: boolean;
   videos: boolean;
 }) {
-  const { media, src, uploading, pick, clear } = attachment;
+  const { media, src, uploading, pick, clear, attachItem } = attachment;
+  const [browsing, setBrowsing] = useState(false);
   if (media && src) {
     return (
       <div className="flex items-start gap-3">
@@ -612,6 +620,7 @@ function MediaPicker({
     ...(videos ? ["video/mp4", "video/quicktime"] : []),
   ].join(",");
   return (
+    <div className="flex flex-wrap items-center gap-2">
     <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-xs text-fg hover:border-muted">
       {uploading ? "Uploading…" : images && videos ? "Attach image or video" : videos ? "Attach video" : "Attach image"}
       <input
@@ -626,6 +635,20 @@ function MediaPicker({
         }}
       />
     </label>
+      <button type="button" onClick={() => setBrowsing(true)} className="btn-ghost text-xs">
+        From library
+      </button>
+      {browsing && (
+        <LibraryPicker
+          accept={{ images, videos }}
+          onClose={() => setBrowsing(false)}
+          onPick={(item) => {
+            attachItem(item);
+            setBrowsing(false);
+          }}
+        />
+      )}
+    </div>
   );
 }
 

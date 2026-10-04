@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomUUID } from "node:crypto";
-import { describeImage } from "@/lib/campaign-ai";
-import { imageTypeFromBytes, imageUploadError, saveImage } from "@/lib/uploads";
-import { getGrokSettings, listMediaItems, modifyMediaItems } from "@/lib/storage";
-import { MediaItem } from "@/lib/types";
+import { addMediaItem } from "@/lib/media-library";
+import { listMediaBuckets, listMediaItems } from "@/lib/storage";
+import { uploadError } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
-type CaptionImageType = Parameters<typeof describeImage>[1];
-
+/** The library, newest first, and its buckets. */
 export async function GET() {
-  return NextResponse.json({ items: (await listMediaItems()).reverse() });
+  const [items, buckets] = await Promise.all([listMediaItems(), listMediaBuckets()]);
+  return NextResponse.json({ items: items.reverse(), buckets });
 }
 
+/** Adds an image or video. Images get an AI description unless one is given; `bucketId` puts it in that bucket. */
 export async function POST(req: NextRequest) {
   let form: FormData;
   try {
@@ -23,32 +22,15 @@ export async function POST(req: NextRequest) {
   }
   const file = form.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "no file" }, { status: 400 });
-  const invalid = imageUploadError(file);
+  const invalid = uploadError(file);
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
-  const data = Buffer.from(await file.arrayBuffer());
-  if (!imageTypeFromBytes(data)) {
-    return NextResponse.json({ error: "that file isn't a PNG, JPEG, GIF or WebP image" }, { status: 400 });
+  try {
+    const item = await addMediaItem(Buffer.from(await file.arrayBuffer()), {
+      description: String(form.get("description") ?? ""),
+      bucketId: String(form.get("bucketId") ?? "") || undefined,
+    });
+    return NextResponse.json({ item });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 400 });
   }
-  const filename = await saveImage(data);
-
-  // No caption given: have the AI write one so the campaign writer knows what
-  // the image shows. Best-effort — without a key the user can still type one.
-  let description = String(form.get("description") ?? "").trim();
-  if (!description) {
-    try {
-      const settings = await getGrokSettings();
-      description = await describeImage(data, file.type as CaptionImageType, settings.aiProvider);
-    } catch (err) {
-      console.warn("[media-library] auto-caption failed:", err instanceof Error ? err.message : err);
-    }
-  }
-
-  const item: MediaItem = {
-    id: randomUUID().slice(0, 8),
-    filename,
-    description,
-    addedAt: new Date().toISOString(),
-  };
-  await modifyMediaItems((items) => [...items, item]);
-  return NextResponse.json({ item });
 }

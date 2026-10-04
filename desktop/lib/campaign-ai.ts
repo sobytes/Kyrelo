@@ -38,6 +38,8 @@ export interface WriteInput {
   /** Longest post, in the strictest of the targets' counts. */
   maxLength: number;
   library: MediaItem[];
+  /** The user picked a bucket for this campaign, rather than leaving the whole library. */
+  libraryChosen?: boolean;
   allowAiImages: boolean;
   provider: AiProvider;
 }
@@ -147,7 +149,7 @@ Writing rules:
 - Never invent statistics, pricing, customer names or quotes.
 
 Media: decide per post; roughly half the posts should carry media, the rest none, unless the prompt says every post needs an image. Options:
-- "library": an image the user uploaded — set libraryId to its id. Prefer these when one genuinely fits the post.
+- "library": an image or video the user uploaded — set libraryId to its id. Prefer these when one genuinely fits the post, and use a different one for each post where you can. A video only reaches the platforms that take videos; the others get the post without it.
 - "og": the product site's own social preview image.
 - "screenshot": a screenshot of a page — set screenshotUrl (usually the product URL or one of its pages).
 - "ai": an AI-generated illustration — set imagePrompt (describe a clean, on-brand image; no text in the image). Only when allowed.
@@ -159,7 +161,9 @@ function writePrompt(input: WriteInput): string {
   const library =
     input.library.length === 0
       ? "(none uploaded)"
-      : input.library.map((m) => `- id=${m.id}: ${m.description || "(no description)"}`).join("\n");
+      : input.library
+          .map((m) => `- id=${m.id}${m.kind === "video" ? " (video)" : ""}: ${m.description || "(no description)"}`)
+          .join("\n");
   const youtube = input.research.youtube.length ? input.research.youtube.join("\n") : "(none)";
   return (
     `Write exactly ${input.count} posts. They'll go out over the next ${formatWindow(input.windowMinutes)}, ` +
@@ -170,7 +174,7 @@ function writePrompt(input: WriteInput): string {
     `Competitors: ${input.competitors || "(see research)"}\n\n` +
     `Founder's brief:\n"""\n${input.brief}\n"""\n\n` +
     `Research brief:\n"""\n${input.research.notes}\n"""\n\n` +
-    `Uploaded images you may use:\n${library}\n\n` +
+    `${input.library.length && input.libraryChosen ? "Media the user picked for this campaign (use these for most posts that carry media)" : "Uploaded images and videos you may use"}:\n${library}\n\n` +
     `YouTube videos found:\n${youtube}\n\n` +
     `AI-generated images allowed: ${input.allowAiImages ? "yes" : "no"}`
   );

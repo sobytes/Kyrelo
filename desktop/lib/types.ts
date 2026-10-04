@@ -191,14 +191,27 @@ export interface BrandProfile {
   competitors: string;
 }
 
-/** An image the user uploaded for the campaign automator to pick from. */
+/** An image or video in the Media library, for posts and auto campaigns to use. */
 export interface MediaItem {
   id: string;
   /** Filename inside .data/uploads/. */
   filename: string;
-  /** User-written or AI-written description, used to match images to tweets. */
+  /** Items from before videos could be added have none: they're images. */
+  kind?: "image" | "video";
+  /** File size, for the platforms' limits. Missing on older items. */
+  bytes?: number;
+  /** User-written or AI-written description, used to match media to posts. */
   description: string;
+  /** The buckets it's in (an item can be in several, or none). */
+  bucketIds?: string[];
   addedAt: string;
+}
+
+/** A named group of media, e.g. one campaign's images and videos. */
+export interface MediaBucket {
+  id: string;
+  name: string;
+  createdAt: string;
 }
 
 export type CampaignMediaKind = "none" | "library" | "og" | "screenshot" | "ai" | "youtube";
@@ -211,6 +224,8 @@ export interface CampaignDraft {
     kind: CampaignMediaKind;
     /** Filename inside .data/uploads/ once the media step resolved an image. */
     imagePath?: string;
+    /** A video from the Media library instead (never with an image). */
+    videoPath?: string;
     /** Why the automator chose this media, or what it tried and failed. */
     note?: string;
   };
@@ -247,6 +262,8 @@ export interface Campaign {
   count: number;
   windowMinutes: number;
   useAiImages: boolean;
+  /** Use only this Media bucket's items; missing means the whole library. */
+  mediaBucketId?: string;
   autoSchedule: boolean;
   provider: AiProvider;
   status: CampaignStatus;

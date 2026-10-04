@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { hasApiKey } from "@/lib/ai";
 import { startCampaign } from "@/lib/campaign";
 import { PLATFORMS } from "@/lib/platforms";
-import { getGrokSettings, listAccounts, listCampaigns, saveBrandProfile } from "@/lib/storage";
+import { getGrokSettings, listAccounts, listCampaigns, listMediaBuckets, saveBrandProfile } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
     count?: number;
     windowMinutes?: number;
     useAiImages?: boolean;
+    /** Use only this Media bucket's items (default: the whole library). */
+    mediaBucketId?: string;
     autoSchedule?: boolean;
   };
   const brief = body.brief?.trim() ?? "";
@@ -68,6 +70,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "duration must be between 10 minutes and 14 days" }, { status: 400 });
   }
 
+  const mediaBucketId = typeof body.mediaBucketId === "string" && body.mediaBucketId ? body.mediaBucketId : undefined;
+  if (mediaBucketId && !(await listMediaBuckets()).some((b) => b.id === mediaBucketId)) {
+    return NextResponse.json({ error: "that media bucket doesn't exist any more" }, { status: 400 });
+  }
+
   await saveBrandProfile({ brief, url, competitors });
   const campaign = await startCampaign({
     targets,
@@ -77,6 +84,7 @@ export async function POST(req: NextRequest) {
     count,
     windowMinutes,
     useAiImages: Boolean(body.useAiImages),
+    mediaBucketId,
     autoSchedule: Boolean(body.autoSchedule),
   });
   return NextResponse.json({ campaign });

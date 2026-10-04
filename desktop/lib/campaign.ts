@@ -2,8 +2,9 @@ import { aiErrorMessage, hasApiKey } from "./ai";
 import { researchCampaign, writeCampaignDrafts, WrittenDraft } from "./campaign-ai";
 import { spreadTimes } from "./campaign-timing";
 import { fetchOgImage, generateAiImage, screenshotPage } from "./media";
-import { cancelScheduledPost, createScheduledPost } from "./scheduler";
-import { getCampaign, getGrokSettings, listMediaItems, upsertCampaign } from "./storage";
+import { cancelScheduledPost, createScheduledPost, postMediaError } from "./scheduler";
+import { mediaForCampaign } from "./media-library";
+import { getCampaign, getGrokSettings, upsertCampaign } from "./storage";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { campaignLimit, fitForCampaign, fitsCampaign, PLATFORMS, postImageError } from "./platforms";
@@ -28,6 +29,8 @@ export interface StartCampaignInput {
   count: number;
   windowMinutes: number;
   useAiImages: boolean;
+  /** Use only this Media bucket's items; missing means the whole library. */
+  mediaBucketId?: string;
   autoSchedule: boolean;
 }
 
@@ -77,11 +80,12 @@ async function runCampaign(c: Campaign): Promise<void> {
       research: research.notes,
     });
 
-    const library = await listMediaItems();
+    const library = await mediaForCampaign(c.mediaBucketId);
     const written = await writeCampaignDrafts({
       ...c,
       research,
       library,
+      libraryChosen: Boolean(c.mediaBucketId),
       allowAiImages: c.useAiImages,
     });
 
@@ -125,8 +129,9 @@ async function resolveDraft(
     switch (w.media.kind) {
       case "library": {
         const item = library.find((m) => m.id === w.media.libraryId);
-        if (!item) throw new Error("picked an image that isn't in the library");
-        draft.media.imagePath = item.filename;
+        if (!item) throw new Error("picked media that isn't in the library");
+        if (item.kind === "video") draft.media.videoPath = item.filename;
+        else draft.media.imagePath = item.filename;
         draft.media.note = item.description;
         break;
       }
@@ -240,25 +245,29 @@ async function scheduleCampaignOnce(id: string, edits?: DraftEdit[]): Promise<Ca
     for (const d of toPost) d.scheduledFor = new Date(new Date(d.scheduledFor).getTime() + shift).toISOString();
   }
 
-  // Each post goes to every target, at the same time. An image goes where the
-  // platform can take it (Threads can't; Bluesky only up to 1 MB); the rest
-  // get the text alone. Instagram needs an image, so it gets only the posts
-  // that have one it can take.
+  // Each post goes to every target, at the same time. An image or video goes
+  // where the platform can take it (Threads takes neither; Bluesky images
+  // only up to 1 MB); the rest get the text alone. Instagram needs an image,
+  // so it gets only the posts that have one it can take.
   const postIds: string[] = [];
   try {
     for (const d of toPost) {
       const imageBytes = d.media.imagePath ? await fileSize(path.join(uploadsDir(), d.media.imagePath)) : 0;
+      const videoBytes = d.media.videoPath ? await fileSize(path.join(uploadsDir(), d.media.videoPath)) : 0;
       for (const target of c.targets) {
-        const fits =
+        const imageFits =
           imageBytes > 0 &&
           imageBytes <= PLATFORMS[target.platform].maxImageBytes &&
           !postImageError(target.platform, d.media.imagePath);
-        if (!fits && PLATFORMS[target.platform].requiresImage) continue;
+        // The Scheduler's own rules: size, video support, Facebook's Page token.
+        const videoFits = videoBytes > 0 && !(await postMediaError(target.platform, undefined, d.media.videoPath, target.accountId));
+        if (!imageFits && PLATFORMS[target.platform].requiresImage) continue;
         const post = await createScheduledPost({
           platform: target.platform,
           accountId: target.accountId,
           text: d.text.trim(),
-          imagePath: fits ? d.media.imagePath : undefined,
+          imagePath: imageFits ? d.media.imagePath : undefined,
+          videoPath: videoFits ? d.media.videoPath : undefined,
           scheduledFor: d.scheduledFor,
           campaignId: c.id,
         });
