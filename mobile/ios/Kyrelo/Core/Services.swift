@@ -46,5 +46,7 @@ enum Services {
         ServiceSpec(id: .devto, slug: "devto", sections: [.accounts]),
         ServiceSpec(id: .hashnode, slug: "hashnode", sections: [.accounts]),
         ServiceSpec(id: .wordpress, slug: "wordpress", sections: [.accounts]),
+        ServiceSpec(id: .lemmy, slug: "lemmy", sections: [.accounts]),
+        ServiceSpec(id: .nostr, slug: "nostr", sections: [.accounts]),
     ]
 }

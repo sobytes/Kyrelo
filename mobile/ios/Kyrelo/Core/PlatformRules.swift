@@ -21,6 +21,8 @@ extension PlatformId {
         case .devto: "DEV"
         case .hashnode: "Hashnode"
         case .wordpress: "WordPress"
+        case .lemmy: "Lemmy"
+        case .nostr: "Nostr"
         }
     }
 
@@ -42,16 +44,17 @@ extension PlatformId {
         case .tiktok: 2200
         case .slack: 4000
         case .devto, .hashnode, .wordpress: 100_000
+        case .lemmy, .nostr: 10_000
         }
     }
 
     /// Largest image file the platform accepts on a post.
     var maxImageBytes: Int {
         switch self {
-        case .twitter, .mastodon, .instagram, .facebook, .telegram, .discord, .linkedin, .wordpress: 5 * 1024 * 1024
+        case .twitter, .mastodon, .instagram, .facebook, .telegram, .discord, .linkedin, .wordpress, .lemmy: 5 * 1024 * 1024
         case .bluesky: 1_000_000
         // Threads' API only takes images from a public web address; YouTube takes videos.
-        case .threads, .youtube, .tiktok, .slack, .devto, .hashnode: 0
+        case .threads, .youtube, .tiktok, .slack, .devto, .hashnode, .nostr: 0
         }
     }
 
@@ -63,7 +66,7 @@ extension PlatformId {
         case .telegram: 50 * 1024 * 1024
         case .discord: 10 * 1024 * 1024
         case .youtube, .tiktok: 256 * 1024 * 1024
-        case .twitter, .bluesky, .threads, .instagram, .facebook, .linkedin, .slack, .devto, .hashnode, .wordpress: 0
+        case .twitter, .bluesky, .threads, .instagram, .facebook, .linkedin, .slack, .devto, .hashnode, .wordpress, .lemmy, .nostr: 0
         }
     }
 
@@ -105,6 +108,8 @@ extension PlatformId {
         case .devto: URL(string: "https://dev.to/settings/extensions")!
         case .hashnode: URL(string: "https://hashnode.com/settings/developer")!
         case .wordpress: URL(string: "https://wordpress.org/documentation/article/application-passwords/")!
+        case .lemmy: URL(string: "https://join-lemmy.org/instances")!
+        case .nostr: URL(string: "https://nostr.how/en/get-started")!
         }
     }
 
@@ -117,6 +122,8 @@ extension PlatformId {
         case .devto: ("Generate an API key in DEV's Settings → Extensions and paste it here.", "DEV settings")
         case .hashnode: ("Generate a personal access token in Hashnode's Settings → Developer, and enter your blog's address.", "Hashnode settings")
         case .wordpress: ("Add an application password in your site's Users → Profile, and enter it with your site and username.", "WordPress's guide")
+        case .lemmy: ("Enter your account as you@your.instance, your password, and the community to post to.", "Find an instance")
+        case .nostr: ("Paste your secret key (nsec1…) from your Nostr app. It stays on your computer.", "Get started with Nostr")
         case .linkedin: ("LinkedIn needs a token from your own LinkedIn app. The steps are on the LinkedIn page in Kyrelo on your computer; paste the token here.", "LinkedIn's token generator")
         case .discord: ("In the channel's settings, open Integrations → Webhooks, make one and paste its URL.", "Discord's webhook guide")
         case .threads: ("Threads needs a token from a Meta developer app. The steps are on the Threads page in Kyrelo on your computer; paste the token here.", "Meta's Threads API guide")
@@ -143,6 +150,8 @@ extension PlatformId {
         case .devto: URL(string: "https://dev.to/enter")!
         case .hashnode: URL(string: "https://hashnode.com/onboard")!
         case .wordpress: URL(string: "https://wordpress.org/download/")!
+        case .lemmy: URL(string: "https://join-lemmy.org/instances")!
+        case .nostr: URL(string: "https://nostr.how/en/get-started")!
         }
     }
 
@@ -177,6 +186,12 @@ extension PlatformId {
             CredentialField(key: "handle", placeholder: "Username", secret: false),
             CredentialField(key: "appPassword", placeholder: "Application password", secret: true),
         ])
+        case .lemmy: .credentials([
+            CredentialField(key: "handle", placeholder: "you@lemmy.world", secret: false),
+            CredentialField(key: "appPassword", placeholder: "Password", secret: true),
+            CredentialField(key: "community", placeholder: "Community", secret: false),
+        ])
+        case .nostr: .credentials([CredentialField(key: "token", placeholder: "nsec1…", secret: true)])
         }
     }
 
@@ -187,7 +202,7 @@ extension PlatformId {
         switch self {
         case .twitter: ReplyRules.campaignMaxLength // X's standard 280, not Premium's
         case .bluesky: 300
-        case .mastodon, .threads, .facebook, .telegram, .discord, .youtube, .tiktok, .slack: 500
+        case .mastodon, .threads, .facebook, .telegram, .discord, .youtube, .tiktok, .slack, .lemmy, .nostr: 500
         case .devto, .hashnode, .wordpress: 1300
         case .instagram: 2200
         case .linkedin: 1300
@@ -198,7 +213,7 @@ extension PlatformId {
     func length(_ text: String) -> Int {
         switch self {
         case .twitter: ReplyRules.length(text) // links count 23
-        case .bluesky, .threads, .instagram, .facebook, .discord, .linkedin, .youtube, .tiktok, .slack, .devto, .hashnode, .wordpress: text.count // what a person sees; links in full
+        case .bluesky, .threads, .instagram, .facebook, .discord, .linkedin, .youtube, .tiktok, .slack, .devto, .hashnode, .wordpress, .lemmy, .nostr: text.count // what a person sees; links in full
         case .telegram: text.utf16.count // Telegram counts UTF-16 units
         case .mastodon: Self.mastodonCountable(text).count
         }

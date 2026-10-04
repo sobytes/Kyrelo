@@ -243,7 +243,8 @@ async function legacyXAccounts(): Promise<Account[]> {
  * Instagram user or Facebook Page id; Telegram its bot token and chat id;
  * Discord its webhook URL (token) and server id; LinkedIn a token and the
  * member id; Slack, DEV and Hashnode a webhook URL or token (and Hashnode its
- * blog's id); WordPress its site, username and application password.
+ * blog's id); WordPress its site, username and application password; Lemmy
+ * its instance, username, password and community; Nostr its secret key.
  */
 export interface AccountSecret {
   /** The user's own developer app (YouTube): its OAuth client; `token` is then the refresh token. */
@@ -253,6 +254,8 @@ export interface AccountSecret {
   instance?: string;
   token?: string;
   userId?: string;
+  /** Where posts go within the account: Lemmy's community id. */
+  targetId?: string;
   refreshedAt?: string;
 }
 

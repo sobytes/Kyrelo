@@ -148,6 +148,23 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
     const { postToWordPress } = await import("./wordpress");
     return postToWordPress({ site: secret.instance, username: secret.userId, appPassword: secret.appPassword }, text, opts.imagePath);
   },
+  async lemmy(account, text, opts) {
+    const secret = await getAccountSecret("lemmy", account.id);
+    if (!secret?.instance || !secret.userId || !secret.appPassword || !secret.targetId) {
+      throw new Error("This Lemmy account isn't connected any more. Reconnect it under Accounts.");
+    }
+    await opts.onSendingStarted();
+    const { postToLemmy } = await import("./lemmy");
+    const login = { instance: secret.instance, username: secret.userId, password: secret.appPassword };
+    return postToLemmy(login, Number(secret.targetId), text, opts.imagePath);
+  },
+  async nostr(account, text, opts) {
+    const secret = await getAccountSecret("nostr", account.id);
+    if (!secret?.token) throw new Error("This Nostr key isn't saved any more. Reconnect it under Accounts.");
+    await opts.onSendingStarted();
+    const { parseSecretKey, postToNostr } = await import("./nostr");
+    return postToNostr(parseSecretKey(secret.token), text);
+  },
 };
 
 export function publish(account: Account, text: string, opts: PublishOptions): Promise<{ url: string }> {

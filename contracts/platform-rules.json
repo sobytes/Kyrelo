@@ -244,6 +244,40 @@
       "requiresImage": false,
       "requiresVideo": false,
       "campaignLimit": 1300
+    },
+    {
+      "id": "lemmy",
+      "label": "Lemmy",
+      "maxLength": 10000,
+      "maxImageBytes": 5242880,
+      "maxVideoBytes": 0,
+      "connect": "credentials",
+      "credentials": [
+        "handle",
+        "appPassword",
+        "community"
+      ],
+      "loginUrl": "https://join-lemmy.org/instances",
+      "signupUrl": "https://join-lemmy.org/instances",
+      "requiresImage": false,
+      "requiresVideo": false,
+      "campaignLimit": 500
+    },
+    {
+      "id": "nostr",
+      "label": "Nostr",
+      "maxLength": 10000,
+      "maxImageBytes": 0,
+      "maxVideoBytes": 0,
+      "connect": "credentials",
+      "credentials": [
+        "token"
+      ],
+      "loginUrl": "https://nostr.how/en/get-started",
+      "signupUrl": "https://nostr.how/en/get-started",
+      "requiresImage": false,
+      "requiresVideo": false,
+      "campaignLimit": 500
     }
   ],
   "lengthCases": [

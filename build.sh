@@ -280,11 +280,13 @@ ios_tests() {
 }
 
 # The repo is public, so a leaked key in a tracked file is a real leak.
-# Matches the shapes of the keys this project handles, not generic words.
+# Matches the shapes of the keys this project handles, not generic words:
+# AI and cloud keys, Nostr secret keys, Slack and Discord webhooks, Telegram
+# bot tokens and Google OAuth client secrets.
 scan_secrets() {
     local hits
     hits="$(git -C "$BASE_DIR" grep -nIE \
-        'sk-ant-[A-Za-z0-9_-]{20,}|sk-(proj-)?[A-Za-z0-9_-]{32,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY' \
+        'sk-ant-[A-Za-z0-9_-]{20,}|sk-(proj-)?[A-Za-z0-9_-]{32,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY|nsec1[02-9ac-hj-np-z]{58}|hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[A-Za-z0-9]{20,}|discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]{50,}|[0-9]{8,10}:AA[A-Za-z0-9_-]{33}|GOCSPX-[A-Za-z0-9_-]{20,}' \
         -- ':!*package-lock.json')"
     if [ -n "$hits" ]; then
         echo "$hits"

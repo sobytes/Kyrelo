@@ -14,6 +14,8 @@ import { slackWebhookId } from "./slack";
 import { verifyDevTo } from "./devto";
 import { normalizeHost, verifyHashnode } from "./hashnode";
 import { normalizeSite, verifyWordPress } from "./wordpress";
+import { findCommunity, lemmyLogin, parseLemmyHandle } from "./lemmy";
+import { npub, parseSecretKey, publicKeyHex } from "./nostr";
 import * as youtube from "./youtube";
 import { AccountSecret, listAccounts, modifyAccounts, setAccountSecret } from "./storage";
 import { PlatformId } from "./types";
@@ -140,6 +142,39 @@ const CONNECTORS: Partial<Record<PlatformId, (fields: Fields) => Promise<Connect
     await setAccountSecret("wordpress", id, { instance: url, userId: login.username, appPassword: login.appPassword });
     await saveAccount({ platform: "wordpress", id, handle: id, addedAt: new Date().toISOString() });
     return { ok: true, handle: id };
+  },
+  async lemmy({ handle = "", appPassword = "", community = "" }) {
+    const who = parseLemmyHandle(handle);
+    if (!who) return { error: "Enter your account as you@your.instance." };
+    if (!appPassword || !community.trim()) return { error: "Enter your password and the community to post to." };
+    const login = { instance: who.instance, username: who.username, password: appPassword };
+    let target;
+    try {
+      target = await findCommunity(who.instance, await lemmyLogin(login), community);
+    } catch (err) {
+      return { error: message(err) };
+    }
+    // One account per community, so the same login can post to several.
+    const host = new URL(who.instance).host;
+    const name = `${who.username}@${host} → !${community.trim().replace(/^!/, "")}`;
+    const id = `${who.username}@${host}/${target.id}`.toLowerCase();
+    await setAccountSecret("lemmy", id, { instance: who.instance, userId: who.username, appPassword, targetId: String(target.id) });
+    await saveAccount({ platform: "lemmy", id, handle: name, addedAt: new Date().toISOString() });
+    return { ok: true, handle: name };
+  },
+  async nostr({ token = "" }) {
+    let key;
+    try {
+      key = parseSecretKey(token);
+    } catch (err) {
+      return { error: message(err) };
+    }
+    const id = npub(publicKeyHex(key));
+    // An npub is 63 characters; the start and end are enough to recognise it.
+    const handle = `${id.slice(0, 12)}…${id.slice(-6)}`;
+    await setAccountSecret("nostr", id, { token: token.trim() });
+    await saveAccount({ platform: "nostr", id, handle, addedAt: new Date().toISOString() });
+    return { ok: true, handle };
   },
 };
 

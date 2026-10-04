@@ -131,6 +131,22 @@
       "sections": [
         "accounts"
       ]
+    },
+    {
+      "id": "lemmy",
+      "slug": "lemmy",
+      "label": "Lemmy",
+      "sections": [
+        "accounts"
+      ]
+    },
+    {
+      "id": "nostr",
+      "slug": "nostr",
+      "label": "Nostr",
+      "sections": [
+        "accounts"
+      ]
     }
   ]
 }

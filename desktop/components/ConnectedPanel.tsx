@@ -67,6 +67,8 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
   devto: "Kyrelo publishes articles with DEV's API and your API key, stored only on this computer. The post's first line is the title; the rest is the article, in Markdown.",
   hashnode: "Kyrelo publishes articles to your blog with Hashnode's API and your token, stored only on this computer. The post's first line is the title; the rest is the article, in Markdown.",
   wordpress: "Kyrelo publishes to your site with WordPress's REST API and an application password, stored only on this computer (revoke it any time in your profile). The post's first line is the title, the rest the content, and an image becomes the featured image.",
+  lemmy: "Kyrelo posts to the community with Lemmy's API, signed in as you; your password is stored only on this computer. The post's first line is the title. Add the same account again to post to another community.",
+  nostr: "Kyrelo signs each note with your secret key, stored only on this computer, and sends it to popular public relays. Anyone with the key can post as you, so keep it private.",
   tiktok:
     "Kyrelo sends each video to your TikTok inbox with TikTok's Content Posting API, through your own TikTok developer app. TikTok notifies you; add the caption (it's in the post in Kyrelo) and post it from the app. Posting straight to your profile needs TikTok to audit your app.",
   youtube:
@@ -312,6 +314,18 @@ const GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
       In your site&apos;s admin, open <em>Users → Profile</em>, add an <em>Application Password</em> named Kyrelo, and
       paste it below with your site&apos;s address and username.{" "}
       <ExtLink href={PLATFORMS.wordpress.loginUrl}>WordPress&apos;s guide</ExtLink>
+    </>
+  ),
+  lemmy: (
+    <>
+      Enter your account as <em>you@your.instance</em>, your password, and the community to post to (its name, or{" "}
+      <em>name@other.instance</em> for one on another instance). Accounts with two-factor sign-in aren&apos;t supported yet.
+    </>
+  ),
+  nostr: (
+    <>
+      Paste your secret key (<em>nsec1…</em>), from your Nostr app&apos;s settings (often under <em>Keys</em> or{" "}
+      <em>Security</em>). New to Nostr? <ExtLink href={PLATFORMS.nostr.loginUrl}>Get started</ExtLink>.
     </>
   ),
   tiktok: (

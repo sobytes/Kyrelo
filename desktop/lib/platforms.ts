@@ -47,7 +47,7 @@ export interface PlatformSpec {
 }
 
 export interface CredentialField {
-  key: "handle" | "appPassword" | "token" | "webhookUrl" | "clientId" | "clientSecret" | "site";
+  key: "handle" | "appPassword" | "token" | "webhookUrl" | "clientId" | "clientSecret" | "site" | "community";
   label: string;
   placeholder: string;
   secret?: boolean;
@@ -348,6 +348,46 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
       { key: "handle", label: "Username", placeholder: "Your WordPress username" },
       { key: "appPassword", label: "Application password", placeholder: "xxxx xxxx xxxx xxxx xxxx xxxx", secret: true },
     ],
+  },
+  lemmy: {
+    id: "lemmy",
+    label: "Lemmy",
+    // Posts: the first line is the title (up to 200), the rest the body (lib/title.ts).
+    maxLength: 10_000,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    // Kyrelo's own upload limit (lib/uploads.ts); instances often allow less.
+    maxImageBytes: 5 * 1024 * 1024,
+    maxVideoBytes: 0,
+    campaignLimit: 500,
+    requiresImage: false,
+    requiresVideo: false,
+    // Username and password on the user's instance, and the community to post to.
+    connect: "credentials",
+    loginUrl: "https://join-lemmy.org/instances",
+    signupUrl: "https://join-lemmy.org/instances",
+    credentials: [
+      { key: "handle", label: "Account", placeholder: "you@lemmy.world" },
+      { key: "appPassword", label: "Password", placeholder: "Your Lemmy password", secret: true },
+      { key: "community", label: "Community", placeholder: "technology or technology@lemmy.ml" },
+    ],
+  },
+  nostr: {
+    id: "nostr",
+    label: "Nostr",
+    // Notes have no protocol limit; clients show long ones collapsed.
+    maxLength: 10_000,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    // Images on Nostr are links to files hosted elsewhere.
+    maxImageBytes: 0,
+    maxVideoBytes: 0,
+    campaignLimit: 500,
+    requiresImage: false,
+    requiresVideo: false,
+    // The user's own key (nsec); notes go to public relays (lib/nostr.ts).
+    connect: "credentials",
+    loginUrl: "https://nostr.how/en/get-started",
+    signupUrl: "https://nostr.how/en/get-started",
+    credentials: [{ key: "token", label: "Secret key", placeholder: "nsec1…", secret: true }],
   },
 };
 
