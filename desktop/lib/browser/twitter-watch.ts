@@ -70,7 +70,7 @@ function liveSearchUrl(query: string): string {
 }
 
 /** Scrapes the posts on a timeline or search page. `handles` null keeps any author (keyword search). */
-async function scrapeUrl(
+export async function scrapeUrl(
   page: Page,
   url: string,
   handles: string[] | null,

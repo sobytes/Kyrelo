@@ -20,6 +20,28 @@ async function dismissTypeahead(page: Page): Promise<void> {
   }
 }
 
+/**
+ * Opens the tweet and its Reply button, which brings up the same composer
+ * modal as /compose/post, with "Replying to @…" above it.
+ */
+async function openReplyComposer(page: Page, tweetUrl: string): Promise<void> {
+  const id = tweetUrl.match(/\/status\/(\d+)/)?.[1];
+  if (!id) throw new Error(`Not a tweet link: ${tweetUrl}`);
+  await page.goto(tweetUrl, { waitUntil: "domcontentloaded" });
+  await jitter(1500, 3000);
+  assertLoggedIn(page);
+  // The tweet itself, not the post it replies to (shown above it).
+  const tweet = page.locator('article[data-testid="tweet"]').filter({ has: page.locator(`a[href*="/status/${id}"]`) }).last();
+  try {
+    await tweet.waitFor({ state: "visible", timeout: 15_000 });
+  } catch {
+    throw new Error("Couldn't open the comment on X. It may have been deleted.");
+  }
+  await tweet.locator('[data-testid="reply"]').first().click();
+  console.log(`[twitter-post] opened reply composer for ${id}`);
+  await jitter(800, 1500);
+}
+
 export interface PostResult {
   url: string;
 }
@@ -45,6 +67,8 @@ export async function postTweetBrowser(
     imagePath?: string;
     /** Called once the browser is open, i.e. after any wait for another job. */
     onBrowserReady?: () => Promise<unknown>;
+    /** Reply to this tweet (its x.com status URL) instead of posting on its own. */
+    replyToUrl?: string;
   } = {},
 ): Promise<PostResult> {
   // Default visible so the user can watch the post happen live; flip via the
@@ -90,10 +114,14 @@ export async function postTweetBrowser(
     }
     assertLoggedIn(page);
 
-    await page.goto("https://x.com/compose/post", { waitUntil: "domcontentloaded" });
-    console.log(`[twitter-post] on compose page, url=${page.url()}`);
-    await jitter(1500, 3000);
-    assertLoggedIn(page);
+    if (options.replyToUrl) {
+      await openReplyComposer(page, options.replyToUrl);
+    } else {
+      await page.goto("https://x.com/compose/post", { waitUntil: "domcontentloaded" });
+      console.log(`[twitter-post] on compose page, url=${page.url()}`);
+      await jitter(1500, 3000);
+      assertLoggedIn(page);
+    }
 
     let composer = null as ReturnType<Page["locator"]> | null;
     for (const sel of COMPOSER_SELECTORS) {

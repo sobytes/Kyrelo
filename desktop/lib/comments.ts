@@ -1,5 +1,6 @@
 import { aiErrorMessage, draftCommentReplies } from "./ai";
 import { getGrokSettings, getAccountSecret, getCommentSettings, getCommentsState, listAccounts, modifyCommentsState } from "./storage";
+import { connectingPlatform } from "./browser-connect";
 import { Account, PlatformId, PostComment, ReplyDraft } from "./types";
 
 // Comments: replies people leave on the user's own posts, gathered from every
@@ -11,8 +12,11 @@ import { Account, PlatformId, PostComment, ReplyDraft } from "./types";
 type FoundComment = Omit<PostComment, "id" | "platform" | "accountId" | "seenAt">;
 
 interface CommentSource {
-  /** The newest comments on the account's posts. */
-  list: (account: Account) => Promise<FoundComment[]>;
+  /**
+   * The newest comments on the account's posts. `known` holds the platform
+   * ids of comments already stored, so a source can skip slow lookups for them.
+   */
+  list: (account: Account, known: Set<string>) => Promise<FoundComment[]>;
   /** Posts `text` as a reply to the comment and returns the reply's URL. */
   reply: (account: Account, comment: PostComment, text: string) => Promise<{ url: string }>;
 }
@@ -30,6 +34,25 @@ async function mastodonLogin(account: Account): Promise<{ instance: string; toke
 }
 
 const SOURCES: Partial<Record<PlatformId, CommentSource>> = {
+  twitter: {
+    async list(account, known) {
+      const { listXComments } = await import("./browser/twitter-comments");
+      const found = await listXComments(account.id, account.handle, known);
+      return found.map((c) => ({
+        author: c.author,
+        text: c.text,
+        url: c.url,
+        postedAt: c.postedAt ?? new Date().toISOString(),
+        postText: c.postText,
+        target: { id: c.id },
+      }));
+    },
+    async reply(account, comment, text) {
+      const { postTweetBrowser } = await import("./browser/twitter-post");
+      const { headlessPosting } = await getGrokSettings();
+      return postTweetBrowser(account.id, text, { headless: headlessPosting ?? false, replyToUrl: comment.url });
+    },
+  },
   bluesky: {
     async list(account) {
       const { listBlueskyComments } = await import("./bluesky");
@@ -129,9 +152,14 @@ async function checkOnce(force: boolean): Promise<CommentsCheckResult> {
   const now = new Date();
   const found: PostComment[] = [];
   const accountErrors: Record<string, string> = {};
+  const stored = (await getCommentsState()).comments;
   for (const account of accounts) {
+    if (account.platform === "twitter" && connectingPlatform()) continue;
+    const known = new Set(
+      stored.filter((c) => c.platform === account.platform && c.accountId === account.id).map((c) => c.target.id ?? c.target.uri),
+    );
     try {
-      for (const c of await SOURCES[account.platform]!.list(account)) {
+      for (const c of await SOURCES[account.platform]!.list(account, known)) {
         found.push({
           ...c,
           id: `${account.platform}:${account.id}:${c.target.id ?? c.target.uri}`,
