@@ -66,6 +66,8 @@ export function SchedulerPanel() {
   const imagePath = media?.kind === "image" ? media.filename : null;
   const [campaignOpen, setCampaignOpen] = useState(false);
   const [view, setView] = useState<"list" | "calendar">("list");
+  // Text written for one account, by account key; the others get `text`. Null: the same text everywhere.
+  const [custom, setCustom] = useState<Record<string, string> | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   // The chosen view is a per-computer preference.
@@ -140,7 +142,7 @@ export function SchedulerPanel() {
   // One post per chosen account, so each is sent, tracked and retried on its own.
   async function schedule(e: React.FormEvent) {
     e.preventDefault();
-    if (!text.trim() || !scheduledFor || targets.length === 0) return;
+    if (!scheduledFor || targets.length === 0 || targets.some((a) => !textFor(a).trim())) return;
     setSubmitting(true);
     try {
       const errors: string[] = [];
@@ -151,7 +153,7 @@ export function SchedulerPanel() {
           body: JSON.stringify({
             platform: account.platform,
             accountId: account.id,
-            text,
+            text: textFor(account),
             // Platforms that can't take the attachment get the text alone.
             ...(media && attachmentFits(account.platform, media)
               ? media.kind === "image"
@@ -167,6 +169,7 @@ export function SchedulerPanel() {
         alert(`Some posts weren't scheduled:\n${errors.join("\n")}`);
       } else {
         setText("");
+        setCustom(null);
         setScheduledFor(defaultDateTime());
         attachment.clear();
       }
@@ -196,10 +199,12 @@ export function SchedulerPanel() {
   const upcoming = sorted.filter((p) => p.status === "pending" || p.status === "posting");
   const history = sorted.filter((p) => p.status === "posted" || p.status === "failed").reverse();
 
-  const overLimit = isOverLimit(
-    text,
-    targets.map((a) => a.platform),
-  );
+  /** What goes to this account: its own text if it has one, else the shared text. */
+  function textFor(account: Account): string {
+    return custom?.[accountKey(account)] ?? text;
+  }
+  const overLimit = targets.some((a) => isOverLimit(textFor(a), [a.platform]));
+  const missingText = targets.length === 0 || targets.some((a) => !textFor(a).trim());
 
   if (!accountsLoaded) {
     return <div className="py-6 text-sm text-muted">Loading…</div>;
@@ -257,8 +262,37 @@ export function SchedulerPanel() {
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
-            <LengthCounter text={text} platforms={targets.map((a) => a.platform)} />
+            {custom ? (
+              <p className="mt-1 text-[10px] text-muted">Each account below has its own text. Edits here don&apos;t change them.</p>
+            ) : (
+              <LengthCounter text={text} platforms={targets.map((a) => a.platform)} />
+            )}
+            {targets.length > 1 && (
+              <label className="mt-2 flex items-center gap-2 text-xs text-fg">
+                <input
+                  type="checkbox"
+                  checked={custom !== null}
+                  onChange={(e) =>
+                    setCustom(e.target.checked ? Object.fromEntries(targets.map((a) => [accountKey(a), text])) : null)
+                  }
+                />
+                Different text for each account
+              </label>
+            )}
           </div>
+
+          {custom && (
+            <div className="space-y-3">
+              {targets.map((a) => (
+                <AccountText
+                  key={accountKey(a)}
+                  account={a}
+                  value={textFor(a)}
+                  onChange={(v) => setCustom((c) => ({ ...c, [accountKey(a)]: v }))}
+                />
+              ))}
+            </div>
+          )}
 
           {accounts.length > 1 && (
             <div>
@@ -323,7 +357,7 @@ export function SchedulerPanel() {
 
           <button
             type="submit"
-            disabled={submitting || !text.trim() || overLimit || !scheduledFor || targets.length === 0 || !!imageProblem}
+            disabled={submitting || missingText || overLimit || !scheduledFor || !!imageProblem}
             className="btn-primary text-sm"
           >
             {submitting ? "Scheduling…" : targets.length > 1 ? `Schedule ${targets.length} posts` : "Schedule post"}
@@ -420,6 +454,42 @@ export function SchedulerPanel() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+/** One account's own version of the post, with an AI button to suit it to the platform. */
+function AccountText({ account, value, onChange }: { account: Account; value: string; onChange: (v: string) => void }) {
+  const [adapting, setAdapting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function adapt() {
+    setAdapting(true);
+    setError(null);
+    try {
+      const r = await fetch("/api/scheduler/rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: value, platform: account.platform, mode: "adapt" }),
+      }).then((res) => res.json());
+      if (r.text) onChange(r.text);
+      else setError(r.error ?? "Couldn't adapt the text.");
+    } finally {
+      setAdapting(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border border-line bg-canvas p-2.5">
+      <div className="mb-1.5 flex items-center gap-2 text-xs text-fg">
+        <PlatformBadge platform={account.platform} />@{account.handle}
+        <button type="button" onClick={adapt} disabled={adapting || !value.trim()} className="btn-ghost ml-auto h-7 px-2 text-xs">
+          {adapting ? "Adapting…" : `Adapt for ${PLATFORMS[account.platform].label}`}
+        </button>
+      </div>
+      <textarea className="textarea h-24 resize-y" value={value} onChange={(e) => onChange(e.target.value)} />
+      <LengthCounter text={value} platforms={[account.platform]} />
+      {error && <p className="mt-1 text-xs text-error">{error}</p>}
     </div>
   );
 }

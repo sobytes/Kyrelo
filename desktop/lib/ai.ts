@@ -341,6 +341,75 @@ async function rewriteViaOpenAI(text: string): Promise<string> {
   return json.choices?.[0]?.message?.content ?? "";
 }
 
+/** How posts usually read on each kind of platform, for adaptPost. */
+const PLATFORM_STYLE: Partial<Record<PlatformId, string>> = {
+  twitter: "short and punchy; one idea; at most one or two hashtags, often none",
+  bluesky: "conversational and short; no hashtag stuffing",
+  threads: "conversational and short",
+  mastodon: "conversational; a few relevant CamelCase hashtags at the end help discovery",
+  linkedin: "professional but human; a strong first line, short paragraphs with line breaks, a question or takeaway at the end",
+  facebook: "friendly; a couple of short paragraphs",
+  instagram: "a caption: a hook first line, short lines, relevant hashtags at the end",
+  telegram: "a channel update: clear and direct, short paragraphs",
+  discord: "casual, like a community announcement",
+  slack: "a team announcement: clear, skimmable, no hashtags",
+  youtube: "a video description: first line is the title (under 100 characters), then a few sentences about the video",
+  tiktok: "a caption: a short hook and a few relevant hashtags",
+  devto: "an article: first line is the title, then the article in Markdown with short sections",
+  hashnode: "an article: first line is the title, then the article in Markdown with short sections",
+  wordpress: "a blog post: first line is the title, then the post in short paragraphs",
+  lemmy: "a forum post: first line is the title (under 200 characters), then the body; no hashtags or marketing tone",
+  nostr: "conversational and short",
+};
+
+const ADAPT_SYSTEM = `You adapt a social post for one specific platform, keeping its message, facts and links.
+
+Hard rules:
+- Keep the same message, claims and every link. Never invent facts, numbers or quotes.
+- Fit the length limit you're given, as the platform counts it.
+- Follow the platform style you're given (structure, tone, hashtags).
+- No em dashes.
+- Output ONLY the adapted post: no preamble, no quotes, no labels.`;
+
+/** Rewrites a post to suit one platform's length and conventions (the Scheduler's per-account text). */
+export async function adaptPost(input: RewriteInput): Promise<string> {
+  const spec = PLATFORMS[input.platform];
+  const limit = Math.min(spec.maxLength, Math.max(spec.campaignLimit, spec.length(input.text)));
+  const prompt = [
+    `Platform: ${spec.label}`,
+    `Style: ${PLATFORM_STYLE[input.platform] ?? "clear and natural"}`,
+    `Length limit: ${limit} characters`,
+    "",
+    `Post:\n"""\n${input.text}\n"""`,
+  ].join("\n");
+  let raw: string;
+  if (input.provider === "openai") {
+    const json = await openAiPost<OpenAiChatResponse>("chat/completions", {
+      model: OPENAI_MODEL,
+      temperature: 0.7,
+      messages: [
+        { role: "system", content: ADAPT_SYSTEM },
+        { role: "user", content: prompt },
+      ],
+    });
+    raw = json.choices?.[0]?.message?.content ?? "";
+  } else {
+    const anthropic = new Anthropic({ apiKey: await resolveAnthropicKey() });
+    const message = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 4000,
+      system: [{ type: "text", text: ADAPT_SYSTEM, cache_control: { type: "ephemeral" } }],
+      messages: [{ role: "user", content: prompt }],
+    });
+    raw = message.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("\n");
+  }
+  const cleaned = raw.trim().replace(/^["']|["']$/g, "").replace(/\s*—\s*/g, ", ").trim();
+  return fitText(cleaned, spec.maxLength, spec.length);
+}
+
 export async function rewritePost(input: RewriteInput): Promise<string> {
   const raw =
     input.provider === "openai"
