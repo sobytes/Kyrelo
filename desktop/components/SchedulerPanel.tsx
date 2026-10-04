@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AutoCampaignModal } from "@/components/AutoCampaignModal";
+import { CalendarView } from "@/components/CalendarView";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { PLATFORMS, postImageError, postVideoError } from "@/lib/platforms";
 import { Account, GrokSettings, PlatformId, ScheduledPost } from "@/lib/types";
@@ -64,6 +65,35 @@ export function SchedulerPanel() {
   const { media } = attachment;
   const imagePath = media?.kind === "image" ? media.filename : null;
   const [campaignOpen, setCampaignOpen] = useState(false);
+  const [view, setView] = useState<"list" | "calendar">("list");
+  const textRef = useRef<HTMLTextAreaElement>(null);
+
+  // The chosen view is a per-computer preference.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("kyrelo.schedulerView") === "calendar") setView("calendar");
+    } catch {
+      // storage unavailable: start on the list
+    }
+  }, []);
+
+  function changeView(next: "list" | "calendar") {
+    setView(next);
+    try {
+      localStorage.setItem("kyrelo.schedulerView", next);
+    } catch {
+      // not remembered, that's all
+    }
+  }
+
+  /** A day picked on the calendar: the new post is set for it (9:00, or an hour from now today) and the text box focused. */
+  function writeForDay(day: Date) {
+    const at = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 9, 0);
+    const soon = new Date(Date.now() + 60 * 60_000);
+    setScheduledFor(toDateTimeLocal(at.getTime() < soon.getTime() ? soon : at));
+    textRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    textRef.current?.focus();
+  }
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1_000);
@@ -203,6 +233,8 @@ export function SchedulerPanel() {
 
   return (
     <div className="space-y-5">
+      {/* Writing and the list read best narrow; only the calendar uses the full width. */}
+      <div className="max-w-3xl space-y-5">
       <AccountTabs accounts={accounts} selectedKey={selectedKey} onSelect={setSelectedKey} addHref="/" />
 
       <section className="card space-y-3">
@@ -219,6 +251,7 @@ export function SchedulerPanel() {
           <div>
             <div className="label">Post text</div>
             <textarea
+              ref={textRef}
               className="textarea h-28 resize-none"
               placeholder="What do you want to post?"
               value={text}
@@ -298,6 +331,24 @@ export function SchedulerPanel() {
         </form>
       </section>
 
+      <div className="flex gap-1.5">
+        {(["list", "calendar"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => changeView(v)}
+            className={
+              "rounded-sm border px-2.5 py-1 text-xs capitalize transition " +
+              (view === v ? "border-primary text-fg" : "border-line text-muted hover:text-fg")
+            }
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+
+      {view === "list" && (
+      <>
       <section>
         <div className="label">Upcoming ({upcoming.length})</div>
         {upcoming.length === 0 ? (
@@ -325,6 +376,14 @@ export function SchedulerPanel() {
             />
           ))}
         </section>
+      )}
+
+      </>
+      )}
+      </div>
+
+      {view === "calendar" && (
+        <CalendarView posts={posts} accounts={accounts} now={now} onEdit={setEditingPost} onPickDay={writeForDay} />
       )}
 
       {reschedulingPost && (
