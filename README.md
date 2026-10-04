@@ -2,7 +2,7 @@
 
 A local desktop app, iPhone companion and marketing site for **Kyrelo**, the open-source, community-driven alternative to Buffer and Postiz. It runs on your own computer, posts to 17 platforms, and answers your comments with AI drafts you approve.
 
-- **Publish:** schedule posts, images and videos to X, Bluesky, Mastodon, Threads, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram, Discord, Slack, DEV, Hashnode, WordPress, Lemmy and Nostr. Give each account its own version of a post (the AI can adapt it to each platform), plan on a calendar, or let an AI auto campaign research, write and space out a whole series.
+- **Publish:** schedule posts, images and videos to X, Bluesky, Mastodon, Threads, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram, Discord, Slack, DEV, Hashnode, WordPress, Lemmy and Nostr. Give each account its own version of a post (the AI can adapt it to each platform), plan on a calendar, auto-post new articles from RSS feeds, or let an AI auto campaign research, write and space out a whole series. Sent posts show their likes, reposts, replies and views where the platform shares them.
 - **Answer comments:** one inbox for the comments people leave on your posts on X, Bluesky, Mastodon, Threads, YouTube, Instagram, Facebook Pages, Lemmy and Nostr. The AI drafts replies in your voice and skips spam; nothing is sent until you press Reply.
 - **Engage:** watch X handles and keywords in the Monitor; Autopilot drafts replies under new posts for you to pick, edit and send yourself.
 - **Clean up:** bulk delete posts, replies and reposts, unlike likes, and unfollow dead, bot-like or never-engaging accounts with a reason for each.
@@ -10,7 +10,11 @@ A local desktop app, iPhone companion and marketing site for **Kyrelo**, the ope
 **Website:** [kyrelo.com](https://kyrelo.com/)
 **Download the app here:** [GitHub Releases](https://github.com/sobytes/Kyrelo/releases/)
 
-![Kyrelo desktop app](./website/public/screenshot.png)
+![Kyrelo desktop app: the Scheduler, Comments and the 17 services it posts to](./website/public/screens/home.png)
+
+| Comments | Monitor & Autopilot | Deleter |
+|---|---|---|
+| <img src="./website/public/screens/comments.png" alt="Comments: every comment on your posts in one inbox, with reply drafts" width="300" /> | <img src="./website/public/screens/monitor.png" alt="Monitor: X handles and keywords, with Autopilot's reply drafts" width="300" /> | <img src="./website/public/screens/deleter.png" alt="Deleter: bulk delete posts, replies and likes" width="300" /> |
 
 ## Why?
 
@@ -54,8 +58,8 @@ The app opens on a home screen: the **Scheduler**, which posts to all your accou
 
    Where a platform needs a developer app (Threads, LinkedIn, YouTube, TikTok, and Instagram or Facebook comments), you make your own, so its limits and approvals are yours: YouTube keeps uploads private until Google audits your project, and TikTok videos land in your TikTok inbox to finish there. Reddit and Pinterest now approve every new API app by hand, so they're not supported yet.
 2. **Settings → API keys** → add a Claude or OpenAI key for AI replies, rewrites and auto campaigns. The page has step-by-step instructions for getting one.
-3. **Scheduler** → write and schedule posts to any of your accounts at once, with an image or a video, and switch to the **Calendar** to see everything planned. **Auto-generate campaign** plans a whole series and posts it to every account you pick, written to fit the strictest platform's limit.
-4. **Comments** → turn on background checks; new comments on your posts arrive with reply drafts. Pick one, edit it, and reply.
+3. **Scheduler** → write and schedule posts to any of your accounts at once, with an image or a video (X, Bluesky, Mastodon, Telegram, Discord, YouTube, TikTok, and Facebook Pages with a token), and switch to the **Calendar** to see everything planned. Tick **Different text for each account** to tailor each version, with **Adapt** to have the AI suit it to the platform. **Auto-post from a feed** turns new articles in an RSS or Atom feed into posts. **Auto-generate campaign** plans a whole series and posts it to every account you pick, written to fit the strictest platform's limit.
+4. **Comments** → turn on background checks; new comments on your posts arrive with reply drafts. Pick one, edit it, and reply. Instagram and Facebook comments need a token from your own Meta app (the page walks you through it); with one, a Facebook Page also posts through Meta's API instead of the browser.
 
 The Scheduler, Comments and campaigns cover every platform they can; a service's own tools are set in [`contracts/services.json`](./contracts/services.json): X has Monitor, Deleter, Unfollow and Accounts, the others Accounts for now.
 
@@ -81,7 +85,7 @@ On Windows, run `build.sh` from Git Bash.
 
 ### iPhone app
 
-Turn on **Settings → Phone app** in the desktop app, then scan the code in the iPhone app. The phone shows your Monitor feed and Autopilot's drafts; tap a draft, and it copies the reply and opens the tweet in X for you to send. You can also schedule posts (with photos) and run auto campaigns. Your computer keeps doing the work, so Kyrelo has to be running there. It works on the same Wi-Fi, or anywhere with [Tailscale](https://tailscale.com) on both devices.
+Turn on **Settings → Phone app** in the desktop app, then scan the code in the iPhone app. The phone shows your Monitor feed and Autopilot's drafts; tap a draft, and it copies the reply and opens the tweet in X for you to send. **Comments** shows the comments waiting for an answer, with their drafts, and replies from your computer when you tap Reply. You can also schedule posts (with photos) and run auto campaigns. Your computer keeps doing the work, so Kyrelo has to be running there. It works on the same Wi-Fi, or anywhere with [Tailscale](https://tailscale.com) on both devices.
 
 > [!WARNING]
 > On plain Wi-Fi the phone connection isn't encrypted. On a shared or public network, use Tailscale or turn phone access off. See [Known issues](#known-issues).

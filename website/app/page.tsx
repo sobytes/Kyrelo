@@ -13,7 +13,7 @@ const APP_JSON_LD = {
   license: "https://opensource.org/licenses/MIT",
   url: SITE_URL,
   downloadUrl: RELEASES_URL,
-  image: `${SITE_URL}/screenshot.png`,
+  image: `${SITE_URL}/screens/home.png`,
 };
 
 export default function Home() {
@@ -28,6 +28,7 @@ export default function Home() {
       <Demo />
       <Why />
       <Features />
+      <Screens />
       <CleanUp />
       <HowItWorks />
       <CTA />
@@ -83,16 +84,15 @@ function Hero() {
           macOS: Apple Silicon &amp; Intel, signed &amp; notarised · Windows 10/11 x64
         </p>
 
-        <div className="mt-12 overflow-hidden rounded-lg border border-line bg-surface">
-          <Image
-            src="/screenshot.png"
-            alt="Kyrelo desktop app: the Monitor watching X handles, with reply drafts"
-            width={2400}
-            height={1500}
-            className="h-auto w-full"
-            priority
-          />
-        </div>
+        {/* A window capture: it brings its own frame and shadow. */}
+        <Image
+          src="/screens/home.png"
+          alt="Kyrelo desktop app: the Scheduler, Comments and the 17 services it posts to"
+          width={1600}
+          height={1037}
+          className="mt-10 h-auto w-full"
+          priority
+        />
       </div>
     </section>
   );
@@ -163,7 +163,7 @@ const FEATURE_GROUPS = [
     features: [
       {
         title: "Schedule to 17 platforms",
-        body: "X, Bluesky, Mastodon, Threads, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram, Discord, Slack, DEV, Hashnode, WordPress, Lemmy and Nostr. Write once or give each account its own version, which AI can adapt to each platform, attach an image or video, and see everything on a calendar. Official APIs wherever the platform offers one.",
+        body: "X, Bluesky, Mastodon, Threads, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram, Discord, Slack, DEV, Hashnode, WordPress, Lemmy and Nostr. Write once or give each account its own version, which AI can adapt to each platform, attach an image or video, see everything on a calendar, auto-post from RSS feeds and track likes and views. Official APIs wherever the platform offers one.",
         icon: "calendar",
       },
       {
@@ -213,7 +213,7 @@ const FEATURE_GROUPS = [
 const EXTRAS = [
   {
     title: "iPhone companion app",
-    body: "Check your Monitor feed, send reply drafts, schedule posts with photos and run campaigns from your phone. Your computer does the work; the phone connects to it over Wi-Fi or Tailscale. Open source; build it with Xcode.",
+    body: "Answer comments, check your Monitor feed, send reply drafts, schedule posts with photos and run campaigns from your phone. Your computer does the work; the phone connects to it over Wi-Fi or Tailscale. Open source; build it with Xcode.",
     icon: "phone",
   },
   {
@@ -248,6 +248,47 @@ function Features() {
         <div className="mt-16 grid gap-x-12 gap-y-8 border-t border-line pt-8 md:grid-cols-3">
           {EXTRAS.map((f) => (
             <Feature key={f.title} {...f} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const SCREENS = [
+  {
+    src: "/screens/comments.png",
+    title: "Comments",
+    body: "Every comment on your posts in one inbox, with reply drafts you approve.",
+  },
+  {
+    src: "/screens/monitor.png",
+    title: "Monitor & Autopilot",
+    body: "Watch X handles and keywords; Autopilot scores each post and drafts replies.",
+  },
+  {
+    src: "/screens/deleter.png",
+    title: "Deleter",
+    body: "Bulk delete posts, replies and likes, keeping your newest.",
+  },
+];
+
+function Screens() {
+  return (
+    <section id="screens" className="section">
+      <div className={PAGE}>
+        <SectionHeader eyebrow="Inside Kyrelo" title="One app for all of it." />
+        <div className="mt-10 grid gap-x-8 gap-y-10 md:grid-cols-3">
+          {SCREENS.map((s) => (
+            <figure key={s.src}>
+              <a href={s.src} target="_blank" rel="noreferrer" aria-label={`${s.title}, full size`}>
+                <Image src={s.src} alt={`Kyrelo's ${s.title}`} width={1600} height={1037} className="h-auto w-full" />
+              </a>
+              <figcaption className="mt-3 text-sm">
+                <span className="font-semibold text-fg">{s.title}.</span>{" "}
+                <span className="text-muted">{s.body}</span>
+              </figcaption>
+            </figure>
           ))}
         </div>
       </div>

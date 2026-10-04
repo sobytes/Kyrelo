@@ -17,7 +17,7 @@ async function dataUrl(file: string) {
 const c = tokens.color;
 
 export default async function Image() {
-  const [icon, screenshot] = await Promise.all([dataUrl("icon.png"), dataUrl("screenshot.png")]);
+  const [icon, screenshot] = await Promise.all([dataUrl("icon.png"), dataUrl("screens/home.png")]);
 
   return new ImageResponse(
     (
@@ -85,14 +85,13 @@ export default async function Image() {
 
         <img
           src={screenshot}
+          // A window capture with its own frame and shadow.
           width={860}
           height={557}
           style={{
             position: "absolute",
-            left: 660,
-            top: 70,
-            borderRadius: 12,
-            border: `1px solid ${c.line}`,
+            left: 640,
+            top: 60,
           }}
         />
       </div>
