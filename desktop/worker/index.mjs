@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Background poller started by electron/main.cjs. Hits /api/cron/watch-grok
 // (the Monitor), /api/cron/scheduler (due posts), /api/cron/comments
-// (comments on your posts) and /api/cron/feeds (RSS auto-posting) on timers,
+// (comments on your posts), /api/cron/feeds (RSS auto-posting) and
+// /api/cron/stats (likes and views of sent posts) on timers,
 // and pops native macOS notifications for new tweets, new comments and posts
 // sent or failed.
 
@@ -36,6 +37,8 @@ const intervalMs = Number(process.env.WORKER_GROK_INTERVAL_MS ?? 90_000);
 const schedulerIntervalMs = Number(process.env.WORKER_SCHEDULER_INTERVAL_MS ?? 30_000);
 const commentsIntervalMs = Number(process.env.WORKER_COMMENTS_INTERVAL_MS ?? 300_000);
 const feedsIntervalMs = Number(process.env.WORKER_FEEDS_INTERVAL_MS ?? 600_000);
+// Each post is refreshed at most hourly anyway (lib/stats.ts).
+const statsIntervalMs = Number(process.env.WORKER_STATS_INTERVAL_MS ?? 15 * 60_000);
 
 async function hit(path) {
   const res = await fetch(`${baseUrl}${path}`);
@@ -64,6 +67,7 @@ let watchInFlight = false;
 let schedulerInFlight = false;
 let commentsInFlight = false;
 let feedsInFlight = false;
+let statsInFlight = false;
 
 async function tick() {
   if (watchInFlight) return;
@@ -134,6 +138,18 @@ async function feedsTick() {
   }
 }
 
+async function statsTick() {
+  if (statsInFlight) return;
+  statsInFlight = true;
+  try {
+    await hit("/api/cron/stats");
+  } catch (err) {
+    console.error("stats tick failed", err);
+  } finally {
+    statsInFlight = false;
+  }
+}
+
 // The 30s interval alone lets a post start up to 30s late. After each tick,
 // if the next pending post is due before the next interval tick, set a timer
 // for its exact time. The interval stays as the safety net (and picks up
@@ -161,7 +177,7 @@ async function armNextPost() {
 }
 
 console.log(
-  `Worker started. watch-grok every ${intervalMs / 1000}s, scheduler every ${schedulerIntervalMs / 1000}s, comments every ${commentsIntervalMs / 1000}s, feeds every ${feedsIntervalMs / 1000}s.`,
+  `Worker started. watch-grok every ${intervalMs / 1000}s, scheduler every ${schedulerIntervalMs / 1000}s, comments every ${commentsIntervalMs / 1000}s, feeds every ${feedsIntervalMs / 1000}s, stats every ${statsIntervalMs / 1000}s.`,
 );
 // Fire the first ticks in parallel so a slow watch-grok scrape can't block
 // the scheduler from picking up due posts.
@@ -169,7 +185,9 @@ void tick();
 void schedulerTick();
 void commentsTick();
 void feedsTick();
+void statsTick();
 setInterval(tick, intervalMs);
 setInterval(schedulerTick, schedulerIntervalMs);
 setInterval(commentsTick, commentsIntervalMs);
 setInterval(feedsTick, feedsIntervalMs);
+setInterval(statsTick, statsIntervalMs);

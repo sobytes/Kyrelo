@@ -133,6 +133,15 @@ export interface CommentsState {
 export type PlatformId = "twitter" | "bluesky" | "mastodon" | "threads" | "instagram" | "facebook" | "telegram" | "discord" | "linkedin" | "youtube" | "tiktok" | "slack" | "devto" | "hashnode" | "wordpress" | "lemmy" | "nostr";
 export type ScheduledStatus = "pending" | "posting" | "posted" | "failed";
 
+/** How a sent post is doing, from its platform's API (lib/stats.ts). Missing numbers: the platform doesn't share them. */
+export interface PostStats {
+  likes?: number;
+  reposts?: number;
+  replies?: number;
+  views?: number;
+  checkedAt: string;
+}
+
 export interface ScheduledPost {
   id: string;
   platform: PlatformId;
@@ -156,6 +165,8 @@ export interface ScheduledPost {
   error?: string;
   /** Set when this post was created by an Auto Campaign. */
   campaignId?: string;
+  /** Likes, replies and so on, once sent, where the platform shares them. */
+  stats?: PostStats;
 }
 
 /**

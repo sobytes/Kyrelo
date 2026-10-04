@@ -6,7 +6,7 @@ import { CalendarView } from "@/components/CalendarView";
 import { FeedsPanel } from "@/components/FeedsPanel";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { PLATFORMS, postImageError, postVideoError } from "@/lib/platforms";
-import { Account, GrokSettings, PlatformId, ScheduledPost } from "@/lib/types";
+import { Account, GrokSettings, PlatformId, PostStats, ScheduledPost } from "@/lib/types";
 
 interface ConnectStatus {
   accounts: Account[];
@@ -67,6 +67,7 @@ export function SchedulerPanel() {
   const imagePath = media?.kind === "image" ? media.filename : null;
   const [campaignOpen, setCampaignOpen] = useState(false);
   const [view, setView] = useState<"list" | "calendar">("list");
+  const [refreshingStats, setRefreshingStats] = useState(false);
   // Text written for one account, by account key; the others get `text`. Null: the same text everywhere.
   const [custom, setCustom] = useState<Record<string, string> | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -185,6 +186,16 @@ export function SchedulerPanel() {
     const r = await fetch(`/api/scheduler/posts/${id}`, { method: "DELETE" }).then((r) => r.json());
     if (r.error) alert(r.error);
     loadPosts();
+  }
+
+  async function refreshStats() {
+    setRefreshingStats(true);
+    try {
+      await fetch("/api/scheduler/stats", { method: "POST" });
+      await loadPosts();
+    } finally {
+      setRefreshingStats(false);
+    }
   }
 
   function reschedule(post: ScheduledPost) {
@@ -410,7 +421,12 @@ export function SchedulerPanel() {
 
       {history.length > 0 && (
         <section className="space-y-2">
-          <div className="label">History</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="label !mb-0">History</div>
+            <button type="button" onClick={refreshStats} disabled={refreshingStats} className="text-[11px] text-muted hover:text-fg">
+              {refreshingStats ? "Refreshing…" : "Refresh stats"}
+            </button>
+          </div>
           {history.slice(0, 20).map((p) => (
             <PostRow
               key={p.id}
@@ -661,18 +677,38 @@ function PostRow({
         </div>
       </div>
       <div className="whitespace-pre-wrap break-words text-sm text-fg">{post.text}</div>
-      {post.postedUrl && /\/status\/\d+/.test(post.postedUrl) && (
-        <a
-          href={post.postedUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-2 inline-block text-[11px] text-muted hover:text-fg"
-        >
-          open on X ↗
-        </a>
+      {(post.stats || post.postedUrl) && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 text-[11px] text-muted">
+          {post.stats && <StatsLine stats={post.stats} />}
+          {post.postedUrl && /^https?:\/\/[^/]+\/./.test(post.postedUrl) && (
+            <a href={post.postedUrl} target="_blank" rel="noreferrer" className="hover:text-fg">
+              open on {PLATFORMS[post.platform].label} ↗
+            </a>
+          )}
+        </div>
       )}
       {post.error && <PostError error={post.error} />}
     </div>
+  );
+}
+
+/** "12 likes · 3 reposts · 4 replies · 1.2k views", leaving out what the platform doesn't share. */
+function StatsLine({ stats }: { stats: PostStats }) {
+  const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}k` : String(n));
+  const parts = (
+    [
+      [stats.views, "view"],
+      [stats.likes, "like"],
+      [stats.reposts, "repost"],
+      [stats.replies, "reply"],
+    ] as const
+  )
+    .filter(([n]) => n !== undefined)
+    .map(([n, word]) => `${fmt(n!)} ${n === 1 ? word : word === "reply" ? "replies" : `${word}s`}`);
+  return (
+    <span title={`Updated ${new Date(stats.checkedAt).toLocaleString()}`} className="text-fg">
+      {parts.join(" · ")}
+    </span>
   );
 }
 
