@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { PLATFORMS } from "./platforms";
-import { imageTypeForFilename } from "./uploads";
+import { imageTypeForFilename, videoTypeForFilename } from "./uploads";
 
 // Bluesky through its public XRPC API, authenticated with an app password
 // (Settings → Privacy and security → App passwords). No browser needed.
@@ -15,7 +15,13 @@ interface Session {
   did: string;
   handle: string;
   accessJwt: string;
+  /** Says which server (PDS) hosts the account; video uploads need its address. */
+  didDoc?: { service?: { id: string; serviceEndpoint: string }[] };
 }
+
+const VIDEO_SERVICE = "https://video.bsky.app";
+/** Bluesky processes videos after upload; this long at most. */
+const VIDEO_PROCESSING_MS = 5 * 60_000;
 
 async function xrpc<T>(method: string, body: BodyInit, headers: Record<string, string>): Promise<T> {
   const res = await fetch(`${SERVICE}/xrpc/${method}`, {
@@ -75,18 +81,65 @@ export function linkFacets(text: string): LinkFacet[] {
   return facets;
 }
 
-/** Posts `text` (and an optional image) and returns the post's bsky.app URL. */
+/** The host of the server that keeps the account's data, from its DID document. */
+function pdsHost(session: Session): string {
+  const pds = session.didDoc?.service?.find((s) => s.id.endsWith("#atproto_pds"))?.serviceEndpoint;
+  return pds ? new URL(pds).host : new URL(SERVICE).host;
+}
+
+/**
+ * Uploads a video to Bluesky's video service and waits for it to be
+ * processed: the service needs a short-lived token from the account's own
+ * server, then returns a job to poll for the finished blob.
+ */
+async function uploadVideo(session: Session, videoPath: string): Promise<unknown> {
+  const exp = String(Math.floor(Date.now() / 1000) + 30 * 60);
+  const { token } = await xrpcGet<{ token: string }>(
+    "com.atproto.server.getServiceAuth",
+    new URLSearchParams({ aud: `did:web:${pdsHost(session)}`, lxm: "com.atproto.repo.uploadBlob", exp }),
+    session.accessJwt,
+  );
+  const data = await fs.readFile(videoPath);
+  const name = path.basename(videoPath);
+  const res = await fetch(`${VIDEO_SERVICE}/xrpc/app.bsky.video.uploadVideo?${new URLSearchParams({ did: session.did, name })}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": videoTypeForFilename(name) ?? "video/mp4" },
+    body: new Uint8Array(data),
+    signal: AbortSignal.timeout(10 * 60_000),
+  });
+  type Job = { jobId: string; state: string; blob?: unknown; error?: string; message?: string };
+  const json = (await res.json().catch(() => ({}))) as Job & { jobStatus?: Job };
+  let job = json.jobStatus ?? json;
+  // A video uploaded before comes back as a 409 with its existing job.
+  if (!res.ok && !job.jobId) throw new Error(`Bluesky: ${json.message ?? json.error ?? `the video upload failed (HTTP ${res.status})`}`);
+  const deadline = Date.now() + VIDEO_PROCESSING_MS;
+  while (!job.blob) {
+    if (job.state === "JOB_STATE_FAILED") throw new Error(`Bluesky: the video couldn't be processed${job.error ? ` (${job.error})` : ""}.`);
+    if (Date.now() > deadline) throw new Error("Bluesky: the video is still processing. Try again in a few minutes.");
+    await new Promise((r) => setTimeout(r, 2000));
+    const status = await fetch(`${VIDEO_SERVICE}/xrpc/app.bsky.video.getJobStatus?${new URLSearchParams({ jobId: job.jobId })}`, {
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    job = ((await status.json().catch(() => ({}))) as { jobStatus?: Job }).jobStatus ?? job;
+  }
+  return job.blob;
+}
+
+/** Posts `text` (and an optional image or video) and returns the post's bsky.app URL. */
 export async function postToBluesky(
   identifier: string,
   appPassword: string,
   text: string,
-  imagePath?: string,
+  media: { imagePath?: string; videoPath?: string } = {},
 ): Promise<{ url: string }> {
+  const { imagePath, videoPath } = media;
   const session = await createSession(identifier, appPassword);
   const auth = { Authorization: `Bearer ${session.accessJwt}` };
 
   let embed: object | undefined;
-  if (imagePath) {
+  if (videoPath) {
+    embed = { $type: "app.bsky.embed.video", video: await uploadVideo(session, videoPath) };
+  } else if (imagePath) {
     const data = await fs.readFile(imagePath);
     if (data.length > PLATFORMS.bluesky.maxImageBytes) {
       throw new Error("Bluesky only accepts images up to 1 MB. Attach a smaller image.");

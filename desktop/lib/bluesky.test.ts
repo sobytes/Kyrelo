@@ -63,7 +63,7 @@ describe("postToBluesky", () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "kyrelo-bsky-"));
     const image = path.join(dir, "0123456789ab.png");
     await writeFile(image, Buffer.alloc(100));
-    await postToBluesky("me.bsky.social", "p", "pic", image);
+    await postToBluesky("me.bsky.social", "p", "pic", { imagePath: image });
     expect(calls[1].method).toBe("com.atproto.repo.uploadBlob");
     expect(calls[1].headers["Content-Type"]).toBe("image/png");
     const embed = (calls[2].body as { record: { embed: { images: { image: unknown }[] } } }).record.embed;
@@ -75,7 +75,7 @@ describe("postToBluesky", () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "kyrelo-bsky-"));
     const image = path.join(dir, "0123456789ab.jpg");
     await writeFile(image, Buffer.alloc(1_000_001));
-    await expect(postToBluesky("me.bsky.social", "p", "pic", image)).rejects.toThrow(/1 MB/);
+    await expect(postToBluesky("me.bsky.social", "p", "pic", { imagePath: image })).rejects.toThrow(/1 MB/);
     expect(calls.some((c) => c.method === "com.atproto.repo.uploadBlob")).toBe(false);
   });
 
@@ -174,5 +174,49 @@ describe("Bluesky comments", () => {
     const record = (calls.at(-1)!.body as { record: { text: string; reply: unknown } }).record;
     expect(record.text).toBe("thanks!");
     expect(record.reply).toEqual({ root, parent: { uri: comment.uri, cid: comment.cid } });
+  });
+});
+
+describe("Bluesky video", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("gets a service token for the account's server, uploads, waits for processing, then embeds the video", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "kyrelo-bsky-"));
+    const video = path.join(dir, "0123456789ab.mp4");
+    await writeFile(video, Buffer.alloc(64));
+    const urls: string[] = [];
+    let polls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        urls.push(url);
+        if (url.includes("createSession")) {
+          return Response.json({
+            did: "did:plc:abc",
+            handle: "me.bsky.social",
+            accessJwt: "jwt",
+            didDoc: { service: [{ id: "#atproto_pds", serviceEndpoint: "https://morel.us-east.host.bsky.network" }] },
+          });
+        }
+        if (url.includes("getServiceAuth")) return Response.json({ token: "svc" });
+        if (url.includes("uploadVideo")) {
+          expect((init!.headers as Record<string, string>).Authorization).toBe("Bearer svc");
+          return Response.json({ jobId: "job1", state: "JOB_STATE_ENCODING" });
+        }
+        if (url.includes("getJobStatus")) {
+          polls++;
+          return Response.json({ jobStatus: { jobId: "job1", state: "JOB_STATE_COMPLETED", blob: { ref: "vid-blob" } } });
+        }
+        return Response.json({ uri: "at://did:plc:abc/app.bsky.feed.post/3v" });
+      }),
+    );
+    vi.spyOn(globalThis, "setTimeout").mockImplementation(((fn: () => void) => {
+      fn();
+      return 0;
+    }) as typeof setTimeout);
+    const { url } = await postToBluesky("video-test.bsky.social", "p", "watch this", { videoPath: video });
+    expect(url).toBe("https://bsky.app/profile/me.bsky.social/post/3v");
+    expect(new URL(urls.find((u) => u.includes("getServiceAuth"))!).searchParams.get("aud")).toBe("did:web:morel.us-east.host.bsky.network");
+    expect(polls).toBe(1);
   });
 });

@@ -19,7 +19,7 @@
       "label": "Bluesky",
       "maxLength": 300,
       "maxImageBytes": 1000000,
-      "maxVideoBytes": 0,
+      "maxVideoBytes": 104857600,
       "connect": "credentials",
       "credentials": [
         "handle",

@@ -34,7 +34,7 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
     if (!secret?.appPassword) throw new Error("No app password saved for this Bluesky account. Reconnect it under Accounts.");
     await opts.onSendingStarted();
     const { postToBluesky } = await import("./bluesky");
-    return postToBluesky(account.handle, secret.appPassword, text, opts.imagePath);
+    return postToBluesky(account.handle, secret.appPassword, text, { imagePath: opts.imagePath, videoPath: opts.videoPath });
   },
   async mastodon(account, text, opts) {
     const secret = await getAccountSecret("mastodon", account.id);

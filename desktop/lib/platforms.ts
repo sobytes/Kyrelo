@@ -80,7 +80,8 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     // Bluesky rejects image blobs over ~1 MB.
     maxImageBytes: 1_000_000,
-    maxVideoBytes: 0,
+    // Bluesky's video limit (also at most 3 minutes long).
+    maxVideoBytes: 100 * 1024 * 1024,
     campaignLimit: 300,
     requiresImage: false,
     requiresVideo: false,
