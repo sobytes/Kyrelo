@@ -65,6 +65,20 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
       onBrowserReady: opts.onSendingStarted,
     });
   },
+  async telegram(account, text, opts) {
+    const secret = await getAccountSecret("telegram", account.id);
+    if (!secret?.token || !secret.userId) throw new Error("This Telegram channel isn't connected any more. Reconnect it under Accounts.");
+    await opts.onSendingStarted();
+    const { postToTelegram } = await import("./telegram");
+    return postToTelegram(secret.token, secret.userId, text, opts.imagePath);
+  },
+  async discord(account, text, opts) {
+    const secret = await getAccountSecret("discord", account.id);
+    if (!secret?.token) throw new Error("This Discord webhook isn't connected any more. Reconnect it under Accounts.");
+    await opts.onSendingStarted();
+    const { postToDiscord } = await import("./discord");
+    return postToDiscord(secret.token, secret.userId, text, opts.imagePath);
+  },
 };
 
 export function publish(account: Account, text: string, opts: PublishOptions): Promise<{ url: string }> {

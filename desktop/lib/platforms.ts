@@ -41,7 +41,7 @@ export interface PlatformSpec {
 }
 
 export interface CredentialField {
-  key: "handle" | "appPassword" | "token";
+  key: "handle" | "appPassword" | "token" | "webhookUrl";
   label: string;
   placeholder: string;
   secret?: boolean;
@@ -145,6 +145,41 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     connect: "browser",
     loginUrl: "https://www.facebook.com/login/",
     signupUrl: "https://www.facebook.com/r.php",
+  },
+  telegram: {
+    id: "telegram",
+    label: "Telegram",
+    // A message's limit, counted in UTF-16 units as Telegram does. A photo's
+    // caption is shorter (1024); longer text follows it as a message.
+    maxLength: 4096,
+    length: (text) => text.length,
+    // Kyrelo's own upload limit (lib/uploads.ts); Telegram takes 10 MB.
+    maxImageBytes: 5 * 1024 * 1024,
+    campaignLimit: 500,
+    requiresImage: false,
+    // A bot the user makes with @BotFather, admin of their channel.
+    connect: "credentials",
+    loginUrl: "https://t.me/BotFather",
+    signupUrl: "https://telegram.org/",
+    credentials: [
+      { key: "token", label: "Bot token", placeholder: "123456:ABC-DEF… from @BotFather", secret: true },
+      { key: "handle", label: "Channel", placeholder: "@yourchannel" },
+    ],
+  },
+  discord: {
+    id: "discord",
+    label: "Discord",
+    maxLength: 2000,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    // Kyrelo's own upload limit (lib/uploads.ts); Discord takes 10 MB.
+    maxImageBytes: 5 * 1024 * 1024,
+    campaignLimit: 500,
+    requiresImage: false,
+    // A channel webhook: no bot or app needed.
+    connect: "credentials",
+    loginUrl: "https://support.discord.com/hc/en-us/articles/228383668",
+    signupUrl: "https://discord.com/register",
+    credentials: [{ key: "webhookUrl", label: "Webhook URL", placeholder: "https://discord.com/api/webhooks/…", secret: true }],
   },
 };
 

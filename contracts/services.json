@@ -59,6 +59,22 @@
       "sections": [
         "accounts"
       ]
+    },
+    {
+      "id": "telegram",
+      "slug": "telegram",
+      "label": "Telegram",
+      "sections": [
+        "accounts"
+      ]
+    },
+    {
+      "id": "discord",
+      "slug": "discord",
+      "label": "Discord",
+      "sections": [
+        "accounts"
+      ]
     }
   ]
 }

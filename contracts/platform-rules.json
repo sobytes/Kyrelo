@@ -63,12 +63,12 @@
       "loginUrl": "https://www.instagram.com/accounts/login/",
       "signupUrl": "https://www.instagram.com/accounts/emailsignup/",
       "requiresImage": true,
+      "campaignLimit": 2200,
       "imageTypes": [
         "jpg",
         "jpeg",
         "png"
-      ],
-      "campaignLimit": 2200
+      ]
     },
     {
       "id": "facebook",
@@ -79,6 +79,35 @@
       "credentials": [],
       "loginUrl": "https://www.facebook.com/login/",
       "signupUrl": "https://www.facebook.com/r.php",
+      "requiresImage": false,
+      "campaignLimit": 500
+    },
+    {
+      "id": "telegram",
+      "label": "Telegram",
+      "maxLength": 4096,
+      "maxImageBytes": 5242880,
+      "connect": "credentials",
+      "credentials": [
+        "token",
+        "handle"
+      ],
+      "loginUrl": "https://t.me/BotFather",
+      "signupUrl": "https://telegram.org/",
+      "requiresImage": false,
+      "campaignLimit": 500
+    },
+    {
+      "id": "discord",
+      "label": "Discord",
+      "maxLength": 2000,
+      "maxImageBytes": 5242880,
+      "connect": "credentials",
+      "credentials": [
+        "webhookUrl"
+      ],
+      "loginUrl": "https://support.discord.com/hc/en-us/articles/228383668",
+      "signupUrl": "https://discord.com/register",
       "requiresImage": false,
       "campaignLimit": 500
     }
@@ -138,6 +167,16 @@
       "platform": "facebook",
       "text": "Launch day 🚀 https://kyrelo.com/a-long-path",
       "length": 43
+    },
+    {
+      "platform": "telegram",
+      "text": "héllo 👋",
+      "length": 8
+    },
+    {
+      "platform": "discord",
+      "text": "héllo 👋",
+      "length": 7
     }
   ],
   "imageCases": [

@@ -6,6 +6,8 @@ import { createSession } from "./bluesky";
 import { authorizeUrl, exchangeCode, normalizeInstance, registerApp, verifyCredentials } from "./mastodon";
 import { CredentialField, PLATFORMS } from "./platforms";
 import { verifyToken } from "./threads";
+import { verifyTelegram } from "./telegram";
+import { verifyDiscordWebhook } from "./discord";
 import { listAccounts, modifyAccounts, setAccountSecret } from "./storage";
 import { PlatformId } from "./types";
 
@@ -45,6 +47,31 @@ const CONNECTORS: Partial<Record<PlatformId, (fields: Fields) => Promise<Connect
     await setAccountSecret("threads", id, { token: token.trim(), userId: me.id, refreshedAt: new Date().toISOString() });
     await saveAccount({ platform: "threads", id, handle: me.username, addedAt: new Date().toISOString() });
     return { ok: true, handle: me.username };
+  },
+  async telegram({ token = "", handle = "" }) {
+    if (!token.trim() || !handle.trim()) return { error: "Enter your bot token and channel." };
+    let chat;
+    try {
+      chat = await verifyTelegram(token.trim(), handle);
+    } catch (err) {
+      return { error: message(err) };
+    }
+    const id = chat.handle.toLowerCase();
+    await setAccountSecret("telegram", id, { token: token.trim(), userId: chat.chatId });
+    await saveAccount({ platform: "telegram", id, handle: chat.handle, addedAt: new Date().toISOString() });
+    return { ok: true, handle: chat.handle };
+  },
+  async discord({ webhookUrl = "" }) {
+    let hook;
+    try {
+      hook = await verifyDiscordWebhook(webhookUrl);
+    } catch (err) {
+      return { error: message(err) };
+    }
+    // The webhook's id, not its name: several webhooks can share a name.
+    await setAccountSecret("discord", hook.id, { token: webhookUrl.trim(), userId: hook.guild_id });
+    await saveAccount({ platform: "discord", id: hook.id, handle: hook.name, addedAt: new Date().toISOString() });
+    return { ok: true, handle: hook.name };
   },
 };
 

@@ -65,8 +65,8 @@ private struct ConnectedRow: View {
     }
 }
 
-/// Bluesky (handle + app password) or Threads (token): the fields from
-/// PlatformId.connect. The desktop checks them before saving.
+/// Bluesky (handle + app password), Threads (token), Telegram (bot token +
+/// channel) or Discord (webhook URL): the fields from PlatformId.connect. The desktop checks them before saving.
 private struct CredentialsConnect: View {
     let platform: PlatformId
     let fields: [CredentialField]
@@ -79,11 +79,9 @@ private struct CredentialsConnect: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(platform == .bluesky
-                 ? "Use an app password, not your main password."
-                 : "Threads needs a token from a Meta developer app. The steps are on the Threads page in Kyrelo on your computer; paste the token here.")
+            Text(platform.credentialsHint.text)
                 .foregroundStyle(Theme.muted)
-            Link(platform == .bluesky ? "Create an app password" : "Meta's Threads API guide", destination: platform.loginUrl)
+            Link(platform.credentialsHint.link, destination: platform.loginUrl)
                 .foregroundStyle(Theme.primary)
         }
         .font(.inter(.footnote))

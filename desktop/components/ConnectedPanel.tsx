@@ -61,6 +61,10 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
     "Each Instagram account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through instagram.com, the way you would. Every Instagram post needs a photo (JPEG or PNG). Instagram doesn't officially support posting this way, so it can break when they change their site.",
   facebook:
     "Each Facebook account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through facebook.com as whichever profile you were using: to post as a Page, switch to it (your picture at the top right → the Page) before clicking I'm logged in. Connect again to add another Page. Facebook doesn't officially support posting this way, so it can break when they change their site.",
+  telegram:
+    "Kyrelo posts to your channel through your own Telegram bot, with Telegram's official Bot API. The bot token is stored only on this computer.",
+  discord:
+    "Kyrelo posts to the channel through its webhook, Discord's official way for apps to post. The webhook link is stored only on this computer; anyone with it can post there, so keep it private.",
 };
 
 function BrowserConnectCard({
@@ -248,6 +252,25 @@ const GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
     <>
       Use an <strong className="text-fg">app password</strong>, not your main password. Create one in Bluesky under{" "}
       <ExtLink href={PLATFORMS.bluesky.loginUrl}>Settings → Privacy and security → App passwords</ExtLink>.
+    </>
+  ),
+  telegram: (
+    <ol className="list-decimal space-y-1 pl-5">
+      <li>
+        In Telegram, message <ExtLink href={PLATFORMS.telegram.loginUrl}>@BotFather</ExtLink>, send <em>/newbot</em> and
+        copy the token it gives you.
+      </li>
+      <li>
+        Open your channel → <em>Administrators</em> → <em>Add admin</em>, pick your bot and let it post messages.
+      </li>
+      <li>Paste the token and your channel&apos;s @name below (or its numeric id, for a private channel).</li>
+    </ol>
+  ),
+  discord: (
+    <>
+      In Discord, open the channel&apos;s settings → <em>Integrations</em> → <em>Webhooks</em> → <em>New Webhook</em>,
+      name it (posts show that name), then <em>Copy Webhook URL</em> and paste it below.{" "}
+      <ExtLink href={PLATFORMS.discord.loginUrl}>Discord&apos;s guide</ExtLink>
     </>
   ),
   threads: (

@@ -12,6 +12,8 @@ extension PlatformId {
         case .threads: "Threads"
         case .instagram: "Instagram"
         case .facebook: "Facebook"
+        case .telegram: "Telegram"
+        case .discord: "Discord"
         }
     }
 
@@ -26,13 +28,15 @@ extension PlatformId {
         case .mastodon, .threads: 500
         case .instagram: 2200 // the caption limit
         case .facebook: 63_206
+        case .telegram: 4096
+        case .discord: 2000
         }
     }
 
     /// Largest image file the platform accepts on a post.
     var maxImageBytes: Int {
         switch self {
-        case .twitter, .mastodon, .instagram, .facebook: 5 * 1024 * 1024
+        case .twitter, .mastodon, .instagram, .facebook, .telegram, .discord: 5 * 1024 * 1024
         case .bluesky: 1_000_000
         // Threads' API only takes images from a public web address.
         case .threads: 0
@@ -64,6 +68,20 @@ extension PlatformId {
         case .threads: URL(string: "https://developers.facebook.com/docs/threads/get-started")!
         case .instagram: URL(string: "https://www.instagram.com/accounts/login/")!
         case .facebook: URL(string: "https://www.facebook.com/login/")!
+        case .telegram: URL(string: "https://t.me/BotFather")!
+        case .discord: URL(string: "https://support.discord.com/hc/en-us/articles/228383668")!
+        }
+    }
+
+    /// What the credentials screen says, and its link to where they come from.
+    var credentialsHint: (text: String, link: String) {
+        switch self {
+        case .bluesky: ("Use an app password, not your main password.", "Create an app password")
+        case .telegram: ("Make a bot with @BotFather, add it to your channel as an admin that can post, then paste its token and the channel's @name.", "Open @BotFather")
+        case .discord: ("In the channel's settings, open Integrations → Webhooks, make one and paste its URL.", "Discord's webhook guide")
+        case .threads: ("Threads needs a token from a Meta developer app. The steps are on the Threads page in Kyrelo on your computer; paste the token here.", "Meta's Threads API guide")
+        // Not credentials platforms: they never show this screen.
+        case .twitter, .mastodon, .instagram, .facebook: ("", "Open \(label)")
         }
     }
 
@@ -76,6 +94,8 @@ extension PlatformId {
         case .threads: URL(string: "https://www.threads.com/login")!
         case .instagram: URL(string: "https://www.instagram.com/accounts/emailsignup/")!
         case .facebook: URL(string: "https://www.facebook.com/r.php")!
+        case .telegram: URL(string: "https://telegram.org/")!
+        case .discord: URL(string: "https://discord.com/register")!
         }
     }
 
@@ -89,6 +109,11 @@ extension PlatformId {
         ])
         case .mastodon: .oauth
         case .threads: .credentials([CredentialField(key: "token", placeholder: "Threads access token", secret: true)])
+        case .telegram: .credentials([
+            CredentialField(key: "token", placeholder: "Bot token from @BotFather", secret: true),
+            CredentialField(key: "handle", placeholder: "@yourchannel", secret: false),
+        ])
+        case .discord: .credentials([CredentialField(key: "webhookUrl", placeholder: "Webhook URL", secret: true)])
         }
     }
 
@@ -99,7 +124,7 @@ extension PlatformId {
         switch self {
         case .twitter: ReplyRules.campaignMaxLength // X's standard 280, not Premium's
         case .bluesky: 300
-        case .mastodon, .threads, .facebook: 500
+        case .mastodon, .threads, .facebook, .telegram, .discord: 500
         case .instagram: 2200
         }
     }
@@ -108,7 +133,8 @@ extension PlatformId {
     func length(_ text: String) -> Int {
         switch self {
         case .twitter: ReplyRules.length(text) // links count 23
-        case .bluesky, .threads, .instagram, .facebook: text.count // what a person sees; links in full
+        case .bluesky, .threads, .instagram, .facebook, .discord: text.count // what a person sees; links in full
+        case .telegram: text.utf16.count // Telegram counts UTF-16 units
         case .mastodon: Self.mastodonCountable(text).count
         }
     }

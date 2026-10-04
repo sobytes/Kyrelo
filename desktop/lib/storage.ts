@@ -226,7 +226,8 @@ async function legacyXAccounts(): Promise<Account[]> {
  * the platform: Bluesky an app password; Mastodon its server and token;
  * Threads a token (refreshed now and then) and the user's Threads id;
  * Instagram and Facebook (optional, for Comments) a Meta token and the
- * Instagram user or Facebook Page id.
+ * Instagram user or Facebook Page id; Telegram its bot token and chat id;
+ * Discord its webhook URL (token) and server id.
  */
 export interface AccountSecret {
   appPassword?: string;
