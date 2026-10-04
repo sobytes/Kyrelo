@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import {
   ApiKeys,
   BrandProfile,
+  CommentSettings,
+  CommentsState,
   Campaign,
   GrokSettings,
   GrokState,
@@ -31,6 +33,8 @@ const BRAND_PROFILE_KEY = "brand-profile";
 const MEDIA_LIBRARY_KEY = "media-library";
 const UNFOLLOW_KEY = "unfollow";
 const HANDLE_FINDER_KEY = "handle-finder";
+const COMMENT_SETTINGS_KEY = "comment-settings";
+const COMMENTS_KEY = "comments";
 
 /** Root of all local app data. Electron sets STORAGE_DIR to the OS app-data folder. */
 export const dataDir = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
@@ -338,3 +342,30 @@ export async function modifyHandleFinderData(
   return all[accountId];
 }
 
+
+// --- Comments: replies to the user's own posts (lib/comments.ts) ---
+
+const DEFAULT_COMMENT_SETTINGS: CommentSettings = { enabled: false, tone: "supportive", voiceNotes: "", minScore: 30 };
+
+export async function getCommentSettings(): Promise<CommentSettings> {
+  return { ...DEFAULT_COMMENT_SETTINGS, ...(await read<Partial<CommentSettings>>(COMMENT_SETTINGS_KEY)) };
+}
+
+export async function saveCommentSettings(settings: CommentSettings): Promise<void> {
+  await write(COMMENT_SETTINGS_KEY, settings);
+}
+
+const EMPTY_COMMENTS: CommentsState = { comments: [], accountErrors: {} };
+/** Older comments drop off the end; what was replied to stays known for this long a list. */
+const MAX_COMMENTS = 500;
+
+export async function getCommentsState(): Promise<CommentsState> {
+  return { ...EMPTY_COMMENTS, ...(await read<CommentsState>(COMMENTS_KEY)) };
+}
+
+export async function modifyCommentsState(change: (state: CommentsState) => CommentsState): Promise<CommentsState> {
+  return modify<CommentsState>(COMMENTS_KEY, EMPTY_COMMENTS, (stored) => {
+    const next = change({ ...EMPTY_COMMENTS, ...stored });
+    return { ...next, comments: next.comments.slice(-MAX_COMMENTS) };
+  });
+}

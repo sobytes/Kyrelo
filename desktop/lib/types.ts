@@ -84,6 +84,51 @@ export interface GrokState {
   tweets: SeenTweet[];
 }
 
+/** How Comments drafts replies to comments on your posts (lib/comments.ts). Nothing is sent without you. */
+export interface CommentSettings {
+  /** Check connected accounts for new comments in the background. */
+  enabled: boolean;
+  tone: ReplyTone;
+  /** How you like to answer people (free text). */
+  voiceNotes: string;
+  /** 0–100. Comments scoring below this (spam, bots, abuse) get no drafts. */
+  minScore: number;
+}
+
+/** A comment someone left on one of your posts. */
+export interface PostComment {
+  /** `platform:accountId:platform's id`, unique across accounts. */
+  id: string;
+  platform: PlatformId;
+  accountId: string;
+  author: string;
+  text: string;
+  url: string;
+  postedAt: string;
+  /** Your post it's on, for context. */
+  postText: string;
+  seenAt: string;
+  /**
+   * What the platform needs to reply in the right place. Bluesky: the
+   * comment's uri and cid and its thread's root. Mastodon: its id and
+   * visibility. Threads: its id.
+   */
+  target: Record<string, string>;
+  draft?: ReplyDraft;
+  repliedAt?: string;
+  replyText?: string;
+  replyUrl?: string;
+  replyError?: string;
+  dismissedAt?: string;
+}
+
+export interface CommentsState {
+  comments: PostComment[];
+  lastCheckedAt?: string;
+  /** Why an account couldn't be checked last time (e.g. it needs reconnecting), by `platform:accountId`. */
+  accountErrors: Record<string, string>;
+}
+
 /** Every social network Kyrelo can post to. Rules per platform: lib/platforms.ts. */
 export type PlatformId = "twitter" | "bluesky" | "mastodon" | "threads" | "instagram" | "facebook";
 export type ScheduledStatus = "pending" | "posting" | "posted" | "failed";

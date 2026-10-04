@@ -1,5 +1,5 @@
 import { postImageError } from "./platforms";
-import { getAccountSecret, setAccountSecret } from "./storage";
+import { getAccountSecret } from "./storage";
 import { Account, PlatformId } from "./types";
 
 // Posting to any platform. The scheduler calls publish() and never branches on
@@ -42,19 +42,11 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
     return postToMastodon(secret.instance, secret.token, text, { imagePath: opts.imagePath, idempotencyKey: opts.idempotencyKey });
   },
   async threads(account, text, opts) {
-    const secret = await getAccountSecret("threads", account.id);
-    if (!secret?.token || !secret.userId) throw new Error("This Threads account isn't signed in any more. Reconnect it under Accounts.");
     if (opts.imagePath) throw new Error("Threads posts from Kyrelo are text only. Remove the image and reschedule.");
+    const { postToThreads, threadsCredentials } = await import("./threads");
+    const { userId, token } = await threadsCredentials(account.id);
     await opts.onSendingStarted();
-    const { postToThreads, refreshedToken } = await import("./threads");
-    // Tokens last 60 days; renewing one in use keeps the account connected.
-    let token = secret.token;
-    const fresh = await refreshedToken(token, secret.refreshedAt).catch(() => null);
-    if (fresh) {
-      token = fresh;
-      await setAccountSecret("threads", account.id, { ...secret, token, refreshedAt: new Date().toISOString() });
-    }
-    return postToThreads(secret.userId, token, text);
+    return postToThreads(userId, token, text);
   },
   async instagram(account, text, opts) {
     const imageError = postImageError("instagram", opts.imagePath);

@@ -265,7 +265,8 @@ const GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
         </li>
         <li>
           Back in <em>Use cases → Threads API</em>, use the <em>User token generator</em> with the{" "}
-          <em>threads_content_publish</em> permission, and paste the token below.
+          <em>threads_content_publish</em> permission, and paste the token below. To answer comments from Kyrelo, add{" "}
+          <em>threads_read_replies</em> and <em>threads_manage_replies</em> too.
         </li>
       </ol>
     </>

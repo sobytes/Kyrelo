@@ -24,8 +24,21 @@ async function xrpc<T>(method: string, body: BodyInit, headers: Record<string, s
     body,
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
+  return parse<T>(res);
+}
+
+async function xrpcGet<T>(method: string, params: URLSearchParams, accessJwt: string): Promise<T> {
+  const res = await fetch(`${SERVICE}/xrpc/${method}?${params}`, {
+    headers: { Authorization: `Bearer ${accessJwt}` },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  return parse<T>(res);
+}
+
+async function parse<T>(res: Response): Promise<T> {
   const json = (await res.json().catch(() => ({}))) as T & { message?: string; error?: string };
-  if (!res.ok) throw new Error(`Bluesky: ${json.message ?? json.error ?? `HTTP ${res.status}`}`);
+  // `cause` keeps Bluesky's error code ("ExpiredToken") for withSession.
+  if (!res.ok) throw new Error(`Bluesky: ${json.message ?? json.error ?? `HTTP ${res.status}`}`, { cause: json.error });
   return json;
 }
 
@@ -105,4 +118,120 @@ export async function postToBluesky(
   // at://did:plc:…/app.bsky.feed.post/<rkey>
   const rkey = uri.split("/").pop();
   return { url: `https://bsky.app/profile/${session.handle}/post/${rkey}` };
+}
+
+// Comments are checked every few minutes, and Bluesky allows only so many
+// sign-ins (createSession) per account per day, so the session is kept here
+// and only renewed when Bluesky says it has expired (after about two hours).
+const sessions = ((globalThis as { __kyreloBlueskySessions?: Map<string, Session> }).__kyreloBlueskySessions ??= new Map());
+
+async function withSession<T>(identifier: string, appPassword: string, run: (session: Session) => Promise<T>): Promise<T> {
+  let session = sessions.get(identifier);
+  if (session) {
+    try {
+      return await run(session);
+    } catch (err) {
+      if ((err as Error).cause !== "ExpiredToken") throw err;
+    }
+  }
+  session = await createSession(identifier, appPassword);
+  sessions.set(identifier, session);
+  return run(session);
+}
+
+/** A reply someone left on one of your posts. */
+export interface BlueskyComment {
+  uri: string;
+  cid: string;
+  /** The thread's first post, which a reply to this comment must name too. */
+  root: { uri: string; cid: string };
+  author: string;
+  text: string;
+  url: string;
+  postedAt: string;
+  /** Your post it replies to. */
+  postText: string;
+}
+
+interface Notification {
+  uri: string;
+  cid: string;
+  author: { did: string; handle: string };
+  reason: string;
+  reasonSubject?: string;
+  record: { text?: string; createdAt?: string; reply?: { root: { uri: string; cid: string } } };
+  indexedAt: string;
+}
+
+function postUrl(handle: string, uri: string): string {
+  // at://did:plc:…/app.bsky.feed.post/<rkey>
+  return `https://bsky.app/profile/${handle}/post/${uri.split("/").pop()}`;
+}
+
+/** The newest replies to your posts, from your notifications. */
+export async function listBlueskyComments(identifier: string, appPassword: string): Promise<BlueskyComment[]> {
+  return withSession(identifier, appPassword, async (session) => {
+    const { notifications } = await xrpcGet<{ notifications: Notification[] }>(
+      "app.bsky.notification.listNotifications",
+      new URLSearchParams({ limit: "50" }),
+      session.accessJwt,
+    );
+    const replies = notifications.filter(
+      (n) => n.reason === "reply" && n.reasonSubject && n.record.reply && n.author.did !== session.did,
+    );
+    // Your posts' text, for the AI. getPosts takes 25 at a time; 50
+    // notifications rarely reply to more than a few posts.
+    const parentUris = Array.from(new Set(replies.map((n) => n.reasonSubject!))).slice(0, 25);
+    const parents = new Map<string, string>();
+    if (parentUris.length) {
+      const params = new URLSearchParams();
+      for (const uri of parentUris) params.append("uris", uri);
+      const { posts } = await xrpcGet<{ posts: { uri: string; record: { text?: string } }[] }>(
+        "app.bsky.feed.getPosts",
+        params,
+        session.accessJwt,
+      );
+      for (const p of posts) parents.set(p.uri, p.record.text ?? "");
+    }
+    return replies
+      .filter((n) => parents.has(n.reasonSubject!))
+      .map((n) => ({
+        uri: n.uri,
+        cid: n.cid,
+        root: n.record.reply!.root,
+        author: n.author.handle,
+        text: n.record.text ?? "",
+        url: postUrl(n.author.handle, n.uri),
+        postedAt: n.record.createdAt ?? n.indexedAt,
+        postText: parents.get(n.reasonSubject!)!,
+      }));
+  });
+}
+
+/** Replies to a comment, in its thread, and returns the reply's URL. */
+export async function replyOnBluesky(
+  identifier: string,
+  appPassword: string,
+  comment: Pick<BlueskyComment, "uri" | "cid" | "root">,
+  text: string,
+): Promise<{ url: string }> {
+  return withSession(identifier, appPassword, async (session) => {
+    const facets = linkFacets(text);
+    const { uri } = await xrpc<{ uri: string }>(
+      "com.atproto.repo.createRecord",
+      JSON.stringify({
+        repo: session.did,
+        collection: "app.bsky.feed.post",
+        record: {
+          $type: "app.bsky.feed.post",
+          text,
+          createdAt: new Date().toISOString(),
+          reply: { root: comment.root, parent: { uri: comment.uri, cid: comment.cid } },
+          ...(facets.length ? { facets } : {}),
+        },
+      }),
+      { Authorization: `Bearer ${session.accessJwt}`, "Content-Type": "application/json" },
+    );
+    return { url: postUrl(session.handle, uri) };
+  });
 }

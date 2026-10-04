@@ -163,54 +163,41 @@ function draftPrompt(input: DraftRepliesInput): string {
   return lines.join("\n");
 }
 
-async function draftViaClaude(input: DraftRepliesInput): Promise<string> {
+/** Runs a drafting prompt (DRAFT_SCHEMA output) on the chosen provider and returns the raw JSON text. */
+async function draftJson(provider: AiProvider, system: string, prompt: string, temperature: number): Promise<string> {
+  if (provider === "openai") {
+    const json = await openAiPost<OpenAiChatResponse>("chat/completions", {
+      model: OPENAI_MODEL,
+      temperature,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: prompt },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "reply_drafts", strict: true, schema: DRAFT_SCHEMA },
+      },
+    });
+    return json.choices?.[0]?.message?.content ?? "";
+  }
   const anthropic = new Anthropic({ apiKey: await resolveAnthropicKey() });
   const message = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 1500,
-    temperature: input.autopilot.creativity,
-    system: [{ type: "text", text: DRAFT_SYSTEM, cache_control: { type: "ephemeral" } }],
+    temperature,
+    system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
     output_config: { format: { type: "json_schema", schema: DRAFT_SCHEMA } },
-    messages: [{ role: "user", content: draftPrompt(input) }],
+    messages: [{ role: "user", content: prompt }],
   });
-  if (message.stop_reason === "refusal") throw new Error("Claude declined to draft a reply to this tweet.");
+  if (message.stop_reason === "refusal") throw new Error("Claude declined to draft a reply to this.");
   return message.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
     .join("");
 }
 
-async function draftViaOpenAI(input: DraftRepliesInput): Promise<string> {
-  const json = await openAiPost<OpenAiChatResponse>("chat/completions", {
-    model: OPENAI_MODEL,
-    temperature: input.autopilot.creativity,
-    messages: [
-      { role: "system", content: DRAFT_SYSTEM },
-      { role: "user", content: draftPrompt(input) },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: { name: "reply_drafts", strict: true, schema: DRAFT_SCHEMA },
-    },
-  });
-  return json.choices?.[0]?.message?.content ?? "";
-}
-
-/** Makes a model's reply safe to send: no wrapping quotes, @grok where required, within X's limit. */
-function cleanReply(text: string, forceGrok: boolean): string {
-  let out = text.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, " ").trim();
-  // The prompt forbids em dashes but models still use them; they read as AI-written.
-  out = out.replace(/\s*—\s*/g, ", ");
-  if (forceGrok && !/^@grok\b/i.test(out)) out = `@grok ${out}`;
-  return fitText(out, REPLY_MAX_LENGTH, tweetLength);
-}
-
-/**
- * Judges whether a tweet is worth replying to and drafts reply options. Used
- * by the Monitor's autopilot for new tweets and by the reply window on demand.
- */
-export async function draftReplies(input: DraftRepliesInput): Promise<DraftRepliesResult> {
-  const raw = input.provider === "openai" ? await draftViaOpenAI(input) : await draftViaClaude(input);
+/** Reads draftJson's output: the score clamped to 0–100, and no options below the threshold. */
+function parseDrafts(raw: string, threshold: number): { score: number; reason: string; replies: string[] } {
   let parsed: { score?: number; reason?: string; replies?: string[] };
   try {
     parsed = JSON.parse(raw);
@@ -218,15 +205,85 @@ export async function draftReplies(input: DraftRepliesInput): Promise<DraftRepli
     throw new Error("The AI returned drafts in an unreadable format. Try again.");
   }
   const score = Math.max(0, Math.min(100, Math.round(Number(parsed.score) || 0)));
+  const replies =
+    score < threshold ? [] : (parsed.replies ?? []).filter((r) => typeof r === "string" && r.trim()).slice(0, 3);
+  return { score, reason: (parsed.reason ?? "").trim(), replies };
+}
+
+/** Makes a model's reply safe to send: no wrapping quotes, @grok where required, within the limit (X's by default). */
+function cleanReply(text: string, forceGrok: boolean, max = REPLY_MAX_LENGTH, length = tweetLength): string {
+  let out = text.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, " ").trim();
+  // The prompt forbids em dashes but models still use them; they read as AI-written.
+  out = out.replace(/\s*—\s*/g, ", ");
+  if (forceGrok && !/^@grok\b/i.test(out)) out = `@grok ${out}`;
+  return fitText(out, max, length);
+}
+
+/**
+ * Judges whether a tweet is worth replying to and drafts reply options. Used
+ * by the Monitor's autopilot for new tweets and by the reply window on demand.
+ */
+export async function draftReplies(input: DraftRepliesInput): Promise<DraftRepliesResult> {
+  const raw = await draftJson(input.provider, DRAFT_SYSTEM, draftPrompt(input), input.autopilot.creativity);
+  const { score, reason, replies } = parseDrafts(raw, input.threshold);
   const forceGrok = input.autopilot.style === "grok";
-  const options =
-    score < input.threshold
-      ? []
-      : (parsed.replies ?? [])
-          .filter((r) => typeof r === "string" && r.trim())
-          .slice(0, 3)
-          .map((r, i) => cleanReply(r, forceGrok || (input.autopilot.style === "mix" && i === 0)));
-  return { score, reason: (parsed.reason ?? "").trim(), options };
+  const options = replies.map((r, i) => cleanReply(r, forceGrok || (input.autopilot.style === "mix" && i === 0)));
+  return { score, reason, options };
+}
+
+/** Comment replies are kept short wherever the platform allows more. */
+const COMMENT_REPLY_MAX = 280;
+
+const COMMENT_SYSTEM = `You help someone answer comments people leave on their own social media posts. For one comment you decide whether it deserves an answer, then draft reply options. They read every draft and choose what gets sent.
+
+Score the comment from 0 to 100 on whether answering it is worthwhile: real questions, thoughtful points, praise and honest criticism score high.
+Score low for: spam, scams, bots, link drops, self-promotion, abuse or harassment, and anything matching their avoid notes. Never argue with a troll.
+Give a one-line reason naming the angle you'd take (or why to skip).
+
+Reply rules:
+- Up to 3 options, each a different angle. Best first.
+- ${COMMENT_REPLY_MAX} characters or fewer each.
+- Answer as the author of the post, in their voice. Thank people only when it's natural, and never more than briefly.
+- Answer questions directly. If you don't know the answer from the post, say they'll follow up rather than inventing one.
+- No hashtags, no em dashes, emoji rarely and never more than one. Don't @mention the commenter (it's added where needed).
+- Never invent facts, numbers, promises, prices or personal experiences.
+If the score is below the threshold you're given, return an empty replies list.`;
+
+export interface DraftCommentInput {
+  platform: PlatformId;
+  author: string;
+  text: string;
+  postText: string;
+  postedAt: string;
+  tone: ReplyTone;
+  voiceNotes: string;
+  /** Skip below this score. 0 means always draft (a reply the user asked for). */
+  threshold: number;
+  provider: AiProvider;
+}
+
+function commentPrompt(input: DraftCommentInput): string {
+  const lines = [`Platform: ${PLATFORMS[input.platform].label}`, `Tone: ${TONE_GUIDE[input.tone]}`];
+  if (input.voiceNotes) lines.push(`Their voice notes: ${input.voiceNotes}`);
+  lines.push(
+    `Threshold: ${input.threshold}`,
+    "",
+    "Their post:",
+    `"""\n${input.postText}\n"""`,
+    "",
+    `Comment by @${input.author}:`,
+    `"""\n${input.text}\n"""`,
+  );
+  return lines.join("\n");
+}
+
+/** Judges whether a comment on the user's post deserves an answer and drafts replies. */
+export async function draftCommentReplies(input: DraftCommentInput): Promise<DraftRepliesResult> {
+  const raw = await draftJson(input.provider, COMMENT_SYSTEM, commentPrompt(input), 0.7);
+  const { score, reason, replies } = parseDrafts(raw, input.threshold);
+  const spec = PLATFORMS[input.platform];
+  const options = replies.map((r) => cleanReply(r, false, Math.min(spec.maxLength, COMMENT_REPLY_MAX), spec.length));
+  return { score, reason, options };
 }
 
 const REWRITE_SYSTEM = `You rewrite social posts while preserving their core message.

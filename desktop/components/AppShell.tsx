@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import pkg from "@/package.json";
 import { SERVICES, serviceBySlug } from "@/lib/services";
-import { SCHEDULER_ICON, SECTIONS, SETTINGS_ICON } from "./sections";
+import { COMMENTS_ICON, SCHEDULER_ICON, SECTIONS, SETTINGS_ICON } from "./sections";
 import { ServiceIcon } from "./ServiceIcon";
 
 interface NavItem {
@@ -52,6 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 space-y-0.5 p-2">
           <NavLink item={{ href: "/scheduler", label: "Scheduler", icon: SCHEDULER_ICON }} active={pathname === "/scheduler"} />
+          <NavLink item={{ href: "/comments", label: "Comments", icon: COMMENTS_ICON }} active={pathname === "/comments"} />
           <div className="my-2 border-t border-line" />
           {service && (
             <>

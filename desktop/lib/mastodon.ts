@@ -9,7 +9,9 @@ import { imageTypeForFilename } from "./uploads";
 // (/api/accounts/mastodon/callback) that becomes the access token.
 
 const TIMEOUT_MS = 30_000;
-export const MASTODON_SCOPES = "read:accounts write:statuses write:media";
+// read:notifications and read:statuses are for Comments. Accounts connected
+// before it don't have them and must reconnect (see MASTODON_RECONNECT).
+export const MASTODON_SCOPES = "read:accounts read:notifications read:statuses write:statuses write:media";
 
 /** "mastodon.social", "@me@mastodon.social" or a full URL → "https://mastodon.social". */
 export function normalizeInstance(input: string): string | null {
@@ -75,7 +77,7 @@ export async function exchangeCode(
 }
 
 /** The signed-in account: its username (acct) on this server. */
-export function verifyCredentials(instance: string, token: string): Promise<{ acct: string; username: string }> {
+export function verifyCredentials(instance: string, token: string): Promise<{ id: string; acct: string; username: string }> {
   return api(`${instance}/api/v1/accounts/verify_credentials`, { token });
 }
 
@@ -113,4 +115,103 @@ export async function postToMastodon(
     token,
   });
   return { url: status.url };
+}
+
+/** A reply someone left on one of your posts. */
+export interface MastodonComment {
+  id: string;
+  /** Who wrote it, as @user@server (or @user on your own server). */
+  acct: string;
+  text: string;
+  url: string;
+  postedAt: string;
+  /** A reply goes out with the same visibility, so a followers-only comment doesn't get a public answer. */
+  visibility: "public" | "unlisted" | "private";
+  /** Your post it replies to. */
+  postText: string;
+}
+
+export const MASTODON_RECONNECT = "Reconnect this Mastodon account under Accounts so Kyrelo can read comments.";
+
+interface Status {
+  id: string;
+  content: string;
+  url: string;
+  created_at: string;
+  visibility: string;
+  in_reply_to_id: string | null;
+  in_reply_to_account_id: string | null;
+}
+
+/** Mastodon sends posts as HTML: paragraphs and line breaks become newlines, tags and entities go. */
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>\s*<p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+}
+
+/** The newest replies to your posts, from your mentions. Direct messages are left out. */
+export async function listMastodonComments(instance: string, token: string): Promise<MastodonComment[]> {
+  let mentions: { status?: Status; account: { id: string; acct: string } }[];
+  let me: { id: string };
+  try {
+    me = await verifyCredentials(instance, token);
+    mentions = await api(`${instance}/api/v1/notifications?types[]=mention&limit=40`, { token });
+  } catch (err) {
+    // Tokens from before Comments lack the read scopes.
+    if (/scope|forbidden|403/i.test(String(err))) throw new Error(MASTODON_RECONNECT);
+    throw err;
+  }
+  const replies = mentions.filter(
+    (m): m is typeof m & { status: Status } =>
+      Boolean(m.status) &&
+      m.status!.in_reply_to_account_id === me.id &&
+      m.account.id !== me.id &&
+      m.status!.visibility !== "direct",
+  );
+  const parents = new Map<string, string>();
+  for (const id of new Set(replies.map((m) => m.status.in_reply_to_id!))) {
+    const parent = await api<Status>(`${instance}/api/v1/statuses/${id}`, { token }).catch(() => null);
+    if (parent) parents.set(id, htmlToText(parent.content));
+  }
+  return replies
+    .filter((m) => parents.has(m.status.in_reply_to_id!))
+    .map(({ status, account }) => ({
+      id: status.id,
+      acct: account.acct,
+      text: htmlToText(status.content),
+      url: status.url,
+      postedAt: status.created_at,
+      visibility: status.visibility as MastodonComment["visibility"],
+      postText: parents.get(status.in_reply_to_id!)!,
+    }));
+}
+
+/**
+ * Replies to a comment and returns the reply's URL. Mastodon only notifies
+ * people named in a post, so the reply starts with the commenter's @handle,
+ * as Mastodon's own apps do.
+ */
+export async function replyOnMastodon(
+  instance: string,
+  token: string,
+  comment: Pick<MastodonComment, "id" | "acct" | "visibility">,
+  text: string,
+): Promise<{ url: string }> {
+  const mention = `@${comment.acct}`;
+  const status = text.toLowerCase().startsWith(mention.toLowerCase()) ? text : `${mention} ${text}`;
+  const reply = await api<{ url: string }>(`${instance}/api/v1/statuses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": `reply-${comment.id}` },
+    body: JSON.stringify({ status, in_reply_to_id: comment.id, visibility: comment.visibility }),
+    token,
+  });
+  return { url: reply.url };
 }

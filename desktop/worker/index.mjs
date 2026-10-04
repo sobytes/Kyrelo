@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Background poller started by electron/main.cjs. Hits /api/cron/watch-grok
-// (the Monitor) and /api/cron/scheduler (due posts) on timers, and pops native
-// macOS notifications for new tweets and for posts sent or failed.
+// (the Monitor), /api/cron/scheduler (due posts) and /api/cron/comments
+// (comments on your posts) on timers, and pops native macOS notifications for
+// new tweets, new comments and posts sent or failed.
 
 import { readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
@@ -32,6 +33,7 @@ loadEnvFile(".env");
 const baseUrl = process.env.APP_URL ?? "http://localhost:3000";
 const intervalMs = Number(process.env.WORKER_GROK_INTERVAL_MS ?? 90_000);
 const schedulerIntervalMs = Number(process.env.WORKER_SCHEDULER_INTERVAL_MS ?? 30_000);
+const commentsIntervalMs = Number(process.env.WORKER_COMMENTS_INTERVAL_MS ?? 300_000);
 
 async function hit(path) {
   const res = await fetch(`${baseUrl}${path}`);
@@ -58,6 +60,7 @@ function macNotify(title, body) {
 // headers timeout (UND_ERR_HEADERS_TIMEOUT) and drops that tick's results.
 let watchInFlight = false;
 let schedulerInFlight = false;
+let commentsInFlight = false;
 
 async function tick() {
   if (watchInFlight) return;
@@ -99,6 +102,22 @@ async function schedulerTick() {
   await armNextPost();
 }
 
+async function commentsTick() {
+  if (commentsInFlight) return;
+  commentsInFlight = true;
+  try {
+    const { body } = await hit("/api/cron/comments");
+    const json = JSON.parse(body);
+    if (json.newComments > 0) {
+      macNotify("New comments", `${json.newComments} new comment${json.newComments === 1 ? "" : "s"} on your posts.`);
+    }
+  } catch (err) {
+    console.error("comments tick failed", err);
+  } finally {
+    commentsInFlight = false;
+  }
+}
+
 // The 30s interval alone lets a post start up to 30s late. After each tick,
 // if the next pending post is due before the next interval tick, set a timer
 // for its exact time. The interval stays as the safety net (and picks up
@@ -126,11 +145,13 @@ async function armNextPost() {
 }
 
 console.log(
-  `Worker started. watch-grok every ${intervalMs / 1000}s, scheduler every ${schedulerIntervalMs / 1000}s.`,
+  `Worker started. watch-grok every ${intervalMs / 1000}s, scheduler every ${schedulerIntervalMs / 1000}s, comments every ${commentsIntervalMs / 1000}s.`,
 );
 // Fire the first ticks in parallel so a slow watch-grok scrape can't block
 // the scheduler from picking up due posts.
 void tick();
 void schedulerTick();
+void commentsTick();
 setInterval(tick, intervalMs);
 setInterval(schedulerTick, schedulerIntervalMs);
+setInterval(commentsTick, commentsIntervalMs);

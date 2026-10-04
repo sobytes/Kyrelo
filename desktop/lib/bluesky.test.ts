@@ -2,7 +2,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { linkFacets, postToBluesky } from "./bluesky";
+import { linkFacets, listBlueskyComments, postToBluesky, replyOnBluesky } from "./bluesky";
 
 describe("linkFacets", () => {
   it("marks links by UTF-8 byte offset, not character offset", () => {
@@ -85,5 +85,94 @@ describe("postToBluesky", () => {
       vi.fn(async () => new Response(JSON.stringify({ error: "AuthenticationRequired", message: "Invalid identifier or password" }), { status: 401 })),
     );
     await expect(postToBluesky("me", "wrong", "hi")).rejects.toThrow(/Invalid identifier or password/);
+  });
+});
+
+describe("Bluesky comments", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const root = { uri: "at://did:plc:me/app.bsky.feed.post/root", cid: "root-cid" };
+  const reply = (did: string, handle: string, rkey: string, parent: string) => ({
+    uri: `at://${did}/app.bsky.feed.post/${rkey}`,
+    cid: `cid-${rkey}`,
+    author: { did, handle },
+    reason: "reply",
+    reasonSubject: parent,
+    record: { text: `comment ${rkey}`, createdAt: "2026-10-01T10:00:00Z", reply: { root, parent: { uri: parent, cid: "p" } } },
+    indexedAt: "2026-10-01T10:00:01Z",
+  });
+
+  function mockBluesky(opts: { expireOnce?: boolean } = {}) {
+    const calls: { method: string; url: string; body?: unknown }[] = [];
+    let expired = opts.expireOnce ?? false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const method = url.split("/xrpc/")[1].split("?")[0];
+        calls.push({ method, url, body: init?.body && typeof init.body === "string" ? JSON.parse(init.body) : undefined });
+        if (method === "com.atproto.server.createSession") {
+          return Response.json({ did: "did:plc:me", handle: "me.bsky.social", accessJwt: `jwt-${calls.length}` });
+        }
+        if (expired) {
+          expired = false;
+          return Response.json({ error: "ExpiredToken", message: "Token has expired" }, { status: 400 });
+        }
+        if (method === "app.bsky.notification.listNotifications") {
+          return Response.json({
+            notifications: [
+              reply("did:plc:fan", "fan.bsky.social", "c1", root.uri),
+              reply("did:plc:me", "me.bsky.social", "mine", root.uri),
+              { ...reply("did:plc:x", "x.bsky.social", "like", root.uri), reason: "like" },
+            ],
+          });
+        }
+        if (method === "app.bsky.feed.getPosts") return Response.json({ posts: [{ uri: root.uri, record: { text: "my post" } }] });
+        return Response.json({ uri: "at://did:plc:me/app.bsky.feed.post/r1" });
+      }),
+    );
+    return calls;
+  }
+
+  it("lists other people's replies to your posts, with your post's text", async () => {
+    mockBluesky();
+    const comments = await listBlueskyComments("list-test.bsky.social", "pw");
+    expect(comments).toEqual([
+      {
+        uri: "at://did:plc:fan/app.bsky.feed.post/c1",
+        cid: "cid-c1",
+        root,
+        author: "fan.bsky.social",
+        text: "comment c1",
+        url: "https://bsky.app/profile/fan.bsky.social/post/c1",
+        postedAt: "2026-10-01T10:00:00Z",
+        postText: "my post",
+      },
+    ]);
+  });
+
+  it("keeps the session between calls and signs in again when it expires", async () => {
+    const calls = mockBluesky();
+    await listBlueskyComments("session-test.bsky.social", "pw");
+    await listBlueskyComments("session-test.bsky.social", "pw");
+    expect(calls.filter((c) => c.method === "com.atproto.server.createSession")).toHaveLength(1);
+
+    const again = mockBluesky({ expireOnce: true });
+    await listBlueskyComments("session-test.bsky.social", "pw");
+    expect(again.map((c) => c.method)).toEqual([
+      "app.bsky.notification.listNotifications",
+      "com.atproto.server.createSession",
+      "app.bsky.notification.listNotifications",
+      "app.bsky.feed.getPosts",
+    ]);
+  });
+
+  it("replies in the comment's thread", async () => {
+    const calls = mockBluesky();
+    const comment = { uri: "at://did:plc:fan/app.bsky.feed.post/c1", cid: "cid-c1", root };
+    const { url } = await replyOnBluesky("reply-test.bsky.social", "pw", comment, "thanks!");
+    expect(url).toBe("https://bsky.app/profile/me.bsky.social/post/r1");
+    const record = (calls.at(-1)!.body as { record: { text: string; reply: unknown } }).record;
+    expect(record.text).toBe("thanks!");
+    expect(record.reply).toEqual({ root, parent: { uri: comment.uri, cid: comment.cid } });
   });
 });
