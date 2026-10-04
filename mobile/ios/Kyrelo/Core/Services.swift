@@ -42,5 +42,9 @@ enum Services {
         ServiceSpec(id: .linkedin, slug: "linkedin", sections: [.accounts]),
         ServiceSpec(id: .youtube, slug: "youtube", sections: [.accounts]),
         ServiceSpec(id: .tiktok, slug: "tiktok", sections: [.accounts]),
+        ServiceSpec(id: .slack, slug: "slack", sections: [.accounts]),
+        ServiceSpec(id: .devto, slug: "devto", sections: [.accounts]),
+        ServiceSpec(id: .hashnode, slug: "hashnode", sections: [.accounts]),
+        ServiceSpec(id: .wordpress, slug: "wordpress", sections: [.accounts]),
     ]
 }

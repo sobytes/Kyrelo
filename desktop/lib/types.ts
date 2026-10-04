@@ -130,7 +130,7 @@ export interface CommentsState {
 }
 
 /** Every social network Kyrelo can post to. Rules per platform: lib/platforms.ts. */
-export type PlatformId = "twitter" | "bluesky" | "mastodon" | "threads" | "instagram" | "facebook" | "telegram" | "discord" | "linkedin" | "youtube" | "tiktok";
+export type PlatformId = "twitter" | "bluesky" | "mastodon" | "threads" | "instagram" | "facebook" | "telegram" | "discord" | "linkedin" | "youtube" | "tiktok" | "slack" | "devto" | "hashnode" | "wordpress";
 export type ScheduledStatus = "pending" | "posting" | "posted" | "failed";
 
 export interface ScheduledPost {

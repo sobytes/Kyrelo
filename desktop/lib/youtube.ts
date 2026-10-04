@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { splitTitle } from "./title";
 import { videoTypeForFilename } from "./uploads";
 
 // YouTube through the YouTube Data API, signed in with the user's own Google
@@ -128,9 +129,7 @@ const clean = (s: string) => s.replace(/[<>]/g, "");
 
 /** The post's first line is the video's title (YouTube allows 100 characters); the whole text is its description. */
 export function videoMetadata(text: string): { title: string; description: string } {
-  const firstLine = clean(text.split("\n").find((l) => l.trim()) ?? "").trim();
-  const chars = Array.from(firstLine);
-  const title = chars.length > 100 ? `${chars.slice(0, 99).join("").trimEnd()}…` : firstLine;
+  const { title } = splitTitle(clean(text), 100);
   return { title: title || "Untitled", description: clean(text) };
 }
 

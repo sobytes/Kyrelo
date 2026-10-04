@@ -118,6 +118,36 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
     await opts.onSendingStarted();
     return tiktok.uploadToTikTokInbox(tokens.access_token, opts.videoPath);
   },
+  async slack(account, text, opts) {
+    const secret = await getAccountSecret("slack", account.id);
+    if (!secret?.token) throw new Error("This Slack webhook isn't connected any more. Reconnect it under Accounts.");
+    await opts.onSendingStarted();
+    const { postToSlack } = await import("./slack");
+    return postToSlack(secret.token, text);
+  },
+  async devto(account, text, opts) {
+    const secret = await getAccountSecret("devto", account.id);
+    if (!secret?.token) throw new Error("This DEV account isn't connected any more. Reconnect it under Accounts.");
+    await opts.onSendingStarted();
+    const { postToDevTo } = await import("./devto");
+    return postToDevTo(secret.token, text);
+  },
+  async hashnode(account, text, opts) {
+    const secret = await getAccountSecret("hashnode", account.id);
+    if (!secret?.token || !secret.userId) throw new Error("This Hashnode blog isn't connected any more. Reconnect it under Accounts.");
+    await opts.onSendingStarted();
+    const { postToHashnode } = await import("./hashnode");
+    return postToHashnode(secret.token, secret.userId, text);
+  },
+  async wordpress(account, text, opts) {
+    const secret = await getAccountSecret("wordpress", account.id);
+    if (!secret?.instance || !secret.userId || !secret.appPassword) {
+      throw new Error("This WordPress site isn't connected any more. Reconnect it under Accounts.");
+    }
+    await opts.onSendingStarted();
+    const { postToWordPress } = await import("./wordpress");
+    return postToWordPress({ site: secret.instance, username: secret.userId, appPassword: secret.appPassword }, text, opts.imagePath);
+  },
 };
 
 export function publish(account: Account, text: string, opts: PublishOptions): Promise<{ url: string }> {

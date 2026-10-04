@@ -176,6 +176,74 @@
       "requiresImage": false,
       "requiresVideo": true,
       "campaignLimit": 500
+    },
+    {
+      "id": "slack",
+      "label": "Slack",
+      "maxLength": 4000,
+      "maxImageBytes": 0,
+      "maxVideoBytes": 0,
+      "connect": "credentials",
+      "credentials": [
+        "webhookUrl",
+        "handle"
+      ],
+      "loginUrl": "https://api.slack.com/apps",
+      "signupUrl": "https://slack.com/get-started",
+      "requiresImage": false,
+      "requiresVideo": false,
+      "campaignLimit": 500
+    },
+    {
+      "id": "devto",
+      "label": "DEV",
+      "maxLength": 100000,
+      "maxImageBytes": 0,
+      "maxVideoBytes": 0,
+      "connect": "credentials",
+      "credentials": [
+        "token"
+      ],
+      "loginUrl": "https://dev.to/settings/extensions",
+      "signupUrl": "https://dev.to/enter",
+      "requiresImage": false,
+      "requiresVideo": false,
+      "campaignLimit": 1300
+    },
+    {
+      "id": "hashnode",
+      "label": "Hashnode",
+      "maxLength": 100000,
+      "maxImageBytes": 0,
+      "maxVideoBytes": 0,
+      "connect": "credentials",
+      "credentials": [
+        "token",
+        "site"
+      ],
+      "loginUrl": "https://hashnode.com/settings/developer",
+      "signupUrl": "https://hashnode.com/onboard",
+      "requiresImage": false,
+      "requiresVideo": false,
+      "campaignLimit": 1300
+    },
+    {
+      "id": "wordpress",
+      "label": "WordPress",
+      "maxLength": 100000,
+      "maxImageBytes": 5242880,
+      "maxVideoBytes": 0,
+      "connect": "credentials",
+      "credentials": [
+        "site",
+        "handle",
+        "appPassword"
+      ],
+      "loginUrl": "https://wordpress.org/documentation/article/application-passwords/",
+      "signupUrl": "https://wordpress.org/download/",
+      "requiresImage": false,
+      "requiresVideo": false,
+      "campaignLimit": 1300
     }
   ],
   "lengthCases": [

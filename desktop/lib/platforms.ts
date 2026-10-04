@@ -47,7 +47,7 @@ export interface PlatformSpec {
 }
 
 export interface CredentialField {
-  key: "handle" | "appPassword" | "token" | "webhookUrl" | "clientId" | "clientSecret";
+  key: "handle" | "appPassword" | "token" | "webhookUrl" | "clientId" | "clientSecret" | "site";
   label: string;
   placeholder: string;
   secret?: boolean;
@@ -266,6 +266,87 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     credentials: [
       { key: "clientId", label: "Client key", placeholder: "Client key" },
       { key: "clientSecret", label: "Client secret", placeholder: "Client secret", secret: true },
+    ],
+  },
+  slack: {
+    id: "slack",
+    label: "Slack",
+    // Slack cuts messages over 40,000 characters; past a few thousand they
+    // collapse behind "Show more" anyway.
+    maxLength: 4000,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    // Incoming webhooks can't upload files.
+    maxImageBytes: 0,
+    maxVideoBytes: 0,
+    campaignLimit: 500,
+    requiresImage: false,
+    requiresVideo: false,
+    // An incoming webhook from a Slack app the user makes.
+    connect: "credentials",
+    loginUrl: "https://api.slack.com/apps",
+    signupUrl: "https://slack.com/get-started",
+    credentials: [
+      { key: "webhookUrl", label: "Webhook URL", placeholder: "https://hooks.slack.com/services/…", secret: true },
+      { key: "handle", label: "Channel", placeholder: "#announcements (to tell webhooks apart)" },
+    ],
+  },
+  devto: {
+    id: "devto",
+    label: "DEV",
+    // Articles: the first line is the title, the rest Markdown (lib/title.ts).
+    maxLength: 100_000,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    // DEV takes cover images only from a web address.
+    maxImageBytes: 0,
+    maxVideoBytes: 0,
+    campaignLimit: 1300,
+    requiresImage: false,
+    requiresVideo: false,
+    connect: "credentials",
+    loginUrl: "https://dev.to/settings/extensions",
+    signupUrl: "https://dev.to/enter",
+    credentials: [{ key: "token", label: "API key", placeholder: "Your DEV API key", secret: true }],
+  },
+  hashnode: {
+    id: "hashnode",
+    label: "Hashnode",
+    // Articles: the first line is the title, the rest Markdown (lib/title.ts).
+    maxLength: 100_000,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    // Hashnode takes cover images only from a web address.
+    maxImageBytes: 0,
+    maxVideoBytes: 0,
+    campaignLimit: 1300,
+    requiresImage: false,
+    requiresVideo: false,
+    connect: "credentials",
+    loginUrl: "https://hashnode.com/settings/developer",
+    signupUrl: "https://hashnode.com/onboard",
+    credentials: [
+      { key: "token", label: "Personal access token", placeholder: "Your Hashnode token", secret: true },
+      { key: "site", label: "Blog address", placeholder: "yourname.hashnode.dev" },
+    ],
+  },
+  wordpress: {
+    id: "wordpress",
+    label: "WordPress",
+    // Posts: the first line is the title, the rest the content (lib/title.ts).
+    maxLength: 100_000,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    // Kyrelo's own upload limit (lib/uploads.ts); the image becomes the featured image.
+    maxImageBytes: 5 * 1024 * 1024,
+    maxVideoBytes: 0,
+    campaignLimit: 1300,
+    requiresImage: false,
+    requiresVideo: false,
+    // A self-hosted site (or one with the REST API on), with an application password.
+    connect: "credentials",
+    loginUrl: "https://wordpress.org/documentation/article/application-passwords/",
+    signupUrl: "https://wordpress.org/download/",
+    credentials: [
+      { key: "site", label: "Site address", placeholder: "example.com" },
+      { key: "handle", label: "Username", placeholder: "Your WordPress username" },
+      { key: "appPassword", label: "Application password", placeholder: "xxxx xxxx xxxx xxxx xxxx xxxx", secret: true },
     ],
   },
 };

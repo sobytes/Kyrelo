@@ -17,6 +17,10 @@ extension PlatformId {
         case .linkedin: "LinkedIn"
         case .youtube: "YouTube"
         case .tiktok: "TikTok"
+        case .slack: "Slack"
+        case .devto: "DEV"
+        case .hashnode: "Hashnode"
+        case .wordpress: "WordPress"
         }
     }
 
@@ -36,16 +40,18 @@ extension PlatformId {
         case .linkedin: 3000
         case .youtube: 5000
         case .tiktok: 2200
+        case .slack: 4000
+        case .devto, .hashnode, .wordpress: 100_000
         }
     }
 
     /// Largest image file the platform accepts on a post.
     var maxImageBytes: Int {
         switch self {
-        case .twitter, .mastodon, .instagram, .facebook, .telegram, .discord, .linkedin: 5 * 1024 * 1024
+        case .twitter, .mastodon, .instagram, .facebook, .telegram, .discord, .linkedin, .wordpress: 5 * 1024 * 1024
         case .bluesky: 1_000_000
         // Threads' API only takes images from a public web address; YouTube takes videos.
-        case .threads, .youtube, .tiktok: 0
+        case .threads, .youtube, .tiktok, .slack, .devto, .hashnode: 0
         }
     }
 
@@ -57,7 +63,7 @@ extension PlatformId {
         case .telegram: 50 * 1024 * 1024
         case .discord: 10 * 1024 * 1024
         case .youtube, .tiktok: 256 * 1024 * 1024
-        case .twitter, .bluesky, .threads, .instagram, .facebook, .linkedin: 0
+        case .twitter, .bluesky, .threads, .instagram, .facebook, .linkedin, .slack, .devto, .hashnode, .wordpress: 0
         }
     }
 
@@ -95,6 +101,10 @@ extension PlatformId {
         case .linkedin: URL(string: "https://www.linkedin.com/developers/tools/oauth/token-generator")!
         case .youtube: URL(string: "https://console.cloud.google.com/apis/credentials")!
         case .tiktok: URL(string: "https://developers.tiktok.com/apps/")!
+        case .slack: URL(string: "https://api.slack.com/apps")!
+        case .devto: URL(string: "https://dev.to/settings/extensions")!
+        case .hashnode: URL(string: "https://hashnode.com/settings/developer")!
+        case .wordpress: URL(string: "https://wordpress.org/documentation/article/application-passwords/")!
         }
     }
 
@@ -103,6 +113,10 @@ extension PlatformId {
         switch self {
         case .bluesky: ("Use an app password, not your main password.", "Create an app password")
         case .telegram: ("Make a bot with @BotFather, add it to your channel as an admin that can post, then paste its token and the channel's @name.", "Open @BotFather")
+        case .slack: ("Make a Slack app with an incoming webhook for the channel, then paste its URL. The steps are on the Slack page in Kyrelo on your computer.", "Slack apps")
+        case .devto: ("Generate an API key in DEV's Settings → Extensions and paste it here.", "DEV settings")
+        case .hashnode: ("Generate a personal access token in Hashnode's Settings → Developer, and enter your blog's address.", "Hashnode settings")
+        case .wordpress: ("Add an application password in your site's Users → Profile, and enter it with your site and username.", "WordPress's guide")
         case .linkedin: ("LinkedIn needs a token from your own LinkedIn app. The steps are on the LinkedIn page in Kyrelo on your computer; paste the token here.", "LinkedIn's token generator")
         case .discord: ("In the channel's settings, open Integrations → Webhooks, make one and paste its URL.", "Discord's webhook guide")
         case .threads: ("Threads needs a token from a Meta developer app. The steps are on the Threads page in Kyrelo on your computer; paste the token here.", "Meta's Threads API guide")
@@ -125,6 +139,10 @@ extension PlatformId {
         case .linkedin: URL(string: "https://www.linkedin.com/signup")!
         case .youtube: URL(string: "https://www.youtube.com/create_channel")!
         case .tiktok: URL(string: "https://www.tiktok.com/signup")!
+        case .slack: URL(string: "https://slack.com/get-started")!
+        case .devto: URL(string: "https://dev.to/enter")!
+        case .hashnode: URL(string: "https://hashnode.com/onboard")!
+        case .wordpress: URL(string: "https://wordpress.org/download/")!
         }
     }
 
@@ -145,6 +163,20 @@ extension PlatformId {
         case .discord: .credentials([CredentialField(key: "webhookUrl", placeholder: "Webhook URL", secret: true)])
         case .linkedin: .credentials([CredentialField(key: "token", placeholder: "LinkedIn access token", secret: true)])
         case .youtube, .tiktok: .app(["clientId", "clientSecret"])
+        case .slack: .credentials([
+            CredentialField(key: "webhookUrl", placeholder: "Webhook URL", secret: true),
+            CredentialField(key: "handle", placeholder: "#channel (to tell webhooks apart)", secret: false),
+        ])
+        case .devto: .credentials([CredentialField(key: "token", placeholder: "DEV API key", secret: true)])
+        case .hashnode: .credentials([
+            CredentialField(key: "token", placeholder: "Hashnode personal access token", secret: true),
+            CredentialField(key: "site", placeholder: "yourname.hashnode.dev", secret: false),
+        ])
+        case .wordpress: .credentials([
+            CredentialField(key: "site", placeholder: "example.com", secret: false),
+            CredentialField(key: "handle", placeholder: "Username", secret: false),
+            CredentialField(key: "appPassword", placeholder: "Application password", secret: true),
+        ])
         }
     }
 
@@ -155,7 +187,8 @@ extension PlatformId {
         switch self {
         case .twitter: ReplyRules.campaignMaxLength // X's standard 280, not Premium's
         case .bluesky: 300
-        case .mastodon, .threads, .facebook, .telegram, .discord, .youtube, .tiktok: 500
+        case .mastodon, .threads, .facebook, .telegram, .discord, .youtube, .tiktok, .slack: 500
+        case .devto, .hashnode, .wordpress: 1300
         case .instagram: 2200
         case .linkedin: 1300
         }
@@ -165,7 +198,7 @@ extension PlatformId {
     func length(_ text: String) -> Int {
         switch self {
         case .twitter: ReplyRules.length(text) // links count 23
-        case .bluesky, .threads, .instagram, .facebook, .discord, .linkedin, .youtube, .tiktok: text.count // what a person sees; links in full
+        case .bluesky, .threads, .instagram, .facebook, .discord, .linkedin, .youtube, .tiktok, .slack, .devto, .hashnode, .wordpress: text.count // what a person sees; links in full
         case .telegram: text.utf16.count // Telegram counts UTF-16 units
         case .mastodon: Self.mastodonCountable(text).count
         }

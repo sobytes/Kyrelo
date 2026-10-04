@@ -63,6 +63,10 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
     "Each Facebook account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through facebook.com as whichever profile you were using: to post as a Page, switch to it (your picture at the top right → the Page) before clicking I'm logged in. Connect again to add another Page. Facebook doesn't officially support posting this way, so it can break when they change their site.",
   telegram:
     "Kyrelo posts to your channel through your own Telegram bot, with Telegram's official Bot API. The bot token is stored only on this computer.",
+  slack: "Kyrelo posts to the channel through an incoming webhook from your own Slack app. The webhook link is stored only on this computer; anyone with it can post there. Text only: webhooks can't upload files.",
+  devto: "Kyrelo publishes articles with DEV's API and your API key, stored only on this computer. The post's first line is the title; the rest is the article, in Markdown.",
+  hashnode: "Kyrelo publishes articles to your blog with Hashnode's API and your token, stored only on this computer. The post's first line is the title; the rest is the article, in Markdown.",
+  wordpress: "Kyrelo publishes to your site with WordPress's REST API and an application password, stored only on this computer (revoke it any time in your profile). The post's first line is the title, the rest the content, and an image becomes the featured image.",
   tiktok:
     "Kyrelo sends each video to your TikTok inbox with TikTok's Content Posting API, through your own TikTok developer app. TikTok notifies you; add the caption (it's in the post in Kyrelo) and post it from the app. Posting straight to your profile needs TikTok to audit your app.",
   youtube:
@@ -283,6 +287,32 @@ const GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
       </li>
       <li>Paste the token and your channel&apos;s @name below (or its numeric id, for a private channel).</li>
     </ol>
+  ),
+  slack: (
+    <>
+      <ExtLink href={PLATFORMS.slack.loginUrl}>Create a Slack app</ExtLink> (From scratch), open{" "}
+      <em>Incoming Webhooks</em>, turn them on, then <em>Add New Webhook to Workspace</em> and pick the channel. Paste the
+      webhook URL below, with the channel&apos;s name so you can tell your webhooks apart.
+    </>
+  ),
+  devto: (
+    <>
+      In DEV, open <ExtLink href={PLATFORMS.devto.loginUrl}>Settings → Extensions</ExtLink>, generate an API key under{" "}
+      <em>DEV Community API Keys</em>, and paste it below.
+    </>
+  ),
+  hashnode: (
+    <>
+      In Hashnode, open <ExtLink href={PLATFORMS.hashnode.loginUrl}>Settings → Developer</ExtLink>, generate a personal
+      access token, and paste it below with your blog&apos;s address.
+    </>
+  ),
+  wordpress: (
+    <>
+      In your site&apos;s admin, open <em>Users → Profile</em>, add an <em>Application Password</em> named Kyrelo, and
+      paste it below with your site&apos;s address and username.{" "}
+      <ExtLink href={PLATFORMS.wordpress.loginUrl}>WordPress&apos;s guide</ExtLink>
+    </>
   ),
   tiktok: (
     <ol className="list-decimal space-y-1 pl-5">

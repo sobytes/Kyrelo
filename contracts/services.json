@@ -99,6 +99,38 @@
       "sections": [
         "accounts"
       ]
+    },
+    {
+      "id": "slack",
+      "slug": "slack",
+      "label": "Slack",
+      "sections": [
+        "accounts"
+      ]
+    },
+    {
+      "id": "devto",
+      "slug": "devto",
+      "label": "DEV",
+      "sections": [
+        "accounts"
+      ]
+    },
+    {
+      "id": "hashnode",
+      "slug": "hashnode",
+      "label": "Hashnode",
+      "sections": [
+        "accounts"
+      ]
+    },
+    {
+      "id": "wordpress",
+      "slug": "wordpress",
+      "label": "WordPress",
+      "sections": [
+        "accounts"
+      ]
     }
   ]
 }

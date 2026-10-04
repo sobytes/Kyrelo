@@ -10,6 +10,10 @@ import { verifyTelegram } from "./telegram";
 import { verifyDiscordWebhook } from "./discord";
 import { verifyLinkedInToken } from "./linkedin";
 import * as tiktok from "./tiktok";
+import { slackWebhookId } from "./slack";
+import { verifyDevTo } from "./devto";
+import { normalizeHost, verifyHashnode } from "./hashnode";
+import { normalizeSite, verifyWordPress } from "./wordpress";
 import * as youtube from "./youtube";
 import { AccountSecret, listAccounts, modifyAccounts, setAccountSecret } from "./storage";
 import { PlatformId } from "./types";
@@ -88,6 +92,54 @@ const CONNECTORS: Partial<Record<PlatformId, (fields: Fields) => Promise<Connect
     await setAccountSecret("linkedin", me.sub, { token: token.trim(), userId: me.sub });
     await saveAccount({ platform: "linkedin", id: me.sub, handle: me.name, addedAt: new Date().toISOString() });
     return { ok: true, handle: me.name };
+  },
+  async slack({ webhookUrl = "", handle = "" }) {
+    const id = slackWebhookId(webhookUrl);
+    if (!id) return { error: "That isn't a Slack webhook URL. It starts with https://hooks.slack.com/services/." };
+    const name = handle.trim() || "Slack";
+    await setAccountSecret("slack", id.toLowerCase(), { token: webhookUrl.trim() });
+    await saveAccount({ platform: "slack", id: id.toLowerCase(), handle: name, addedAt: new Date().toISOString() });
+    return { ok: true, handle: name };
+  },
+  async devto({ token = "" }) {
+    if (!token.trim()) return { error: "Paste your DEV API key." };
+    let me;
+    try {
+      me = await verifyDevTo(token.trim());
+    } catch (err) {
+      return { error: message(err) };
+    }
+    const id = me.username.toLowerCase();
+    await setAccountSecret("devto", id, { token: token.trim() });
+    await saveAccount({ platform: "devto", id, handle: me.username, addedAt: new Date().toISOString() });
+    return { ok: true, handle: me.username };
+  },
+  async hashnode({ token = "", site = "" }) {
+    if (!token.trim() || !site.trim()) return { error: "Enter your token and your blog's address." };
+    let blog;
+    try {
+      blog = await verifyHashnode(token.trim(), site);
+    } catch (err) {
+      return { error: message(err) };
+    }
+    const id = normalizeHost(site);
+    await setAccountSecret("hashnode", id, { token: token.trim(), userId: blog.id });
+    await saveAccount({ platform: "hashnode", id, handle: id, addedAt: new Date().toISOString() });
+    return { ok: true, handle: id };
+  },
+  async wordpress({ site = "", handle = "", appPassword = "" }) {
+    const url = normalizeSite(site);
+    if (!url || !handle.trim() || !appPassword.trim()) return { error: "Enter your site, username and application password." };
+    const login = { site: url, username: handle.trim(), appPassword: appPassword.trim() };
+    try {
+      await verifyWordPress(login);
+    } catch (err) {
+      return { error: message(err) };
+    }
+    const id = `${login.username}@${url.replace(/^https?:\/\//, "")}`.toLowerCase();
+    await setAccountSecret("wordpress", id, { instance: url, userId: login.username, appPassword: login.appPassword });
+    await saveAccount({ platform: "wordpress", id, handle: id, addedAt: new Date().toISOString() });
+    return { ok: true, handle: id };
   },
 };
 
