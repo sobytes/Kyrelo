@@ -91,6 +91,14 @@
       "sections": [
         "accounts"
       ]
+    },
+    {
+      "id": "tiktok",
+      "slug": "tiktok",
+      "label": "TikTok",
+      "sections": [
+        "accounts"
+      ]
     }
   ]
 }

@@ -9,6 +9,7 @@ import { verifyToken } from "./threads";
 import { verifyTelegram } from "./telegram";
 import { verifyDiscordWebhook } from "./discord";
 import { verifyLinkedInToken } from "./linkedin";
+import * as tiktok from "./tiktok";
 import * as youtube from "./youtube";
 import { AccountSecret, listAccounts, modifyAccounts, setAccountSecret } from "./storage";
 import { PlatformId } from "./types";
@@ -164,9 +165,10 @@ export async function finishMastodonConnect(state: string, code: string): Promis
 // --- Your own developer app: approve Kyrelo in the browser -------------------------
 
 interface AppConnector {
-  authorizeUrl: (clientId: string, redirectUri: string, state: string) => string;
+  /** `verifier` is the sign-in's PKCE code verifier, for platforms that require PKCE. */
+  authorizeUrl: (clientId: string, redirectUri: string, state: string, verifier: string) => string;
   /** Swaps the code for credentials and reads which account they're for. */
-  finish: (app: { clientId: string; clientSecret: string }, code: string, redirectUri: string) => Promise<{
+  finish: (app: { clientId: string; clientSecret: string }, code: string, redirectUri: string, verifier: string) => Promise<{
     id: string;
     handle: string;
     secret: AccountSecret;
@@ -192,6 +194,18 @@ const APP_CONNECTORS: Partial<Record<PlatformId, AppConnector>> = {
       };
     },
   },
+  tiktok: {
+    authorizeUrl: (clientKey, redirectUri, state, verifier) => tiktok.authorizeUrl(clientKey, redirectUri, state, verifier),
+    async finish(app, code, redirectUri, verifier) {
+      const tokens = await tiktok.exchangeCode(app, code, redirectUri, verifier);
+      const user = await tiktok.userInfo(tokens.access_token);
+      return {
+        id: user.open_id,
+        handle: user.display_name,
+        secret: { clientId: app.clientId, clientSecret: app.clientSecret, token: tokens.refresh_token, userId: user.open_id },
+      };
+    },
+  },
 };
 
 interface PendingApp {
@@ -199,6 +213,8 @@ interface PendingApp {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
+  /** PKCE code verifier, sent with the code (TikTok requires it). */
+  verifier: string;
   expires: number;
 }
 
@@ -213,8 +229,9 @@ export function startAppConnect(platform: PlatformId, fields: Fields, redirectUr
   if (!clientId || !clientSecret) return { error: "Paste your app's client ID and client secret." };
   const state = randomBytes(24).toString("base64url");
   for (const [key, p] of pendingApps) if (p.expires < Date.now()) pendingApps.delete(key);
-  pendingApps.set(state, { platform, clientId, clientSecret, redirectUri, expires: Date.now() + SIGN_IN_WINDOW_MS });
-  return { authorizeUrl: connector.authorizeUrl(clientId, redirectUri, state) };
+  const verifier = randomBytes(32).toString("base64url");
+  pendingApps.set(state, { platform, clientId, clientSecret, redirectUri, verifier, expires: Date.now() + SIGN_IN_WINDOW_MS });
+  return { authorizeUrl: connector.authorizeUrl(clientId, redirectUri, state, verifier) };
 }
 
 /** The platform redirected back: finish signing in and save the account. */
@@ -224,7 +241,7 @@ export async function finishAppConnect(state: string, code: string): Promise<Con
   if (!pending || pending.expires < Date.now()) return { error: "This sign-in link has expired. Start again from Kyrelo." };
   const { platform } = pending;
   try {
-    const { id, handle, secret } = await APP_CONNECTORS[platform]!.finish(pending, code, pending.redirectUri);
+    const { id, handle, secret } = await APP_CONNECTORS[platform]!.finish(pending, code, pending.redirectUri, pending.verifier);
     await setAccountSecret(platform, id, secret);
     await saveAccount({ platform, id, handle, addedAt: new Date().toISOString() });
     return { ok: true, handle, platform };

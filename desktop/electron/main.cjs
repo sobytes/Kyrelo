@@ -38,16 +38,32 @@ function logTag(tag) {
   };
 }
 
-function findFreePort() {
+// The app's usual port, next to the phone bridge's 47771. Platforms where the
+// user makes their own developer app (TikTok, Pinterest) only redirect back to
+// a sign-in URL registered in advance, so it should stay the same between
+// launches. If something else holds it, any free port works for everything
+// else.
+const PREFERRED_PORT = 47770;
+
+function listenOn(port) {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
     srv.unref();
     srv.on("error", reject);
-    srv.listen(0, "127.0.0.1", () => {
-      const port = srv.address().port;
-      srv.close(() => resolve(port));
+    srv.listen(port, "127.0.0.1", () => {
+      const chosen = srv.address().port;
+      srv.close(() => resolve(chosen));
     });
   });
+}
+
+async function findFreePort() {
+  try {
+    return await listenOn(PREFERRED_PORT);
+  } catch {
+    console.warn(`[electron] port ${PREFERRED_PORT} is busy, using another`);
+    return listenOn(0);
+  }
 }
 
 function baseEnv(port) {

@@ -63,6 +63,8 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
     "Each Facebook account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through facebook.com as whichever profile you were using: to post as a Page, switch to it (your picture at the top right → the Page) before clicking I'm logged in. Connect again to add another Page. Facebook doesn't officially support posting this way, so it can break when they change their site.",
   telegram:
     "Kyrelo posts to your channel through your own Telegram bot, with Telegram's official Bot API. The bot token is stored only on this computer.",
+  tiktok:
+    "Kyrelo sends each video to your TikTok inbox with TikTok's Content Posting API, through your own TikTok developer app. TikTok notifies you; add the caption (it's in the post in Kyrelo) and post it from the app. Posting straight to your profile needs TikTok to audit your app.",
   youtube:
     "Kyrelo uploads with the YouTube Data API through your own Google Cloud project, so Google's limits are yours: about six uploads a day. Google keeps uploads from projects it hasn't audited private; request its free audit (YouTube API Services → Audit and quota extension form) to post publicly. Comments work either way.",
   linkedin:
@@ -280,6 +282,19 @@ const GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
         Open your channel → <em>Administrators</em> → <em>Add admin</em>, pick your bot and let it post messages.
       </li>
       <li>Paste the token and your channel&apos;s @name below (or its numeric id, for a private channel).</li>
+    </ol>
+  ),
+  tiktok: (
+    <ol className="list-decimal space-y-1 pl-5">
+      <li>
+        On <ExtLink href={PLATFORMS.tiktok.loginUrl}>TikTok for Developers</ExtLink>, create an app with the{" "}
+        <em>Desktop</em> platform.
+      </li>
+      <li>
+        Add <em>Login Kit</em> with the redirect URI <code className="font-mono">http://127.0.0.1:*/api/accounts/oauth/callback</code>,
+        and <em>Content Posting API</em> (Upload, scope <em>video.upload</em>).
+      </li>
+      <li>Add your TikTok account as a target user in the app&apos;s sandbox, then paste its client key and secret below.</li>
     </ol>
   ),
   youtube: (

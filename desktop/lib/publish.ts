@@ -1,5 +1,5 @@
 import { postImageError } from "./platforms";
-import { getAccountSecret } from "./storage";
+import { getAccountSecret, setAccountSecret } from "./storage";
 import { Account, PlatformId } from "./types";
 
 // Posting to any platform. The scheduler calls publish() and never branches on
@@ -102,6 +102,21 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
     const token = await youtube.accessToken({ clientId: secret.clientId, clientSecret: secret.clientSecret }, secret.token);
     await opts.onSendingStarted();
     return youtube.uploadToYouTube(token, opts.videoPath, text);
+  },
+  async tiktok(account, text, opts) {
+    if (!opts.videoPath) throw new Error("TikTok posts need a video. Attach one and reschedule.");
+    const secret = await getAccountSecret("tiktok", account.id);
+    if (!secret?.token || !secret.clientId || !secret.clientSecret) {
+      throw new Error("This TikTok account isn't connected any more. Reconnect it under Accounts.");
+    }
+    const tiktok = await import("./tiktok");
+    const tokens = await tiktok.refreshTokens({ clientId: secret.clientId, clientSecret: secret.clientSecret }, secret.token);
+    // TikTok may rotate the refresh token; the old one stops working.
+    if (tokens.refresh_token && tokens.refresh_token !== secret.token) {
+      await setAccountSecret("tiktok", account.id, { ...secret, token: tokens.refresh_token });
+    }
+    await opts.onSendingStarted();
+    return tiktok.uploadToTikTokInbox(tokens.access_token, opts.videoPath);
   },
 };
 

@@ -159,6 +159,23 @@
       "requiresImage": false,
       "requiresVideo": true,
       "campaignLimit": 500
+    },
+    {
+      "id": "tiktok",
+      "label": "TikTok",
+      "maxLength": 2200,
+      "maxImageBytes": 0,
+      "maxVideoBytes": 268435456,
+      "connect": "app",
+      "credentials": [
+        "clientId",
+        "clientSecret"
+      ],
+      "loginUrl": "https://developers.tiktok.com/apps/",
+      "signupUrl": "https://www.tiktok.com/signup",
+      "requiresImage": false,
+      "requiresVideo": true,
+      "campaignLimit": 500
     }
   ],
   "lengthCases": [

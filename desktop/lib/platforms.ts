@@ -246,6 +246,28 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
       { key: "clientSecret", label: "Client secret", placeholder: "GOCSPX-…", secret: true },
     ],
   },
+  tiktok: {
+    id: "tiktok",
+    label: "TikTok",
+    // The caption limit. Kyrelo sends the video to the TikTok inbox, where the
+    // user adds the caption (lib/tiktok.ts), so the text is theirs to paste.
+    maxLength: 2200,
+    length: (text) => Array.from(graphemes.segment(text)).length,
+    maxImageBytes: 0,
+    // Kyrelo's own upload limit (lib/uploads.ts); TikTok takes up to 4 GB.
+    maxVideoBytes: 256 * 1024 * 1024,
+    campaignLimit: 500,
+    requiresImage: false,
+    requiresVideo: true,
+    // The user's own TikTok developer app (Login Kit for Desktop).
+    connect: "app",
+    loginUrl: "https://developers.tiktok.com/apps/",
+    signupUrl: "https://www.tiktok.com/signup",
+    credentials: [
+      { key: "clientId", label: "Client key", placeholder: "Client key" },
+      { key: "clientSecret", label: "Client secret", placeholder: "Client secret", secret: true },
+    ],
+  },
 };
 
 /** The longest post a campaign writes for a platform (PlatformSpec.campaignLimit). */
