@@ -111,6 +111,50 @@ final class BridgeClient {
         _ = try await request(Empty.self, "POST", "/api/comments", body: CommentDismiss(id: id))
     }
 
+    // MARK: Media
+
+    func mediaLibrary() async throws -> MediaLibrary {
+        try await request(MediaLibrary.self, "GET", "/api/media-library")
+    }
+
+    /// Sends a prepared photo (JPEG) or video (MP4, with its poster frame) to
+    /// the computer's Media library. Images are described by the AI when
+    /// `description` is empty; a video's poster is.
+    func uploadMedia(_ media: Data, isVideo: Bool, poster: Data?, description: String, bucketId: String?) async throws -> MediaItem {
+        let boundary = "kyrelo-\(UUID().uuidString)"
+        var form = Data()
+        func appendField(_ name: String, _ value: String) {
+            form.append(Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"\r\n\r\n\(value)\r\n".utf8))
+        }
+        func appendFile(_ name: String, _ filename: String, _ type: String, _ data: Data) {
+            form.append(Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n".utf8))
+            form.append(Data("Content-Type: \(type)\r\n\r\n".utf8))
+            form.append(data)
+            form.append(Data("\r\n".utf8))
+        }
+        appendFile("file", isVideo ? "video.mp4" : "photo.jpg", isVideo ? "video/mp4" : "image/jpeg", media)
+        if let poster { appendFile("poster", "poster.jpg", "image/jpeg", poster) }
+        if !description.isEmpty { appendField("description", description) }
+        if let bucketId { appendField("bucketId", bucketId) }
+        form.append(Data("--\(boundary)--\r\n".utf8))
+        let data = try await raw("POST", "/api/media-library", rawBody: form,
+                                 contentType: "multipart/form-data; boundary=\(boundary)", timeout: 900)
+        return try JSONDecoder().decode(MediaItemResponse.self, from: data).item
+    }
+
+    func updateMedia(id: String, description: String? = nil, bucketIds: [String]? = nil) async throws {
+        _ = try await request(Empty.self, "PATCH", "/api/media-library/\(id)", body: MediaPatch(description: description, bucketIds: bucketIds))
+    }
+
+    /// Takes it out of the library; posts already scheduled with it keep it.
+    func deleteMedia(id: String) async throws {
+        _ = try await request(Empty.self, "DELETE", "/api/media-library/\(id)")
+    }
+
+    func createBucket(name: String) async throws -> MediaBucket {
+        try await request(BucketResponse.self, "POST", "/api/media-buckets", body: ["name": name]).bucket
+    }
+
     func accounts() async throws -> [Account] {
         try await request(AccountsResponse.self, "GET", "/api/accounts").accounts.items
     }
@@ -120,11 +164,12 @@ final class BridgeClient {
     }
 
     /// One post per account: the desktop sends, tracks and retries each on its own.
-    /// `imagePath` is a filename returned by uploadPhoto.
-    func schedulePost(on account: Account, text: String, at date: Date, imagePath: String?) async throws {
+    /// `imagePath` is a filename returned by uploadPhoto, or a Media library
+    /// image's; `videoPath` a Media library video's.
+    func schedulePost(on account: Account, text: String, at date: Date, imagePath: String?, videoPath: String? = nil) async throws {
         _ = try await request(Empty.self, "POST", "/api/scheduler/posts", body: NewPost(
             platform: account.platform.rawValue, accountId: account.id, text: text,
-            scheduledFor: ISODate.string(date), imagePath: imagePath
+            scheduledFor: ISODate.string(date), imagePath: imagePath, videoPath: videoPath
         ))
     }
 
@@ -303,7 +348,7 @@ final class BridgeClient {
     /// Sends one request, trying each of the computer's addresses; returns the body.
     private func raw(
         _ method: String, _ path: String, body: (any Encodable)? = nil,
-        rawBody: Data? = nil, contentType: String = "application/json", slow: Bool = false
+        rawBody: Data? = nil, contentType: String = "application/json", slow: Bool = false, timeout: TimeInterval? = nil
     ) async throws -> Data {
         let hosts = lastGoodHost.map { good in [good] + pairing.hosts.filter { $0 != good } } ?? pairing.hosts
         var lastHost = hosts.first ?? "?"
@@ -313,7 +358,8 @@ final class BridgeClient {
             var req = URLRequest(url: url)
             req.httpMethod = method
             // Drafting and checking call the AI or scrape X, so allow longer.
-            req.timeoutInterval = slow ? 120 : 8
+            // Big uploads (a video) set their own.
+            req.timeoutInterval = timeout ?? (slow ? 120 : 8)
             req.setValue("Bearer \(pairing.token)", forHTTPHeaderField: "Authorization")
             req.setValue(contentType, forHTTPHeaderField: "Content-Type")
             if let body { req.httpBody = try JSONEncoder().encode(body) } else if let rawBody { req.httpBody = rawBody }
@@ -349,6 +395,12 @@ final class BridgeClient {
     private struct StateResponse: Decodable { let state: GrokState }
     private struct SettingsResponse: Decodable { let settings: MonitorSettings }
     private struct CommentSettingsResponse: Decodable { let settings: CommentSettings }
+    private struct MediaItemResponse: Decodable { let item: MediaItem }
+    private struct BucketResponse: Decodable { let bucket: MediaBucket }
+    private struct MediaPatch: Encodable {
+        let description: String?
+        let bucketIds: [String]?
+    }
     private struct CommentDismiss: Encodable {
         let action = "dismiss"
         let id: String
@@ -367,6 +419,7 @@ final class BridgeClient {
         let text: String
         let scheduledFor: String
         let imagePath: String?
+        let videoPath: String?
     }
     private struct UploadResponse: Decodable { let filename: String? }
     private struct DeleterResponse: Decodable { let job: DeleterJob? }

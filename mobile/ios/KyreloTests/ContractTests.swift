@@ -236,6 +236,19 @@ final class ContractTests: XCTestCase {
         XCTAssertEqual(sample.settings, CommentSettings(enabled: true, tone: .supportive, voiceNotes: "Friendly and brief.", minScore: 30))
     }
 
+    // MARK: media.json
+
+    func testDecodesTheMediaSample() throws {
+        let library = try JSONDecoder().decode(MediaLibrary.self, from: contract("media"))
+        let items = library.items.items
+        XCTAssertEqual(items.map(\.isVideo), [true, false, false])
+        XCTAssertEqual(items[0].thumbnailFilename, items[0].posterFilename)
+        XCTAssertEqual(items[1].thumbnailFilename, items[1].filename)
+        XCTAssertEqual(items[1].buckets, ["launch01", "evergreen"])
+        XCTAssertEqual(items[2].buckets, []) // from before buckets
+        XCTAssertEqual(library.buckets.map(\.name), ["Launch campaign", "Evergreen"])
+    }
+
     // MARK: scheduler.json
 
     func testSkipsAccountsOnPlatformsThisAppDoesntSupport() throws {

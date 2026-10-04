@@ -14,8 +14,9 @@ side's logic drifts, its tests fail:
 | `pairing-links.json` | The `kyrelo://pair` link the desktop shows and the phone reads |
 | `scheduler.json` | Sample accounts, posts, campaigns and brand profile responses the phone must decode |
 | `monitor-feed.json` | A sample `/api/grok-state` + `/api/grok-settings` response the phone must decode |
-| `services.json` | The services (X, Bluesky, Mastodon and the rest) and each one's own sections, plus the global ones (the Scheduler and Comments); the desktop's home screen, sidebar and routes, and the iPhone's screens, are built from it |
+| `services.json` | The services (X, Bluesky, Mastodon and the rest) and each one's own sections, plus the global ones (the Scheduler, Comments and Media); the desktop's home screen, sidebar and routes, and the iPhone's screens, are built from it |
 | `comments.json` | A sample `/api/comments` + `/api/comments/settings` response the phone must decode |
+| `media.json` | A sample `/api/media-library` response (items and buckets) the phone must decode |
 | `service-icons.json` | Each service's icon (SVG shapes). The desktop draws them; `npm run service-icons` (in desktop/) writes the iPhone's copies into its asset catalog, and a test fails if they're out of date |
 | `design-tokens.json` | The design system: colours, radii (never over 12px), spacing and fonts. The desktop's Tailwind config reads it, the website builds from a checked copy (`website/design-tokens.json`), and the iPhone's `Theme.swift` must match it |
 

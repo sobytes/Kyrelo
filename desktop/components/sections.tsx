@@ -88,13 +88,7 @@ export const COMMENTS_ICON = (
   <svg viewBox={icons.viewBox} aria-hidden dangerouslySetInnerHTML={{ __html: icons.globals.comments }} />
 );
 
-export const MEDIA_ICON = icon(
-  <>
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <circle cx="8.5" cy="8.5" r="1.5" />
-    <path d="M21 15l-5-5L5 21" />
-  </>,
-);
+export const MEDIA_ICON = <svg viewBox={icons.viewBox} aria-hidden dangerouslySetInnerHTML={{ __html: icons.globals.media }} />;
 
 export const SETTINGS_ICON = icon(
   <>

@@ -135,6 +135,16 @@ describe("contract: comments sample", () => {
   });
 });
 
+describe("contract: media sample", () => {
+  const sample = contract("media.json");
+
+  it("uses only fields MediaItem and MediaBucket define", () => {
+    const item = "id filename kind bytes posterFilename description bucketIds addedAt".split(" ");
+    for (const key of keyPaths(sample.items)) expect(item).toContain(key);
+    for (const key of keyPaths(sample.buckets)) expect(["id", "name", "createdAt"]).toContain(key);
+  });
+});
+
 describe("contract: scheduler sample", () => {
   const sample = contract("scheduler.json");
   // Every field the desktop types define (lib/types.ts). The sample may leave
@@ -196,8 +206,8 @@ describe("contract: services", () => {
     expect(new Set(SERVICES.map((s) => s.slug)).size).toBe(SERVICES.length);
   });
 
-  it("keeps the Scheduler and Comments global, not sections of a service", () => {
-    expect(sample.global).toEqual(["scheduler", "comments"]);
+  it("keeps the Scheduler, Comments and Media global, not sections of a service", () => {
+    expect(sample.global).toEqual(["scheduler", "comments", "media"]);
     expect(sample.sections).not.toContain("scheduler");
   });
 

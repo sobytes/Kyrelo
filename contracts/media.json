@@ -1,0 +1,46 @@
+{
+  "items": [
+    {
+      "id": "a1b2c3d4",
+      "filename": "1f0e8a52-6d1c-4c55-9a0b-2f8f3c7a9e10.mp4",
+      "kind": "video",
+      "bytes": 48211990,
+      "posterFilename": "9b2d7c41-3e8a-4f0b-8a61-5c2e1d4f7a33.jpg",
+      "description": "Video. A frame from it shows: a phone recording the Kyrelo calendar",
+      "bucketIds": [
+        "launch01"
+      ],
+      "addedAt": "2026-10-05T09:00:00.000Z"
+    },
+    {
+      "id": "e5f6a7b8",
+      "filename": "7c3a9e21-5b4d-4f6a-8e2c-1d9b0a3f5e77.jpg",
+      "kind": "image",
+      "bytes": 812345,
+      "description": "The Kyrelo home screen with all 17 services",
+      "bucketIds": [
+        "launch01",
+        "evergreen"
+      ],
+      "addedAt": "2026-10-04T15:00:00.000Z"
+    },
+    {
+      "id": "c9d0e1f2",
+      "filename": "3e5f7a91-2c4b-4d6e-9f81-0a2b4c6d8e00.png",
+      "description": "An older library image, from before videos",
+      "addedAt": "2026-09-20T10:00:00.000Z"
+    }
+  ],
+  "buckets": [
+    {
+      "id": "launch01",
+      "name": "Launch campaign",
+      "createdAt": "2026-10-04T14:00:00.000Z"
+    },
+    {
+      "id": "evergreen",
+      "name": "Evergreen",
+      "createdAt": "2026-10-04T14:05:00.000Z"
+    }
+  ]
+}

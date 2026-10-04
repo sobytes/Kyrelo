@@ -120,6 +120,23 @@ describe("phone bridge", () => {
     expect(json.status).toBe(400);
   });
 
+  it("takes a Media upload bigger than a photo, and still refuses a photo that size", async () => {
+    const big = () => {
+      const form = new FormData();
+      form.append("file", new Blob([new Uint8Array(6 * 1024 * 1024)], { type: "video/mp4" }), "clip.mp4");
+      return form;
+    };
+    const media = await fetch(`${bridgeUrl}/api/media-library`, { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` }, body: big() });
+    expect(media.status).toBe(200);
+    expect(apiCalls.at(-1)?.url).toBe("/api/media-library");
+    // Refused: a 413, or (when the bridge closes the connection before the
+    // client has finished sending) a broken connection.
+    const photo = await fetch(`${bridgeUrl}/api/scheduler/upload`, { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` }, body: big() })
+      .then((r) => r.status)
+      .catch(() => "closed");
+    expect([413, "closed"]).toContain(photo);
+  });
+
   it("rejects oversized requests", async () => {
     const res = await call("/api/grok-reply", { method: "POST", body: "x".repeat(70_000) });
     expect(res.status).toBe(413);

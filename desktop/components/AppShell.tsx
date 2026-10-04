@@ -54,7 +54,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2">
           <NavLink item={{ href: "/scheduler", label: "Scheduler", icon: SCHEDULER_ICON }} active={pathname === "/scheduler"} />
           <NavLink item={{ href: "/comments", label: "Comments", icon: COMMENTS_ICON }} active={pathname === "/comments"} />
-          {/* Desktop only for now: not in contracts/services.json's globals. */}
           <NavLink item={{ href: "/media", label: "Media", icon: MEDIA_ICON }} active={pathname === "/media"} />
           <div className="my-2 border-t border-line" />
           {service && (

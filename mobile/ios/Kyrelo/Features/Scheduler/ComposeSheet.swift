@@ -9,6 +9,9 @@ struct ComposeSheet: View {
 
     @State private var text = ""
     @State private var photo: Data?
+    /// A photo or video from the Media library instead of a new photo.
+    @State private var libraryItem: MediaItem?
+    @State private var browsingMedia = false
     @State private var targetKeys: Set<String>
     @State private var date = Date().addingTimeInterval(60)
     @State private var sending = false
@@ -25,10 +28,21 @@ struct ComposeSheet: View {
     private var targets: [Account] { accounts.filter { targetKeys.contains($0.key) } }
     private var platforms: [PlatformId] { PlatformId.allCases.filter { p in targets.contains { $0.platform == p } } }
     private var overLimit: Bool { platforms.contains { $0.length(text) > $0.maxLength } }
-    /// Chosen platforms Kyrelo can't send images to: their posts go without the photo.
-    private var noPhoto: [PlatformId] { photo == nil ? [] : platforms.filter { $0.maxImageBytes == 0 } }
-    /// A chosen platform that needs a photo (Instagram) while there isn't one.
-    private var needsPhoto: PlatformId? { photo == nil ? platforms.first(where: \.requiresImage) : nil }
+    private var hasImage: Bool { photo != nil || (libraryItem.map { !$0.isVideo } ?? false) }
+    private var hasVideo: Bool { libraryItem?.isVideo ?? false }
+    /// Chosen platforms that can't take what's attached: their posts go without it.
+    private var noPhoto: [PlatformId] {
+        if hasVideo { return platforms.filter { !takesVideo($0) } }
+        return hasImage ? platforms.filter { $0.maxImageBytes == 0 } : []
+    }
+    /// A chosen platform that needs a photo (Instagram) or a video (YouTube, TikTok) that isn't attached.
+    private var needsPhoto: PlatformId? {
+        platforms.first { ($0.requiresImage && !hasImage) || ($0.requiresVideo && !hasVideo) }
+    }
+
+    private func takesVideo(_ platform: PlatformId) -> Bool {
+        platform.maxVideoBytes > 0 && (libraryItem?.bytes ?? 0) <= platform.maxVideoBytes
+    }
 
     var body: some View {
         NavigationStack {
@@ -43,14 +57,23 @@ struct ComposeSheet: View {
                         }
                     }
                 }
-                Section("Photo") {
-                    PhotoField(photo: $photo)
+                Section("Photo or video") {
+                    if let libraryItem {
+                        if let thumb = libraryItem.thumbnailFilename {
+                            BridgeImage(client: client, filename: thumb).frame(maxHeight: 180)
+                        }
+                        if libraryItem.isVideo { Label("Video from your media", systemImage: "video").font(.inter(.caption)) }
+                        Button("Remove", role: .destructive) { self.libraryItem = nil }
+                    } else {
+                        PhotoField(photo: $photo)
+                    }
+                    Button { browsingMedia = true } label: { Label("From your media", systemImage: "photo.stack") }
                     if let needsPhoto {
-                        Text("\(needsPhoto.label) posts need a photo. Add one, or turn \(needsPhoto.label) off below.")
+                        Text("\(needsPhoto.label) posts need a \(needsPhoto.requiresVideo ? "video" : "photo"). Add one, or turn \(needsPhoto.label) off below.")
                             .font(.inter(.caption)).foregroundStyle(Theme.warning)
                     }
                     if !noPhoto.isEmpty {
-                        Text("\(noPhoto.map(\.label).joined(separator: " and ")) posts are sent without the photo: Kyrelo can't post images there.")
+                        Text("\(noPhoto.map(\.label).joined(separator: " and ")) posts are sent without the \(hasVideo ? "video" : "photo"): Kyrelo can't post it there.")
                             .font(.inter(.caption)).foregroundStyle(Theme.muted)
                     }
                 }
@@ -74,6 +97,12 @@ struct ComposeSheet: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Theme.canvas)
+            .sheet(isPresented: $browsingMedia) {
+                MediaPickerSheet(client: client) { item in
+                    libraryItem = item
+                    photo = nil
+                }
+            }
             .navigationTitle("New post")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -101,11 +130,14 @@ struct ComposeSheet: View {
                     return
                 }
             }
+            // A Media library item is already on the computer: no upload.
+            if let libraryItem, !libraryItem.isVideo { imagePath = libraryItem.filename }
             var failures: [String] = []
             for account in targets {
                 do {
-                    let photoPath = account.platform.maxImageBytes > 0 ? imagePath : nil
-                    try await client.schedulePost(on: account, text: text, at: date, imagePath: photoPath)
+                    let photoPath = account.platform.maxImageBytes > 0 && (libraryItem.map { ($0.bytes ?? 0) <= account.platform.maxImageBytes } ?? true) ? imagePath : nil
+                    let videoPath = hasVideo && takesVideo(account.platform) ? libraryItem?.filename : nil
+                    try await client.schedulePost(on: account, text: text, at: date, imagePath: photoPath, videoPath: videoPath)
                 } catch {
                     failures.append("\(account.platform.label) @\(account.handle): \(error.localizedDescription)")
                 }

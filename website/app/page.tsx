@@ -213,7 +213,7 @@ const FEATURE_GROUPS = [
 const EXTRAS = [
   {
     title: "iPhone companion app",
-    body: "Answer comments, check your Monitor feed, send reply drafts, schedule posts with photos and run campaigns from your phone. Your computer does the work; the phone connects to it over Wi-Fi or Tailscale. Open source; build it with Xcode.",
+    body: "Shoot a photo or video and send it to a Media bucket for your campaigns, answer comments, check your Monitor feed, schedule posts and run campaigns from your phone. Your computer does the work; the phone connects to it over Wi-Fi or Tailscale. Open source; build it with Xcode.",
     icon: "phone",
   },
   {

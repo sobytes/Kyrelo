@@ -4,7 +4,7 @@ import path from "node:path";
 import { describeImage } from "./campaign-ai";
 import { getGrokSettings, listMediaBuckets, listMediaItems, modifyMediaBuckets, modifyMediaItems } from "./storage";
 import { MediaBucket, MediaItem } from "./types";
-import { imageTypeForFilename, saveUpload, uploadsDir } from "./uploads";
+import { imageTypeForFilename, saveImage, saveUpload, uploadsDir } from "./uploads";
 
 // The Media library: images and videos the user keeps for posts and auto
 // campaigns, grouped into named buckets (an item can be in several). Files
@@ -33,19 +33,32 @@ async function describe(filename: string): Promise<string> {
   }
 }
 
-/** Stores an uploaded image or video (typed by its bytes) and adds it to the library, and to a bucket if given. */
-export async function addMediaItem(data: Buffer, opts: { description?: string; bucketId?: string } = {}): Promise<MediaItem> {
+/**
+ * Stores an uploaded image or video (typed by its bytes) and adds it to the
+ * library, and to a bucket if given. A video can bring a poster: a still
+ * frame the app made, which the AI describes when there's no description.
+ */
+export async function addMediaItem(
+  data: Buffer,
+  opts: { description?: string; bucketId?: string; poster?: Buffer } = {},
+): Promise<MediaItem> {
   const filename = await saveUpload(data);
   const kind = /\.(mp4|mov)$/i.test(filename) ? "video" : "image";
+  const posterFilename = kind === "video" && opts.poster ? await saveImage(opts.poster).catch(() => undefined) : undefined;
   const buckets = await listMediaBuckets();
   const bucketIds = opts.bucketId && buckets.some((b) => b.id === opts.bucketId) ? [opts.bucketId] : [];
   let description = (opts.description ?? "").trim().slice(0, MAX_DESCRIPTION);
   if (!description && kind === "image") description = await describe(filename);
+  if (!description && posterFilename) {
+    const frame = await describe(posterFilename);
+    if (frame) description = `Video. A frame from it shows: ${frame}`;
+  }
   const item: MediaItem = {
     id: randomUUID().slice(0, 8),
     filename,
     kind,
     bytes: data.length,
+    ...(posterFilename ? { posterFilename } : {}),
     description,
     bucketIds,
     addedAt: new Date().toISOString(),
@@ -122,11 +135,12 @@ export async function deleteBucket(id: string): Promise<void> {
  */
 export async function mediaForCampaign(bucketId?: string): Promise<MediaItem[]> {
   const items = (await listMediaItems()).filter((m) => !bucketId || m.bucketIds?.includes(bucketId));
-  const missing = items.filter((m) => !isVideo(m) && !m.description.trim());
+  const missing = items.filter((m) => (!isVideo(m) || m.posterFilename) && !m.description.trim());
   if (missing.length === 0) return items;
   const described = new Map<string, string>();
   for (const m of missing) {
-    const description = await describe(m.filename);
+    const frame = await describe(m.posterFilename ?? m.filename);
+    const description = frame && m.posterFilename ? `Video. A frame from it shows: ${frame}` : frame;
     if (description) described.set(m.id, description);
   }
   if (described.size) {

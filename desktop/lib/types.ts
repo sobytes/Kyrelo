@@ -200,6 +200,8 @@ export interface MediaItem {
   kind?: "image" | "video";
   /** File size, for the platforms' limits. Missing on older items. */
   bytes?: number;
+  /** A video's still frame (an image in uploads/), for thumbnails and for the AI to see what it shows. */
+  posterFilename?: string;
   /** User-written or AI-written description, used to match media to posts. */
   description: string;
   /** The buckets it's in (an item can be in several, or none). */

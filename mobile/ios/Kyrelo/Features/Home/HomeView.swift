@@ -35,6 +35,16 @@ struct HomeView: View {
                 }
                 .listRowBackground(Theme.canvas)
 
+                NavigationLink {
+                    MediaView(client: client)
+                        .navigationTitle("Media")
+                        .navigationBarTitleDisplayMode(.inline)
+                } label: {
+                    HomeRow(icon: Image("Global-media"), title: "Media", status: "Photos and videos",
+                            detail: "Send photos and videos to buckets for posts and campaigns")
+                }
+                .listRowBackground(Theme.canvas)
+
                 ForEach(Services.all) { service in
                     NavigationLink(value: service) {
                         ServiceRow(service: service, accounts: accounts?.filter { $0.platform == service.id })

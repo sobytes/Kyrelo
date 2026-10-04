@@ -36,7 +36,9 @@
 		<string>twitter</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Kyrelo uses the camera to scan the pairing code shown on your computer.</string>
+	<string>Kyrelo uses the camera to scan the pairing code shown on your computer, and to take photos and videos for your Media library.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Kyrelo records sound with the videos you take for your Media library.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Kyrelo connects to the Kyrelo app on your computer to show your Monitor feed.</string>
 	<key>NSAppTransportSecurity</key>

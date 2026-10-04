@@ -16,12 +16,14 @@
 		31376F0C7CCECE209878C13B /* BridgeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37CB294475FDCBC98CD8B75E /* BridgeClient.swift */; };
 		31D2D166003B6360909F718E /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = 396F0A9B3BB67E89CD663C4C /* Services.swift */; };
 		33D82E39CEC64A9281725DEC /* NotConnectedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F008C94A8D1B1419C877F267 /* NotConnectedView.swift */; };
+		3E0B272633796D2615EDD022 /* MediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53F00B9ADFE4C99E93C89D65 /* MediaView.swift */; };
 		3FF285A433827E3DE3B3CAEE /* AutopilotSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35ED055D0549A2C9014DB264 /* AutopilotSheet.swift */; };
 		41D4809F79E75EEB32F4594B /* PhotoPrep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0457154AD91DB1238578FA /* PhotoPrep.swift */; };
 		42A9E55065A70803C7751A67 /* CampaignSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE80A37744425D8C029551B3 /* CampaignSheet.swift */; };
 		430E9CBE57980461E6182C23 /* SchedulerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9E096AF43A93BA94640584 /* SchedulerView.swift */; };
 		4956DB3D97E765C211A022C6 /* Scheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF5E8FD08129DCB4568014D7 /* Scheduler.swift */; };
 		4B04E3FBF069A0DC47FF9624 /* Pairing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDC1DD2178E7D129B675A6F /* Pairing.swift */; };
+		5041ED4E5EC6E30F3BB5D45E /* Media.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3163BFDA298EC9FED41A8A1C /* Media.swift */; };
 		58ADD9A4B832DD48C46EA4F0 /* ContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB4F2DEE5B8A6843A610C22 /* ContractTests.swift */; };
 		61D4EB61A22D1A325410C66B /* Monitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF3E4FD91F35F915EDFBF8B /* Monitor.swift */; };
 		66FEF89E6369A3072399BFDE /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638C56556323F47AB21F7E5A /* Theme.swift */; };
@@ -33,11 +35,13 @@
 		976525F85F434DDAA9ED6B57 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDBEDE774CA8267ACAB9DE1 /* FeedView.swift */; };
 		984E91BF5A0BB53D1331120A /* IBMPlexMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 79461F54CA98DE13B1B0D90E /* IBMPlexMono-Regular.ttf */; };
 		9A1898B5AC781B5A5F8C1B7A /* Inter.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 823ACBD256A224220B24F875 /* Inter.ttf */; };
+		9E86EE86177C410777C745CC /* MediaPrep.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1042D7950CD53CE738C6CEA /* MediaPrep.swift */; };
 		A43AB6BCF8E1963F018214D5 /* PlatformRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0675E8CB4CF60117E2A71424 /* PlatformRules.swift */; };
 		A496F16368C4C30401F6DAFF /* KyreloApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCD3CF5425F6BACD9BC06C9 /* KyreloApp.swift */; };
 		A722A0AADB829B270A7B7287 /* PhotoPrepTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AE7B2085C9A4D66C71763CE /* PhotoPrepTests.swift */; };
 		ACEEA23DF603253BB43A15E1 /* Inter-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0334BEB85151A4B523B5866F /* Inter-OFL.txt */; };
 		B1017DF278641F065FBDAC4E /* IBMPlexMono-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = F772E91FDF9B21B78B296FEC /* IBMPlexMono-OFL.txt */; };
+		B7317E6ABB8DA828C94DF9D1 /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CAC9B41035C68BB6840D42 /* CameraPicker.swift */; };
 		BDEF2DDB735F3D02CBABDC28 /* contracts in Resources */ = {isa = PBXBuildFile; fileRef = 482BEEAD1F871EB8ACB432BF /* contracts */; };
 		CA89A31096077BC26233EBD4 /* SchedulerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B9AF8B4E38E751CCD849A0 /* SchedulerModel.swift */; };
 		CD748B38AA37CBC7C878CD60 /* Comments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA1089B49EE6813EB48A659 /* Comments.swift */; };
@@ -68,14 +72,17 @@
 		0EDC1DD2178E7D129B675A6F /* Pairing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pairing.swift; sourceTree = "<group>"; };
 		1C06956099474C430820B9B1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		275352C61E0F5B23A82D56F9 /* WatchListSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchListSheet.swift; sourceTree = "<group>"; };
+		3163BFDA298EC9FED41A8A1C /* Media.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Media.swift; sourceTree = "<group>"; };
 		35ED055D0549A2C9014DB264 /* AutopilotSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutopilotSheet.swift; sourceTree = "<group>"; };
 		37CB294475FDCBC98CD8B75E /* BridgeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeClient.swift; sourceTree = "<group>"; };
 		396F0A9B3BB67E89CD663C4C /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
 		3A0457154AD91DB1238578FA /* PhotoPrep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPrep.swift; sourceTree = "<group>"; };
 		482BEEAD1F871EB8ACB432BF /* contracts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = contracts; path = ../../contracts; sourceTree = SOURCE_ROOT; };
+		53F00B9ADFE4C99E93C89D65 /* MediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaView.swift; sourceTree = "<group>"; };
 		59F58F07499D76A6FC072BD3 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		5AB4F2DEE5B8A6843A610C22 /* ContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests.swift; sourceTree = "<group>"; };
 		638C56556323F47AB21F7E5A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		63CAC9B41035C68BB6840D42 /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
 		65E134E95736207463E2A2D0 /* ReplySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplySheet.swift; sourceTree = "<group>"; };
 		68226D756812572A436786BC /* FinderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderView.swift; sourceTree = "<group>"; };
 		69E54EA8736B467B3D67A627 /* XTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XTools.swift; sourceTree = "<group>"; };
@@ -92,6 +99,7 @@
 		A17391502916ECFCD1B7F08C /* FeedModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedModel.swift; sourceTree = "<group>"; };
 		A1957682DB70525077950EAD /* JobLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobLogView.swift; sourceTree = "<group>"; };
 		AF5E8FD08129DCB4568014D7 /* Scheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scheduler.swift; sourceTree = "<group>"; };
+		B1042D7950CD53CE738C6CEA /* MediaPrep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPrep.swift; sourceTree = "<group>"; };
 		B4B9AF8B4E38E751CCD849A0 /* SchedulerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulerModel.swift; sourceTree = "<group>"; };
 		B59F12805961635C4248F56B /* DeleterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleterView.swift; sourceTree = "<group>"; };
 		B97D7645D288E2599B4370A2 /* UnfollowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnfollowView.swift; sourceTree = "<group>"; };
@@ -178,6 +186,7 @@
 				5FE5A677D9010B2CA6056619 /* Comments */,
 				A60FEF81FFCE87E19F23EAE0 /* Feed */,
 				78C47B7F11C6C45CADE5FF5C /* Home */,
+				421672153AAB29615A7DC820 /* Media */,
 				8BE9AFF56DD9E6ABF8CBC00E /* Pair */,
 				27B2F7904D80D77F39C6827D /* Reply */,
 				A9404C26C78A814779B9D570 /* Scheduler */,
@@ -192,6 +201,15 @@
 				35ED055D0549A2C9014DB264 /* AutopilotSheet.swift */,
 			);
 			path = Autopilot;
+			sourceTree = "<group>";
+		};
+		421672153AAB29615A7DC820 /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				63CAC9B41035C68BB6840D42 /* CameraPicker.swift */,
+				53F00B9ADFE4C99E93C89D65 /* MediaView.swift */,
+			);
+			path = Media;
 			sourceTree = "<group>";
 		};
 		5FE5A677D9010B2CA6056619 /* Comments */ = {
@@ -285,6 +303,7 @@
 			isa = PBXGroup;
 			children = (
 				73841B331674433362950BD2 /* Bridge */,
+				B1042D7950CD53CE738C6CEA /* MediaPrep.swift */,
 				3A0457154AD91DB1238578FA /* PhotoPrep.swift */,
 				0675E8CB4CF60117E2A71424 /* PlatformRules.swift */,
 				EBBDB3C9B2C596E5A2FF9BAA /* ReplyRules.swift */,
@@ -297,6 +316,7 @@
 			isa = PBXGroup;
 			children = (
 				0AA1089B49EE6813EB48A659 /* Comments.swift */,
+				3163BFDA298EC9FED41A8A1C /* Media.swift */,
 				DFF3E4FD91F35F915EDFBF8B /* Monitor.swift */,
 				AF5E8FD08129DCB4568014D7 /* Scheduler.swift */,
 				69E54EA8736B467B3D67A627 /* XTools.swift */,
@@ -446,6 +466,7 @@
 				D8FBBA61DDB471273751DE05 /* AccountsView.swift in Sources */,
 				3FF285A433827E3DE3B3CAEE /* AutopilotSheet.swift in Sources */,
 				31376F0C7CCECE209878C13B /* BridgeClient.swift in Sources */,
+				B7317E6ABB8DA828C94DF9D1 /* CameraPicker.swift in Sources */,
 				42A9E55065A70803C7751A67 /* CampaignSheet.swift in Sources */,
 				CD748B38AA37CBC7C878CD60 /* Comments.swift in Sources */,
 				DE1B00455F7342DD9E52EAF9 /* CommentsView.swift in Sources */,
@@ -457,6 +478,9 @@
 				181A53B629636453DA329763 /* HomeView.swift in Sources */,
 				0D95CC465753839146624408 /* JobLogView.swift in Sources */,
 				A496F16368C4C30401F6DAFF /* KyreloApp.swift in Sources */,
+				5041ED4E5EC6E30F3BB5D45E /* Media.swift in Sources */,
+				9E86EE86177C410777C745CC /* MediaPrep.swift in Sources */,
+				3E0B272633796D2615EDD022 /* MediaView.swift in Sources */,
 				61D4EB61A22D1A325410C66B /* Monitor.swift in Sources */,
 				33D82E39CEC64A9281725DEC /* NotConnectedView.swift in Sources */,
 				E80B812F8E38316361A62799 /* PairView.swift in Sources */,

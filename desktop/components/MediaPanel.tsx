@@ -39,13 +39,53 @@ export function MediaThumb({ item, className = "" }: { item: MediaItem; classNam
   const src = `/api/scheduler/uploads/${item.filename}`;
   return item.kind === "video" ? (
     <div className={`relative ${className}`}>
-      <video src={src} muted preload="metadata" className="h-full w-full rounded object-cover" />
+      <video
+        src={src}
+        poster={item.posterFilename ? `/api/scheduler/uploads/${item.posterFilename}` : undefined}
+        muted
+        preload="metadata"
+        className="h-full w-full rounded object-cover"
+      />
       <span className="absolute bottom-1 left-1 rounded-sm bg-fg/70 px-1 font-mono text-[9px] text-surface">▶ video</span>
     </div>
   ) : (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt="" className={`rounded object-cover ${className}`} />
   );
+}
+
+/**
+ * A still frame from a video (a second in, or its middle if shorter), as a
+ * JPEG: the library's thumbnail, and what the AI describes. Null if the
+ * browser can't decode the video.
+ */
+async function videoPoster(file: File): Promise<Blob | null> {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.muted = true;
+  video.preload = "auto";
+  video.src = url;
+  const event = (name: "loadeddata" | "seeked") =>
+    new Promise<void>((resolve, reject) => {
+      video.addEventListener(name, () => resolve(), { once: true });
+      video.addEventListener("error", () => reject(new Error("can't decode")), { once: true });
+      setTimeout(() => reject(new Error("timed out")), 10_000);
+    });
+  try {
+    await event("loadeddata");
+    video.currentTime = Math.min(1, (video.duration || 0) / 2);
+    await event("seeked");
+    const scale = Math.min(1, 1280 / video.videoWidth);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 function formatBytes(n?: number): string {
@@ -74,10 +114,14 @@ export function MediaPanel() {
   async function upload(files: File[]) {
     setError(null);
     for (const [i, file] of files.entries()) {
-      setUploading(`Uploading ${i + 1} of ${files.length}${file.type.startsWith("image/") ? " and describing" : ""}…`);
+      setUploading(`Uploading ${i + 1} of ${files.length} and describing…`);
       const fd = new FormData();
       fd.append("file", file);
       if (current) fd.append("bucketId", current.id);
+      if (file.type.startsWith("video/")) {
+        const poster = await videoPoster(file);
+        if (poster) fd.append("poster", poster, "poster.jpg");
+      }
       const r = await fetch("/api/media-library", { method: "POST", body: fd }).then((res) => res.json());
       if (r.error) setError(`${file.name}: ${r.error}`);
     }
@@ -222,8 +266,8 @@ export function MediaPanel() {
           </div>
         )}
         <p className="text-[11px] leading-relaxed text-muted">
-          The AI looks at each image and describes it, so auto campaigns can pick the right one for each post; edit a
-          description if it&apos;s off. Videos need yours. Images up to 5 MB, MP4 or MOV videos up to 256 MB.
+          The AI looks at each image, and a frame of each video, and describes it, so auto campaigns can pick the right
+          one for each post; edit a description if it&apos;s off. Images up to 5 MB, MP4 or MOV videos up to 256 MB.
         </p>
       </section>
     </div>
@@ -248,7 +292,7 @@ function MediaCard({
       <textarea
         className="textarea h-16 resize-none text-xs"
         defaultValue={item.description}
-        placeholder={item.kind === "video" ? "What's in this video? (the AI uses this to pick it)" : "What does this show?"}
+        placeholder={item.kind === "video" ? "What's in this video? The AI uses this to pick it." : "What does this show?"}
         onBlur={(e) => {
           if (e.target.value !== item.description) onUpdate({ description: e.target.value });
         }}

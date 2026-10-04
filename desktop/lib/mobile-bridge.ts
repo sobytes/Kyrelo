@@ -2,7 +2,7 @@ import http from "node:http";
 import os from "node:os";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { getMobileBridgeConfig, saveMobileBridgeConfig } from "./storage";
-import { MAX_IMAGE_BYTES } from "./uploads";
+import { MAX_IMAGE_BYTES, MAX_VIDEO_BYTES } from "./uploads";
 
 // The phone app's way in. Kyrelo's API only answers this computer
 // (middleware.ts, and the server binds 127.0.0.1), so a paired phone talks to
@@ -37,6 +37,13 @@ const ALLOWED: [method: string, path: RegExp][] = [
   ["POST", /^\/api\/comments$/],
   ["GET", /^\/api\/comments\/settings$/],
   ["PUT", /^\/api\/comments\/settings$/],
+  // Media library: browse, add photos and videos, describe and sort them into buckets
+  ["GET", /^\/api\/media-library$/],
+  ["POST", /^\/api\/media-library$/],
+  ["PATCH", new RegExp(`^/api/media-library/${ID}$`)],
+  ["DELETE", new RegExp(`^/api/media-library/${ID}$`)],
+  ["POST", /^\/api\/media-buckets$/],
+  ["PATCH", new RegExp(`^/api/media-buckets/${ID}$`)],
   // Scheduler
   ["GET", /^\/api\/accounts$/], // the list only: it never contains credentials
   ["GET", /^\/api\/scheduler\/posts$/],
@@ -69,14 +76,19 @@ function isAllowed(method: string | undefined, path: string): boolean {
 }
 
 /**
- * The photo upload is the one request that isn't JSON: a multipart form with
- * the image, so it keeps its own content type and may be as big as an image
- * the upload route accepts (lib/uploads.ts), plus room for the form wrapping.
+ * Uploads are the requests that aren't JSON: multipart forms, so they keep
+ * their own content type and may be as big as the route accepts
+ * (lib/uploads.ts), plus room for the form wrapping. A post's photo; or a
+ * photo or video (with its poster frame) for the Media library.
  */
-function isUpload(method: string | undefined, path: string): boolean {
-  return method === "POST" && path === "/api/scheduler/upload";
+const UPLOAD_LIMITS: Record<string, number> = {
+  "/api/scheduler/upload": MAX_IMAGE_BYTES + 64 * 1024,
+  "/api/media-library": MAX_VIDEO_BYTES + MAX_IMAGE_BYTES + 1024 * 1024,
+};
+
+function uploadLimit(method: string | undefined, path: string): number | null {
+  return method === "POST" ? (UPLOAD_LIMITS[path] ?? null) : null;
 }
-const MAX_UPLOAD_BYTES = MAX_IMAGE_BYTES + 64 * 1024;
 
 const MAX_BODY_BYTES = 64 * 1024;
 // Wrong tokens per address before it's locked out for the window.
@@ -159,13 +171,19 @@ export async function handleBridgeRequest(
   if (req.method === "GET" && url.pathname === "/ping") return send(res, 200, { ok: true, app: "kyrelo" });
   if (!isAllowed(req.method, url.pathname)) return send(res, 404, { error: "not available to the phone app" });
 
-  const upload = isUpload(req.method, url.pathname);
-  const contentType = upload ? req.headers["content-type"] ?? "" : "application/json";
-  if (upload && !contentType.startsWith("multipart/form-data")) {
-    return send(res, 400, { error: "photo uploads must be multipart/form-data" });
+  const limit = uploadLimit(req.method, url.pathname);
+  const contentType = limit ? req.headers["content-type"] ?? "" : "application/json";
+  if (limit && !contentType.startsWith("multipart/form-data")) {
+    return send(res, 400, { error: "uploads must be multipart/form-data" });
   }
-  const body = req.method === "GET" ? undefined : await readBody(req, upload ? MAX_UPLOAD_BYTES : MAX_BODY_BYTES);
-  if (body === null) return send(res, 413, { error: "request too large" });
+  const body = req.method === "GET" ? undefined : await readBody(req, limit ?? MAX_BODY_BYTES);
+  if (body === null) {
+    // The client is still sending: close the connection once it has the
+    // answer, or the rest of the upload keeps it busy.
+    res.setHeader("Connection", "close");
+    res.on("finish", () => req.destroy());
+    return send(res, 413, { error: "request too large" });
+  }
 
   try {
     // The query goes too: some reads take the account (?accountId=).
@@ -173,7 +191,8 @@ export async function handleBridgeRequest(
       method: req.method,
       headers: { "Content-Type": contentType },
       body: body ? new Uint8Array(body) : undefined,
-      signal: AbortSignal.timeout(180_000),
+      // A video arriving over Wi-Fi and being described can take a while.
+      signal: AbortSignal.timeout(limit ? 600_000 : 180_000),
     });
     // Pass the type through: most answers are JSON, uploads are images.
     res.writeHead(upstream.status, {
