@@ -6,6 +6,8 @@ struct HomeView: View {
     let client: BridgeClient
     let onUnpair: () -> Void
     @State private var accounts: [Account]?
+    /// "Add a service" starts open when nothing is connected yet.
+    @State private var showUnused = false
     @State private var error: String?
     @Environment(\.scenePhase) private var scenePhase
 
@@ -45,10 +47,42 @@ struct HomeView: View {
                 }
                 .listRowBackground(Theme.canvas)
 
-                ForEach(Services.all) { service in
+                // The services in use, then the rest folded under "Add a service",
+                // as on the desktop's sidebar. Until accounts load, nothing is folded.
+                ForEach(connectedServices) { service in
                     NavigationLink(value: service) {
                         ServiceRow(service: service, accounts: accounts?.filter { $0.platform == service.id })
                     }
+                    .listRowBackground(Theme.canvas)
+                }
+
+                if !unusedServices.isEmpty {
+                    DisclosureGroup(isExpanded: $showUnused) {
+                        ForEach(unusedServices) { service in
+                            NavigationLink(value: service) {
+                                HStack(spacing: 12) {
+                                    service.id.icon.resizable().scaledToFit().frame(width: 16, height: 16).foregroundStyle(Theme.muted)
+                                    Text(service.label).font(.inter(.subheadline)).foregroundStyle(Theme.muted)
+                                    Spacer()
+                                    Text("Connect").font(.inter(.caption)).foregroundStyle(Theme.muted)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(Theme.muted)
+                                .frame(width: 44, height: 44)
+                                .overlay(RoundedRectangle(cornerRadius: Radius.md).strokeBorder(Theme.line, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Add a service").font(.inter(.body, weight: .semibold)).foregroundStyle(Theme.fg)
+                                Text("\(unusedServices.count) more you can connect").font(.inter(.caption)).foregroundStyle(Theme.muted)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
+                    .tint(Theme.muted)
                     .listRowBackground(Theme.canvas)
                 }
             }
@@ -78,9 +112,21 @@ struct HomeView: View {
         }
     }
 
+    private var connectedServices: [ServiceSpec] {
+        guard let accounts else { return Services.all }
+        return Services.all.filter { s in accounts.contains { $0.platform == s.id } }
+    }
+
+    private var unusedServices: [ServiceSpec] {
+        guard let accounts else { return [] }
+        return Services.all.filter { s in !accounts.contains { $0.platform == s.id } }
+    }
+
     private func load() async {
         do {
-            accounts = try await client.accounts()
+            let loaded = try await client.accounts()
+            if accounts == nil && loaded.isEmpty { showUnused = true }
+            accounts = loaded
             error = nil
         } catch BridgeError.unpaired {
             onUnpair()
@@ -100,7 +146,8 @@ private struct ServiceRow: View {
             icon: service.id.icon,
             title: service.label,
             status: status,
-            detail: service.sections.map(\.label).joined(separator: " · ")
+            detail: service.sections.map(\.label).joined(separator: " · "),
+            connected: !(accounts ?? []).isEmpty
         )
     }
 
@@ -119,6 +166,8 @@ private struct HomeRow: View {
     let title: String
     let status: String
     let detail: String
+    /// Shows the green "connected" dot.
+    var connected = false
 
     var body: some View {
         HStack(spacing: 14) {
@@ -134,6 +183,10 @@ private struct HomeRow: View {
                 Text(title).font(.inter(.body, weight: .semibold)).foregroundStyle(Theme.fg)
                 Text(status).font(.mono(.caption)).foregroundStyle(Theme.muted)
                 Text(detail).font(.inter(.caption)).foregroundStyle(Theme.muted)
+            }
+            if connected {
+                Spacer()
+                Circle().fill(Theme.success).frame(width: 8, height: 8).accessibilityLabel("Connected")
             }
         }
         .padding(.vertical, 6)
