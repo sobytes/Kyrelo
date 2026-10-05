@@ -147,3 +147,18 @@ describe("scheduleCampaign", () => {
   });
 });
 
+
+describe("postHistory", () => {
+  it("lists the accounts' earlier posts and campaign drafts, newest first, each once", async () => {
+    const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    const base = { platform: "twitter" as const, status: "posted" as const, createdAt: at(500) };
+    await storage.insertScheduledPost({ ...base, id: "h1", accountId: "hist", text: "Older post", scheduledFor: at(300) });
+    await storage.insertScheduledPost({ ...base, id: "h2", accountId: "hist", text: "Newer post", scheduledFor: at(100) });
+    await storage.insertScheduledPost({ ...base, id: "h3", accountId: "someone-else", text: "Not this account", scheduledFor: at(50) });
+    const prev = reviewCampaign("prev-hist", [{ platform: "twitter", accountId: "hist" }]);
+    prev.drafts = [{ ...prev.drafts[0], text: "Newer post", scheduledFor: at(100) }, { ...prev.drafts[1], text: "A draft never sent", scheduledFor: at(200) }];
+    await storage.upsertCampaign(prev);
+    const history = await campaign.postHistory({ id: "new", targets: [{ platform: "twitter", accountId: "hist" }] });
+    expect(history).toEqual(["Newer post", "A draft never sent", "Older post"]);
+  });
+});

@@ -205,6 +205,8 @@ export function SettingsPanel() {
         </p>
       </section>
 
+      <AiSpending />
+
       <section className="section space-y-3">
         <div className="label">Reply tone</div>
         <textarea
@@ -347,5 +349,59 @@ function ExtLink({ href, children }: { href: string; children: React.ReactNode }
     <a href={href} target="_blank" rel="noreferrer" className="text-primary underline hover:text-fg">
       {children}
     </a>
+  );
+}
+
+/**
+ * How many AI drafts Kyrelo may make on its own each day (Autopilot,
+ * Comments), and how many it has today. Drafts you ask for aren't counted.
+ */
+function AiSpending() {
+  const [usage, setUsage] = useState<{ drafts: number; dailyDraftLimit: number } | null>(null);
+  const [limit, setLimit] = useState("");
+
+  useEffect(() => {
+    void fetch("/api/ai-usage")
+      .then((r) => r.json())
+      .then((u) => {
+        setUsage(u);
+        setLimit(String(u.dailyDraftLimit));
+      });
+  }, []);
+
+  async function save() {
+    const r = await fetch("/api/ai-usage", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dailyDraftLimit: Number(limit) }),
+    }).then((res) => res.json());
+    if (!r.error) setUsage(r);
+  }
+
+  if (!usage) return null;
+  return (
+    <section className="section space-y-3">
+      <div className="label">AI spending</div>
+      <div className="flex flex-wrap items-center gap-2 text-sm text-fg">
+        At most
+        <input
+          type="number"
+          min={0}
+          className="input w-24 text-sm"
+          value={limit}
+          onChange={(e) => setLimit(e.target.value)}
+          onBlur={save}
+        />
+        background AI drafts a day
+        <span className="text-xs text-muted">
+          ({usage.drafts} today)
+        </span>
+      </div>
+      <p className="text-[10px] leading-relaxed text-muted">
+        Autopilot and Comments draft replies on their own; once this many are made in a day they wait until tomorrow.
+        Drafts you ask for aren&apos;t counted. To keep costs down, Kyrelo also reuses a campaign&apos;s web research for
+        three days, limits how many searches and pages each one reads, and uses Claude&apos;s cheaper current models.
+      </p>
+    </section>
   );
 }

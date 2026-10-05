@@ -204,7 +204,7 @@ export async function startFind(accountId: string, profileUpdate?: BrandProfile)
         prompt: findPrompt(profile, xSuggested, watched, account.handle),
         provider,
         task: "find accounts for this brand",
-        maxSearches: 15,
+        maxSearches: 8,
       });
       if (!research.text.trim()) throw new Error("The research came back empty. Try again.");
       return jsonCompletion({

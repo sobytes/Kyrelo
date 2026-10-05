@@ -1,4 +1,5 @@
 import { aiErrorMessage, draftCommentReplies } from "./ai";
+import { takeBackgroundDraft } from "./ai-usage";
 import {
   getAccountSecret,
   getCommentSettings,
@@ -356,6 +357,10 @@ async function draftNewComments(): Promise<void> {
     .sort((a, b) => b.postedAt.localeCompare(a.postedAt))
     .slice(0, DRAFTS_PER_CHECK);
   for (const c of waiting) {
+    if (!(await takeBackgroundDraft())) {
+      console.log("[comments] today's limit on background AI drafts is reached (Settings → AI spending)");
+      return;
+    }
     const r = await draftForComment(c.id, minScore);
     if (r.error) {
       // Nothing is saved, so it's retried next check. Stop now: the same

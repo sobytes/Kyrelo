@@ -39,6 +39,8 @@ const HANDLE_FINDER_KEY = "handle-finder";
 const COMMENT_SETTINGS_KEY = "comment-settings";
 const COMMENTS_KEY = "comments";
 const FEEDS_KEY = "feeds";
+const RESEARCH_CACHE_KEY = "research-cache";
+const AI_USAGE_KEY = "ai-usage";
 
 /** Root of all local app data. Electron sets STORAGE_DIR to the OS app-data folder. */
 export const dataDir = process.env.STORAGE_DIR ?? path.join(process.cwd(), ".data");
@@ -415,4 +417,41 @@ export async function getFeedRules(): Promise<FeedRule[]> {
 
 export async function modifyFeedRules(change: (rules: FeedRule[]) => FeedRule[]): Promise<FeedRule[]> {
   return modify<FeedRule[]>(FEEDS_KEY, [], change);
+}
+
+// --- AI cost controls (lib/ai-web.ts research cache, lib/ai-usage.ts daily caps) ---
+
+export interface CachedResearch {
+  at: string;
+  result: { text: string; sources: string[] };
+}
+
+export async function getResearchCache(): Promise<Record<string, CachedResearch>> {
+  return (await read<Record<string, CachedResearch>>(RESEARCH_CACHE_KEY)) ?? {};
+}
+
+export async function modifyResearchCache(
+  change: (all: Record<string, CachedResearch>) => Record<string, CachedResearch>,
+): Promise<Record<string, CachedResearch>> {
+  return modify<Record<string, CachedResearch>>(RESEARCH_CACHE_KEY, {}, change);
+}
+
+/** Background AI drafts made today, and the most allowed in a day. */
+export interface AiUsage {
+  day: string;
+  drafts: number;
+  dailyDraftLimit: number;
+}
+
+export const DEFAULT_DAILY_DRAFT_LIMIT = 100;
+
+export async function getAiUsage(): Promise<AiUsage> {
+  return { day: "", drafts: 0, dailyDraftLimit: DEFAULT_DAILY_DRAFT_LIMIT, ...(await read<Partial<AiUsage>>(AI_USAGE_KEY)) };
+}
+
+export async function modifyAiUsage(change: (usage: AiUsage) => AiUsage): Promise<AiUsage> {
+  // Files from before a field existed get its default.
+  return modify<Partial<AiUsage>>(AI_USAGE_KEY, {}, (u) =>
+    change({ day: "", drafts: 0, dailyDraftLimit: DEFAULT_DAILY_DRAFT_LIMIT, ...u }),
+  ) as Promise<AiUsage>;
 }

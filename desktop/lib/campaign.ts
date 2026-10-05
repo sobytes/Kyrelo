@@ -4,7 +4,7 @@ import { spreadTimes } from "./campaign-timing";
 import { fetchOgImage, generateAiImage, screenshotPage } from "./media";
 import { cancelScheduledPost, createScheduledPost, postMediaError } from "./scheduler";
 import { mediaForCampaign } from "./media-library";
-import { getCampaign, getGrokSettings, upsertCampaign } from "./storage";
+import { getCampaign, getGrokSettings, listCampaigns, listScheduledPosts, upsertCampaign } from "./storage";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { campaignLimit, fitForCampaign, fitsCampaign, PLATFORMS, postImageError } from "./platforms";
@@ -85,6 +85,7 @@ async function runCampaign(c: Campaign): Promise<void> {
       ...c,
       research,
       library,
+      history: await postHistory(c),
       libraryChosen: Boolean(c.mediaBucketId),
       allowAiImages: c.useAiImages,
     });
@@ -288,6 +289,30 @@ async function scheduleCampaignOnce(id: string, edits?: DraftEdit[]): Promise<Ca
       : `Scheduled ${postIds.length} posts.`;
   await upsertCampaign(c);
   return c;
+}
+
+/** How many earlier posts the writer sees: enough to steer it off reruns without a huge prompt. */
+const HISTORY_SIZE = 60;
+
+/**
+ * Posts already written or sent for the campaign's accounts, newest first,
+ * each once: earlier campaigns' drafts (sent or not) and every post scheduled
+ * to those accounts. The new campaign must not repeat them.
+ */
+export async function postHistory(c: Pick<Campaign, "id" | "targets">): Promise<string[]> {
+  const isTarget = (platform: string, accountId?: string) => c.targets.some((t) => t.platform === platform && t.accountId === accountId);
+  const posts = (await listScheduledPosts())
+    .filter((p) => isTarget(p.platform, p.accountId) && p.status !== "failed")
+    .map((p) => ({ text: p.text, at: p.scheduledFor }));
+  const drafts = (await listCampaigns())
+    .filter((other) => other.id !== c.id && other.targets.some((t) => isTarget(t.platform, t.accountId)))
+    .flatMap((other) => other.drafts.map((d) => ({ text: d.text, at: d.scheduledFor })));
+  const seen = new Set<string>();
+  return [...posts, ...drafts]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .map((x) => x.text.trim())
+    .filter((t) => t && !seen.has(t) && seen.add(t))
+    .slice(0, HISTORY_SIZE);
 }
 
 function platformsOf(c: Campaign) {

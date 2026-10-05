@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { createHash } from "node:crypto";
 import { OpenAiChatResponse, openAiPost, resolveAnthropicKey } from "./ai";
+import { getResearchCache, modifyResearchCache } from "./storage";
 import { AiProvider } from "./types";
 
 // The two AI calls behind the features that research before they write (auto
@@ -11,8 +13,18 @@ import { AiProvider } from "./types";
 // which structured JSON output doesn't allow.
 
 // Bigger than lib/ai.ts's model for one-line replies: these do multi-step
-// research and write several items.
-const CLAUDE_MODEL = "claude-opus-5";
+// research and write several items. Opus 5.5: newer than Opus 5 and 20%
+// cheaper per token.
+const CLAUDE_MODEL = "claude-opus-5-5";
+// Opus 5.5 defaults to medium effort; set it so a model change can't raise the bill.
+const EFFORT = "medium" as const;
+/** Web searches per research run unless the caller says otherwise. */
+const DEFAULT_SEARCHES = 5;
+/** Whole pages read per research run, and how much of each (pages can be huge). */
+const MAX_FETCHES = 3;
+const MAX_FETCH_TOKENS = 10_000;
+/** Research for the same question is reused for this long instead of searching again. */
+const RESEARCH_CACHE_MS = 3 * 24 * 60 * 60_000;
 const OPENAI_MODEL = process.env.OPENAI_CAMPAIGN_MODEL ?? "gpt-4.1";
 
 export interface WebResearchInput {
@@ -35,9 +47,11 @@ async function researchViaClaude(input: WebResearchInput): Promise<WebResearchRe
   const client = new Anthropic({ apiKey: await resolveAnthropicKey() });
   const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: input.prompt }];
   const tools: Anthropic.Beta.BetaToolUnion[] = [
-    { type: "web_search_20260209", name: "web_search", max_uses: input.maxSearches ?? 8 },
+    { type: "web_search_20260209", name: "web_search", max_uses: input.maxSearches ?? DEFAULT_SEARCHES },
   ];
-  if (input.fetchPages) tools.push({ type: "web_fetch_20260209", name: "web_fetch", max_uses: 6 });
+  if (input.fetchPages) {
+    tools.push({ type: "web_fetch_20260209", name: "web_fetch", max_uses: MAX_FETCHES, max_content_tokens: MAX_FETCH_TOKENS });
+  }
   const sources = new Set<string>();
   let text = "";
 
@@ -49,6 +63,10 @@ async function researchViaClaude(input: WebResearchInput): Promise<WebResearchRe
         model: CLAUDE_MODEL,
         max_tokens: 32000,
         thinking: { type: "adaptive" },
+        output_config: { effort: EFFORT },
+        // A paused turn is re-sent with everything found so far; caching that
+        // prefix makes each continuation pay a tenth for what's already there.
+        cache_control: { type: "ephemeral" },
         betas: ["server-side-fallback-2026-07-01"],
         fallbacks: "default",
         system: input.system,
@@ -96,8 +114,29 @@ async function researchViaOpenAI(input: WebResearchInput): Promise<WebResearchRe
   return { text, sources: [...sources] };
 }
 
-export function webResearch(input: WebResearchInput): Promise<WebResearchResult> {
-  return input.provider === "openai" ? researchViaOpenAI(input) : researchViaClaude(input);
+/**
+ * Researches on the live web. The same question (same instructions, prompt,
+ * provider and limits) within a few days gets the earlier answer back
+ * instead of paying for the searches again: a second campaign for the same
+ * product, or the handle finder run twice.
+ */
+export async function webResearch(input: WebResearchInput): Promise<WebResearchResult> {
+  const key = createHash("sha256")
+    .update(JSON.stringify([input.provider, input.provider === "openai" ? OPENAI_MODEL : CLAUDE_MODEL, input.system, input.prompt, input.maxSearches, input.fetchPages]))
+    .digest("hex");
+  const cached = (await getResearchCache())[key];
+  if (cached && Date.now() - new Date(cached.at).getTime() < RESEARCH_CACHE_MS) {
+    console.log(`[research] reusing research from ${cached.at} (${input.task})`);
+    return cached.result;
+  }
+  const result = input.provider === "openai" ? await researchViaOpenAI(input) : await researchViaClaude(input);
+  if (result.text.trim()) {
+    await modifyResearchCache((all) => {
+      const fresh = Object.entries(all).filter(([, v]) => Date.now() - new Date(v.at).getTime() < RESEARCH_CACHE_MS);
+      return Object.fromEntries([...fresh, [key, { at: new Date().toISOString(), result }]].slice(-50));
+    });
+  }
+  return result;
 }
 
 export interface JsonCompletionInput {
@@ -136,7 +175,7 @@ export async function jsonCompletion(input: JsonCompletionInput): Promise<string
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       system: input.system,
-      output_config: { format: { type: "json_schema", schema: input.schema as Record<string, unknown> } },
+      output_config: { effort: EFFORT, format: { type: "json_schema", schema: input.schema as Record<string, unknown> } },
       messages: [{ role: "user", content: input.prompt }],
     })
     .finalMessage();

@@ -906,6 +906,7 @@ function AutopilotCard({
           onKeyUp={() => commit()}
           className="w-full"
         />
+        <p className="mt-1 text-[10px] text-muted">Applies with OpenAI; Claude picks its own wording variety.</p>
       </label>
 
       <label className="block">

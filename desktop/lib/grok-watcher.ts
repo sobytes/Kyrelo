@@ -1,4 +1,5 @@
 import { aiErrorMessage, draftReplies } from "./ai";
+import { takeBackgroundDraft } from "./ai-usage";
 import { getGrokSettings, getGrokState, listAccounts, modifyGrokState } from "./storage";
 import { defaultXAccountId } from "./accounts";
 import { connectingPlatform } from "./browser-connect";
@@ -178,6 +179,10 @@ async function runAutopilot(): Promise<void> {
     .sort((a, b) => (b.postedAt ?? b.seenAt).localeCompare(a.postedAt ?? a.seenAt))
     .slice(0, AUTOPILOT_MAX_PER_CHECK);
   for (const t of candidates) {
+    if (!(await takeBackgroundDraft())) {
+      console.log("[autopilot] today's limit on background AI drafts is reached (Settings → AI spending)");
+      return;
+    }
     const r = await draftForTweet(t.id, minScore);
     if (r.error) {
       // No draft is saved, so it's retried next check. Stop now: the same

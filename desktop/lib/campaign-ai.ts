@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { OpenAiChatResponse, openAiPost, resolveAnthropicKey } from "./ai";
 import { jsonCompletion, RESEARCH_MODELS, webResearch } from "./ai-web";
+import { findRepeat } from "./originality";
 import { PLATFORMS } from "./platforms";
 import { AiProvider, CampaignMediaKind, CampaignTarget, MediaItem } from "./types";
 
@@ -38,6 +39,8 @@ export interface WriteInput {
   /** Longest post, in the strictest of the targets' counts. */
   maxLength: number;
   library: MediaItem[];
+  /** Posts already written or sent for these accounts, newest first: the new ones mustn't repeat them. */
+  history?: string[];
   /** The user picked a bucket for this campaign, rather than leaving the whole library. */
   libraryChosen?: boolean;
   allowAiImages: boolean;
@@ -143,6 +146,7 @@ Angles: give every post a DIFFERENT angle from this set — pain point, feature 
 Writing rules:
 - Keep each post within the length you're given (the prompt says how links count).
 - Vary openings, sentence structure and length. Posts must not read like templates of each other.
+- You're given posts already written or sent for these accounts. Every new post must read as new to someone who saw those: never reuse their hooks, openings, phrases, structure or examples. Find angles they haven't used, or say a used angle in a completely different way.
 - Sound like a founder talking, not an ad. No em dashes. At most one hashtag per post, usually none. At most one emoji per post, usually none.
 - Include the product URL in roughly half of the posts, not all of them.
 - Competitor comparisons are allowed, at most one per burst. State only facts that appear in the research brief, keep it fair and factual, never mock or disparage. Put the supporting source URL(s) in "sources".
@@ -176,8 +180,16 @@ function writePrompt(input: WriteInput): string {
     `Research brief:\n"""\n${input.research.notes}\n"""\n\n` +
     `${input.library.length && input.libraryChosen ? "Media the user picked for this campaign (use these for most posts that carry media)" : "Uploaded images and videos you may use"}:\n${library}\n\n` +
     `YouTube videos found:\n${youtube}\n\n` +
-    `AI-generated images allowed: ${input.allowAiImages ? "yes" : "no"}`
+    `AI-generated images allowed: ${input.allowAiImages ? "yes" : "no"}` +
+    historyBlock(input.history)
   );
+}
+
+/** Earlier posts, each on one line, newest first: what the new ones must not repeat. */
+function historyBlock(history: string[] = []): string {
+  if (history.length === 0) return "";
+  const lines = history.map((t) => `- ${t.replace(/\s+/g, " ").slice(0, 280)}`).join("\n");
+  return `\n\nPosts already written or sent for these accounts (newest first). Don't repeat any of their hooks, openings, phrasing or examples:\n${lines}`;
 }
 
 function platformList(targets: CampaignTarget[]): string {
@@ -220,9 +232,52 @@ export async function writeCampaignDrafts(input: WriteInput): Promise<WrittenDra
   } catch {
     throw new Error("The AI returned posts in an unreadable format. Try again.");
   }
-  const drafts = (parsed.drafts ?? []).filter((d) => d.text?.trim());
+  const drafts = (parsed.drafts ?? []).filter((d) => d.text?.trim()).slice(0, input.count);
   if (drafts.length === 0) throw new Error("The AI didn't return any posts.");
-  return drafts.slice(0, input.count);
+  return replaceRepeats(input, drafts);
+}
+
+/** The drafts that repeat the history or an earlier draft in the batch, by index. */
+export function repeatedDrafts(drafts: WrittenDraft[], history: string[]): number[] {
+  return drafts.flatMap((d, i) => (findRepeat(d.text, history, drafts.slice(0, i).map((x) => x.text)) ? [i] : []));
+}
+
+/**
+ * AI writers fall back on the same hooks, so drafts that read like an
+ * earlier post (or another draft) are sent back once for replacements on
+ * fresh angles. Any that still repeat are dropped: fewer posts beat reruns.
+ */
+async function replaceRepeats(input: WriteInput, drafts: WrittenDraft[]): Promise<WrittenDraft[]> {
+  const history = input.history ?? [];
+  const repeats = repeatedDrafts(drafts, history);
+  if (repeats.length === 0) return drafts;
+  console.log(`[campaign] ${repeats.length} draft(s) repeat earlier posts; asking for replacements`);
+  const kept = drafts.filter((_, i) => !repeats.includes(i));
+  const raw = await jsonCompletion({
+    system: WRITE_SYSTEM,
+    prompt:
+      writePrompt({ ...input, count: repeats.length }) +
+      `\n\nThese drafts read too much like posts already written, so write ${repeats.length} replacement(s) instead, ` +
+      `each on an angle and opening none of the history or the posts below use:\n` +
+      [...kept, ...repeats.map((i) => drafts[i])].map((d) => `- ${d.text.replace(/\s+/g, " ")}`).join("\n"),
+    schema: DRAFTS_SCHEMA,
+    name: "campaign_drafts",
+    provider: input.provider,
+    task: "rewrite repeated posts",
+    temperature: 1,
+  }).catch(() => null);
+  let replacements: WrittenDraft[] = [];
+  try {
+    replacements = raw ? ((JSON.parse(raw) as { drafts?: WrittenDraft[] }).drafts ?? []).filter((d) => d.text?.trim()) : [];
+  } catch {
+    // unreadable: the repeats are just dropped
+  }
+  const out = [...kept];
+  for (const r of replacements.slice(0, repeats.length)) {
+    if (!findRepeat(r.text, history, out.map((d) => d.text))) out.push(r);
+  }
+  if (out.length === 0) throw new Error("Every post the AI wrote repeated an earlier one. Try a different brief, or start again.");
+  return out;
 }
 
 // ---- Media library auto-captions ------------------------------------------

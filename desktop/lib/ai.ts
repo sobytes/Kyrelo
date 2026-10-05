@@ -4,7 +4,17 @@ import { fitText, PLATFORMS } from "./platforms";
 import { AiProvider, ApiKeys, AutopilotSettings, PlatformId, ReplyTone, SeenTweet } from "./types";
 import { REPLY_MAX_LENGTH, tweetLength } from "./tweet";
 
-const MODEL = "claude-sonnet-4-6";
+// Short, frequent calls (reply drafts, rewrites). Sonnet 5.5: newer than
+// Sonnet 4.6 and a third cheaper per token. It doesn't take a temperature, so
+// Autopilot's creativity setting only applies to OpenAI.
+const MODEL = "claude-sonnet-5-5";
+/** Low effort: one-line replies and rewrites don't need deep thinking, and it keeps the bill down. */
+const EFFORT = "low" as const;
+/** Refused requests are re-run on a fallback model the API picks, inside the same call. */
+const FALLBACK: { betas: Anthropic.Beta.AnthropicBeta[]; fallbacks: "default" } = {
+  betas: ["server-side-fallback-2026-07-01"],
+  fallbacks: "default",
+};
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
 /** A provider's key: the env var wins over the one saved in Settings. */
@@ -181,17 +191,18 @@ async function draftJson(provider: AiProvider, system: string, prompt: string, t
     return json.choices?.[0]?.message?.content ?? "";
   }
   const anthropic = new Anthropic({ apiKey: await resolveAnthropicKey() });
-  const message = await anthropic.messages.create({
+  const message = await anthropic.beta.messages.create({
+    ...FALLBACK,
     model: MODEL,
-    max_tokens: 1500,
-    temperature,
+    // Room for its (brief, low-effort) thinking as well as the drafts.
+    max_tokens: 4000,
     system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
-    output_config: { format: { type: "json_schema", schema: DRAFT_SCHEMA } },
+    output_config: { effort: EFFORT, format: { type: "json_schema", schema: DRAFT_SCHEMA } },
     messages: [{ role: "user", content: prompt }],
   });
   if (message.stop_reason === "refusal") throw new Error("Claude declined to draft a reply to this.");
   return message.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
     .map((b) => b.text)
     .join("");
 }
@@ -306,9 +317,11 @@ export interface RewriteInput {
 async function rewriteViaClaude(text: string): Promise<string> {
   const apiKey = await resolveAnthropicKey();
   const anthropic = new Anthropic({ apiKey });
-  const message = await anthropic.messages.create({
+  const message = await anthropic.beta.messages.create({
+    ...FALLBACK,
     model: MODEL,
-    max_tokens: 400,
+    max_tokens: 3000,
+    output_config: { effort: EFFORT },
     system: [{ type: "text", text: REWRITE_SYSTEM, cache_control: { type: "ephemeral" } }],
     messages: [
       {
@@ -395,14 +408,16 @@ export async function adaptPost(input: RewriteInput): Promise<string> {
     raw = json.choices?.[0]?.message?.content ?? "";
   } else {
     const anthropic = new Anthropic({ apiKey: await resolveAnthropicKey() });
-    const message = await anthropic.messages.create({
+    const message = await anthropic.beta.messages.create({
+      ...FALLBACK,
       model: MODEL,
-      max_tokens: 4000,
+      max_tokens: 8000,
+      output_config: { effort: EFFORT },
       system: [{ type: "text", text: ADAPT_SYSTEM, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: prompt }],
     });
     raw = message.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
       .map((b) => b.text)
       .join("\n");
   }
