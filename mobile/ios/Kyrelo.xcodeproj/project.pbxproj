@@ -25,6 +25,7 @@
 		4B04E3FBF069A0DC47FF9624 /* Pairing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDC1DD2178E7D129B675A6F /* Pairing.swift */; };
 		5041ED4E5EC6E30F3BB5D45E /* Media.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3163BFDA298EC9FED41A8A1C /* Media.swift */; };
 		58ADD9A4B832DD48C46EA4F0 /* ContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB4F2DEE5B8A6843A610C22 /* ContractTests.swift */; };
+		6017D9F0568437C57D8FFF2D /* VideoLengthsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060C1A552F08B0B3D9F579FC /* VideoLengthsTests.swift */; };
 		61D4EB61A22D1A325410C66B /* Monitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF3E4FD91F35F915EDFBF8B /* Monitor.swift */; };
 		66FEF89E6369A3072399BFDE /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638C56556323F47AB21F7E5A /* Theme.swift */; };
 		6A77B94C2DBFB40F0FFD0D94 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1C06956099474C430820B9B1 /* Assets.xcassets */; };
@@ -36,6 +37,7 @@
 		984E91BF5A0BB53D1331120A /* IBMPlexMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 79461F54CA98DE13B1B0D90E /* IBMPlexMono-Regular.ttf */; };
 		9A1898B5AC781B5A5F8C1B7A /* Inter.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 823ACBD256A224220B24F875 /* Inter.ttf */; };
 		9E86EE86177C410777C745CC /* MediaPrep.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1042D7950CD53CE738C6CEA /* MediaPrep.swift */; };
+		A3DC5123EEE8329162545AB4 /* VideoTrimmer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA3F5BF27B82DA2CCE89E2A /* VideoTrimmer.swift */; };
 		A43AB6BCF8E1963F018214D5 /* PlatformRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0675E8CB4CF60117E2A71424 /* PlatformRules.swift */; };
 		A496F16368C4C30401F6DAFF /* KyreloApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FCD3CF5425F6BACD9BC06C9 /* KyreloApp.swift */; };
 		A722A0AADB829B270A7B7287 /* PhotoPrepTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AE7B2085C9A4D66C71763CE /* PhotoPrepTests.swift */; };
@@ -67,6 +69,7 @@
 /* Begin PBXFileReference section */
 		02916DB1BB57F6B515272490 /* KyreloTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = KyreloTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0334BEB85151A4B523B5866F /* Inter-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Inter-OFL.txt"; sourceTree = "<group>"; };
+		060C1A552F08B0B3D9F579FC /* VideoLengthsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoLengthsTests.swift; sourceTree = "<group>"; };
 		0675E8CB4CF60117E2A71424 /* PlatformRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformRules.swift; sourceTree = "<group>"; };
 		0AA1089B49EE6813EB48A659 /* Comments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Comments.swift; sourceTree = "<group>"; };
 		0EDC1DD2178E7D129B675A6F /* Pairing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pairing.swift; sourceTree = "<group>"; };
@@ -88,6 +91,7 @@
 		69E54EA8736B467B3D67A627 /* XTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XTools.swift; sourceTree = "<group>"; };
 		6AE7B2085C9A4D66C71763CE /* PhotoPrepTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPrepTests.swift; sourceTree = "<group>"; };
 		6C3E0EE305FD5B5794A6FC5C /* PhotoField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoField.swift; sourceTree = "<group>"; };
+		6CA3F5BF27B82DA2CCE89E2A /* VideoTrimmer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimmer.swift; sourceTree = "<group>"; };
 		6E9E096AF43A93BA94640584 /* SchedulerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulerView.swift; sourceTree = "<group>"; };
 		6FCD3CF5425F6BACD9BC06C9 /* KyreloApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KyreloApp.swift; sourceTree = "<group>"; };
 		72AA012DBF0BC290D566C87C /* Kyrelo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kyrelo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -208,6 +212,7 @@
 			children = (
 				63CAC9B41035C68BB6840D42 /* CameraPicker.swift */,
 				53F00B9ADFE4C99E93C89D65 /* MediaView.swift */,
+				6CA3F5BF27B82DA2CCE89E2A /* VideoTrimmer.swift */,
 			);
 			path = Media;
 			sourceTree = "<group>";
@@ -261,6 +266,7 @@
 			children = (
 				5AB4F2DEE5B8A6843A610C22 /* ContractTests.swift */,
 				6AE7B2085C9A4D66C71763CE /* PhotoPrepTests.swift */,
+				060C1A552F08B0B3D9F579FC /* VideoLengthsTests.swift */,
 			);
 			path = KyreloTests;
 			sourceTree = "<group>";
@@ -456,6 +462,7 @@
 			files = (
 				58ADD9A4B832DD48C46EA4F0 /* ContractTests.swift in Sources */,
 				A722A0AADB829B270A7B7287 /* PhotoPrepTests.swift in Sources */,
+				6017D9F0568437C57D8FFF2D /* VideoLengthsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -497,6 +504,7 @@
 				31D2D166003B6360909F718E /* Services.swift in Sources */,
 				66FEF89E6369A3072399BFDE /* Theme.swift in Sources */,
 				238E06526D06378730DF73E2 /* UnfollowView.swift in Sources */,
+				A3DC5123EEE8329162545AB4 /* VideoTrimmer.swift in Sources */,
 				DB898C0A90C21A087E8D01E8 /* WatchListSheet.swift in Sources */,
 				F09F9B03C24507B6B6BC46F7 /* XTools.swift in Sources */,
 			);

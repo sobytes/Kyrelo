@@ -219,10 +219,14 @@ struct BridgeThumbnail: View {
 /// Describe a new photo or video, choose its buckets, and send it to the computer.
 private struct AddMediaSheet: View {
     let client: BridgeClient
-    let capture: Capture
     let buckets: [MediaBucket]
     let onAdded: () -> Void
 
+    /// What's being added; trimming a video replaces it with the trimmed copy.
+    @State private var capture: Capture
+    @State private var videoInfo: (seconds: Double, bytes: Int)?
+    @State private var preview: UIImage?
+    @State private var trimming = false
     @State private var description = ""
     @State private var chosen: Set<String>
     @State private var status: String?
@@ -231,7 +235,7 @@ private struct AddMediaSheet: View {
 
     init(client: BridgeClient, capture: Capture, buckets: [MediaBucket], startBucket: String?, onAdded: @escaping () -> Void) {
         self.client = client
-        self.capture = capture
+        _capture = State(initialValue: capture)
         self.buckets = buckets
         self.onAdded = onAdded
         _chosen = State(initialValue: startBucket.map { [$0] } ?? [])
@@ -251,15 +255,29 @@ private struct AddMediaSheet: View {
                         if let image = UIImage(data: data) {
                             Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 220).frame(maxWidth: .infinity)
                         }
-                    case .video:
-                        Label("Video", systemImage: "video").font(.inter(.subheadline))
+                    case let .video(url):
+                        if let preview {
+                            Image(uiImage: preview).resizable().scaledToFit().frame(maxHeight: 220).frame(maxWidth: .infinity)
+                        }
+                        if let videoInfo {
+                            Label("\(VideoLengths.clock(videoInfo.seconds)) · \(ByteCountFormatter.string(fromByteCount: Int64(videoInfo.bytes), countStyle: .file))", systemImage: "video")
+                                .font(.inter(.subheadline))
+                        }
+                        if VideoTrimmer.canTrim(url) {
+                            Button { trimming = true } label: { Label("Trim", systemImage: "scissors") }
+                                .disabled(status != nil)
+                        }
+                    }
+                } footer: {
+                    if let videoInfo, isVideo {
+                        Text("\(VideoLengths.guidance(seconds: videoInfo.seconds)) Big videos are made smaller automatically.")
                     }
                 }
                 Section {
                     TextField(isVideo ? "What's in it? (optional)" : "What does it show? (optional)", text: $description, axis: .vertical)
                         .lineLimit(2...5)
                 } footer: {
-                    Text("Leave it blank and the AI describes it from the \(isVideo ? "video's first second" : "photo"). Auto campaigns use this to pick it.")
+                    Text("Leave it blank and the AI describes it from the \(isVideo ? "video" : "photo"). Auto campaigns use this to pick it.")
                 }
                 if !buckets.isEmpty {
                     Section("Buckets") {
@@ -288,7 +306,26 @@ private struct AddMediaSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .interactiveDismissDisabled(status != nil)
+            .task(id: videoURL) {
+                guard let videoURL else { return }
+                videoInfo = await MediaPrep.info(of: videoURL)
+                preview = await MediaPrep.previewFrame(of: videoURL)
+            }
+            .fullScreenCover(isPresented: $trimming) {
+                if let videoURL {
+                    VideoTrimmer(url: videoURL) { trimmed in
+                        capture = .video(trimmed)
+                        error = nil
+                    }
+                    .ignoresSafeArea()
+                }
+            }
         }
+    }
+
+    private var videoURL: URL? {
+        if case let .video(url) = capture { return url }
+        return nil
     }
 
     private func send() {
@@ -305,8 +342,9 @@ private struct AddMediaSheet: View {
                     status = "Sending…"
                     item = try await client.uploadMedia(jpeg, isVideo: false, poster: nil, description: description, bucketId: first)
                 case let .video(url):
-                    status = "Preparing video…"
-                    let video = try await MediaPrep.video(at: url)
+                    let video = try await MediaPrep.video(at: url) { step in
+                        Task { @MainActor in status = step }
+                    }
                     status = "Sending \(ByteCountFormatter.string(fromByteCount: Int64(video.mp4.count), countStyle: .file))…"
                     item = try await client.uploadMedia(video.mp4, isVideo: true, poster: video.poster, description: description, bucketId: first)
                 }
