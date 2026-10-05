@@ -13,7 +13,8 @@
     "worker": "node worker/index.mjs",
     "desktop": "electron .",
     "pw:install": "node scripts/pw-install.mjs",
-    "pack": "npm run build && npm run pw:install && SKIP_NOTARIZE=true electron-builder --dir",
+    "ffmpeg:install": "node scripts/ffmpeg-install.mjs",
+    "pack": "npm run build && npm run pw:install && npm run ffmpeg:install && SKIP_NOTARIZE=true electron-builder --dir",
     "release:mac": "node scripts/release-mac.js",
     "release:mac:test": "node scripts/release-mac.js --test",
     "release:win": "node scripts/release-win.js",
@@ -67,6 +68,13 @@
       {
         "from": "build/pw-browsers",
         "to": "pw-browsers",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "build/ffmpeg",
+        "to": "ffmpeg",
         "filter": [
           "**/*"
         ]

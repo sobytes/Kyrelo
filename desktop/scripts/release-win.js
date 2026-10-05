@@ -117,9 +117,10 @@ function build() {
     fs.rmSync(distDir, { recursive: true, force: true });
   }
 
-  console.log("Building Next + installing Playwright Chromium…");
+  console.log("Building Next + installing Playwright Chromium and ffmpeg…");
   run("npm run build");
   run("npm run pw:install");
+  run("npm run ffmpeg:install");
   console.log("");
 
   const signFlag = SIGNING_ENABLED

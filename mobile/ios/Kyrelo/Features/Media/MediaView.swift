@@ -388,7 +388,7 @@ private struct MediaDetailSheet: View {
                         BridgeImage(client: client, filename: thumb).frame(maxHeight: 260)
                     }
                     if item.isVideo {
-                        Label("Video\(item.bytes.map { " · \(ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file))" } ?? "")", systemImage: "video")
+                        Label("Video\(item.seconds.map { " · \(VideoLengths.clock($0))" } ?? "")\(item.bytes.map { " · \(ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file))" } ?? "")", systemImage: "video")
                             .font(.inter(.footnote)).foregroundStyle(Theme.muted)
                     }
                 }

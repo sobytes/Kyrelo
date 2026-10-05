@@ -14,6 +14,7 @@ import { PLATFORMS, postImageError, postVideoError } from "./platforms";
 import { publish } from "./publish";
 import { ScheduledPost } from "./types";
 import { SAFE_IMAGE_FILENAME, SAFE_VIDEO_FILENAME, uploadsDir } from "./uploads";
+import { fitVideo, hasFfmpeg } from "./ffmpeg";
 
 export interface DispatchOutcome {
   ran: number;
@@ -116,7 +117,7 @@ async function dispatchDuePosts(): Promise<DispatchOutcome> {
     // the user cancelled (deleted) the post mid-send, so it doesn't come back.
     try {
       const imagePath = post.imagePath ? path.join(uploadsDir(), post.imagePath) : undefined;
-      const videoPath = post.videoPath ? path.join(uploadsDir(), post.videoPath) : undefined;
+      const videoPath = post.videoPath ? await videoFor(post.platform, path.join(uploadsDir(), post.videoPath)) : undefined;
       const r = await publish(account, post.text, {
         headless,
         imagePath,
@@ -167,6 +168,7 @@ export async function createScheduledPost(input: {
     campaignId: input.campaignId,
   };
   await insertScheduledPost(post);
+  if (post.videoPath) prepareVideo(post.platform, post.videoPath);
   return post;
 }
 
@@ -198,5 +200,28 @@ export async function postMediaError(
   if (platform === "facebook" && !(accountId && (await getAccountSecret("facebook", accountId))?.token)) {
     return "Facebook videos need a Page token: add one on the Comments page";
   }
-  return postVideoError(platform, videoPath, bytes);
+  return postVideoError(platform, videoPath, bytes, hasFfmpeg());
+}
+
+/**
+ * The version of a video to send to `platform`: cut to its length limit and
+ * shrunk under its size limit (lib/ffmpeg.ts), or the video itself when it
+ * fits or there's no ffmpeg. Versions are kept, so this is quick the second
+ * time (see prepareVideo).
+ */
+export async function videoFor(platform: ScheduledPost["platform"], file: string): Promise<string> {
+  if (!hasFfmpeg()) return file;
+  const spec = PLATFORMS[platform];
+  return fitVideo(file, { maxSeconds: spec.maxVideoSeconds || undefined, maxBytes: spec.maxVideoBytes });
+}
+
+/**
+ * Starts making the platform's version of a scheduled video in the
+ * background, so it's ready when the post goes out. A failure here is
+ * retried (and reported) at send time.
+ */
+export function prepareVideo(platform: ScheduledPost["platform"], videoPath: string): void {
+  void videoFor(platform, path.join(uploadsDir(), videoPath)).catch((err) =>
+    console.warn(`[scheduler] couldn't prepare ${videoPath} for ${platform} yet: ${err instanceof Error ? err.message : err}`),
+  );
 }

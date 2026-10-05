@@ -21,6 +21,12 @@ export interface PlatformSpec {
   /** Largest video file Kyrelo can post here. 0: Kyrelo can't post videos there (yet). */
   maxVideoBytes: number;
   /**
+   * Longest video the platform takes for most accounts, in seconds; 0: no
+   * limit Kyrelo needs to keep to. Longer videos are cut to fit when posted
+   * (lib/ffmpeg.ts).
+   */
+  maxVideoSeconds: number;
+  /**
    * The longest post an auto campaign writes here: short enough to read as a
    * social post, even where the platform allows far more (Facebook).
    */
@@ -67,6 +73,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Kyrelo's own upload limit (lib/uploads.ts); X takes up to 512 MB, and
     // accounts without Premium up to 2 minutes 20 seconds.
     maxVideoBytes: 256 * 1024 * 1024,
+    maxVideoSeconds: 140,
     campaignLimit: MAX_TWEET_LENGTH,
     requiresImage: false,
     requiresVideo: false,
@@ -84,6 +91,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxImageBytes: 1_000_000,
     // Bluesky's video limit (also at most 3 minutes long).
     maxVideoBytes: 100 * 1024 * 1024,
+    maxVideoSeconds: 180,
     campaignLimit: 300,
     requiresImage: false,
     requiresVideo: false,
@@ -107,6 +115,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxImageBytes: 5 * 1024 * 1024,
     // Mastodon's default limit for videos; servers can set their own.
     maxVideoBytes: 40 * 1024 * 1024,
+    maxVideoSeconds: 0,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: false,
@@ -122,6 +131,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     length: (text) => Array.from(graphemes.segment(text)).length,
     maxImageBytes: 0,
     maxVideoBytes: 0,
+    maxVideoSeconds: 0,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: false,
@@ -139,6 +149,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Kyrelo's own upload limit (lib/uploads.ts); Instagram takes bigger.
     maxImageBytes: 5 * 1024 * 1024,
     maxVideoBytes: 0,
+    maxVideoSeconds: 0,
     campaignLimit: 2200,
     requiresImage: true,
     requiresVideo: false,
@@ -160,6 +171,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxImageBytes: 5 * 1024 * 1024,
     // Pages with an API token only (lib/meta.ts); see postMediaError.
     maxVideoBytes: 256 * 1024 * 1024,
+    maxVideoSeconds: 0,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: false,
@@ -180,6 +192,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxImageBytes: 5 * 1024 * 1024,
     // What a bot may upload.
     maxVideoBytes: 50 * 1024 * 1024,
+    maxVideoSeconds: 0,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: false,
@@ -201,6 +214,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxImageBytes: 5 * 1024 * 1024,
     // What a webhook may upload to a server without boosts.
     maxVideoBytes: 10 * 1024 * 1024,
+    maxVideoSeconds: 0,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: false,
@@ -218,6 +232,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Kyrelo's own upload limit (lib/uploads.ts); LinkedIn takes bigger.
     maxImageBytes: 5 * 1024 * 1024,
     maxVideoBytes: 0,
+    maxVideoSeconds: 0,
     // About what LinkedIn shows before "…see more".
     campaignLimit: 1300,
     requiresImage: false,
@@ -238,6 +253,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxImageBytes: 0,
     // Kyrelo's own upload limit (lib/uploads.ts); YouTube takes far bigger.
     maxVideoBytes: 256 * 1024 * 1024,
+    maxVideoSeconds: 0,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: true,
@@ -260,6 +276,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     maxImageBytes: 0,
     // Kyrelo's own upload limit (lib/uploads.ts); TikTok takes up to 4 GB.
     maxVideoBytes: 256 * 1024 * 1024,
+    maxVideoSeconds: 600,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: true,
@@ -282,6 +299,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Incoming webhooks can't upload files.
     maxImageBytes: 0,
     maxVideoBytes: 0,
+    maxVideoSeconds: 0,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: false,
@@ -303,6 +321,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // DEV takes cover images only from a web address.
     maxImageBytes: 0,
     maxVideoBytes: 0,
+    maxVideoSeconds: 0,
     campaignLimit: 1300,
     requiresImage: false,
     requiresVideo: false,
@@ -320,6 +339,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Hashnode takes cover images only from a web address.
     maxImageBytes: 0,
     maxVideoBytes: 0,
+    maxVideoSeconds: 0,
     campaignLimit: 1300,
     requiresImage: false,
     requiresVideo: false,
@@ -340,6 +360,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Kyrelo's own upload limit (lib/uploads.ts); the image becomes the featured image.
     maxImageBytes: 5 * 1024 * 1024,
     maxVideoBytes: 0,
+    maxVideoSeconds: 0,
     campaignLimit: 1300,
     requiresImage: false,
     requiresVideo: false,
@@ -362,6 +383,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Kyrelo's own upload limit (lib/uploads.ts); instances often allow less.
     maxImageBytes: 5 * 1024 * 1024,
     maxVideoBytes: 0,
+    maxVideoSeconds: 0,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: false,
@@ -384,6 +406,7 @@ export const PLATFORMS: Record<PlatformId, PlatformSpec> = {
     // Images on Nostr are links to files hosted elsewhere.
     maxImageBytes: 0,
     maxVideoBytes: 0,
+    maxVideoSeconds: 0,
     campaignLimit: 500,
     requiresImage: false,
     requiresVideo: false,
@@ -449,13 +472,17 @@ export function postImageError(platform: PlatformId, imagePath: string | undefin
   return null;
 }
 
-/** Why a post with this video can't go to `platform`, or null if it can. `bytes` is checked when known. */
-export function postVideoError(platform: PlatformId, videoPath: string, bytes?: number): string | null {
+/**
+ * Why a post with this video can't go to `platform`, or null if it can.
+ * `bytes` is checked when known, unless `canShrink` (the desktop has ffmpeg
+ * and makes a version that fits when it posts).
+ */
+export function postVideoError(platform: PlatformId, videoPath: string, bytes?: number, canShrink = false): string | null {
   const spec = PLATFORMS[platform];
   if (spec.maxVideoBytes === 0) return `Kyrelo can't post videos to ${spec.label} yet`;
   if (spec.requiresImage) return `${spec.label} posts need a photo`;
   if (!/\.(mp4|mov)$/i.test(videoPath)) return `${spec.label} takes MP4 or MOV videos`;
-  if (bytes !== undefined && bytes > spec.maxVideoBytes) {
+  if (!canShrink && bytes !== undefined && bytes > spec.maxVideoBytes) {
     return `the video is too big for ${spec.label} (max ${Math.round(spec.maxVideoBytes / 1024 / 1024)} MB)`;
   }
   return null;

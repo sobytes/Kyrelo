@@ -80,6 +80,9 @@ function baseEnv(port) {
     PLAYWRIGHT_BROWSERS_PATH: isDev
       ? process.env.PLAYWRIGHT_BROWSERS_PATH ?? path.join(ROOT, "build", "pw-browsers")
       : path.join(process.resourcesPath, "pw-browsers"),
+    // The bundled ffmpeg (scripts/ffmpeg-install.mjs) that fits videos to each platform.
+    FFMPEG_PATH: path.join(isDev ? path.join(ROOT, "build") : process.resourcesPath, "ffmpeg",
+      process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg"),
     NODE_ENV: isDev ? "development" : "production",
   };
 }

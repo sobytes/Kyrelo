@@ -6,6 +6,7 @@
       "maxLength": 4000,
       "maxImageBytes": 5242880,
       "maxVideoBytes": 268435456,
+      "maxVideoSeconds": 140,
       "connect": "browser",
       "credentials": [],
       "loginUrl": "https://x.com/login",
@@ -20,6 +21,7 @@
       "maxLength": 300,
       "maxImageBytes": 1000000,
       "maxVideoBytes": 104857600,
+      "maxVideoSeconds": 180,
       "connect": "credentials",
       "credentials": [
         "handle",
@@ -37,6 +39,7 @@
       "maxLength": 500,
       "maxImageBytes": 5242880,
       "maxVideoBytes": 41943040,
+      "maxVideoSeconds": 0,
       "connect": "oauth",
       "credentials": [],
       "loginUrl": "https://joinmastodon.org/servers",
@@ -51,6 +54,7 @@
       "maxLength": 500,
       "maxImageBytes": 0,
       "maxVideoBytes": 0,
+      "maxVideoSeconds": 0,
       "connect": "credentials",
       "credentials": [
         "token"
@@ -67,6 +71,7 @@
       "maxLength": 2200,
       "maxImageBytes": 5242880,
       "maxVideoBytes": 0,
+      "maxVideoSeconds": 0,
       "connect": "browser",
       "credentials": [],
       "loginUrl": "https://www.instagram.com/accounts/login/",
@@ -86,6 +91,7 @@
       "maxLength": 63206,
       "maxImageBytes": 5242880,
       "maxVideoBytes": 268435456,
+      "maxVideoSeconds": 0,
       "connect": "browser",
       "credentials": [],
       "loginUrl": "https://www.facebook.com/login/",
@@ -100,6 +106,7 @@
       "maxLength": 4096,
       "maxImageBytes": 5242880,
       "maxVideoBytes": 52428800,
+      "maxVideoSeconds": 0,
       "connect": "credentials",
       "credentials": [
         "token",
@@ -117,6 +124,7 @@
       "maxLength": 2000,
       "maxImageBytes": 5242880,
       "maxVideoBytes": 10485760,
+      "maxVideoSeconds": 0,
       "connect": "credentials",
       "credentials": [
         "webhookUrl"
@@ -133,6 +141,7 @@
       "maxLength": 3000,
       "maxImageBytes": 5242880,
       "maxVideoBytes": 0,
+      "maxVideoSeconds": 0,
       "connect": "credentials",
       "credentials": [
         "token"
@@ -149,6 +158,7 @@
       "maxLength": 5000,
       "maxImageBytes": 0,
       "maxVideoBytes": 268435456,
+      "maxVideoSeconds": 0,
       "connect": "app",
       "credentials": [
         "clientId",
@@ -166,6 +176,7 @@
       "maxLength": 2200,
       "maxImageBytes": 0,
       "maxVideoBytes": 268435456,
+      "maxVideoSeconds": 600,
       "connect": "app",
       "credentials": [
         "clientId",
@@ -183,6 +194,7 @@
       "maxLength": 4000,
       "maxImageBytes": 0,
       "maxVideoBytes": 0,
+      "maxVideoSeconds": 0,
       "connect": "credentials",
       "credentials": [
         "webhookUrl",
@@ -200,6 +212,7 @@
       "maxLength": 100000,
       "maxImageBytes": 0,
       "maxVideoBytes": 0,
+      "maxVideoSeconds": 0,
       "connect": "credentials",
       "credentials": [
         "token"
@@ -216,6 +229,7 @@
       "maxLength": 100000,
       "maxImageBytes": 0,
       "maxVideoBytes": 0,
+      "maxVideoSeconds": 0,
       "connect": "credentials",
       "credentials": [
         "token",
@@ -233,6 +247,7 @@
       "maxLength": 100000,
       "maxImageBytes": 5242880,
       "maxVideoBytes": 0,
+      "maxVideoSeconds": 0,
       "connect": "credentials",
       "credentials": [
         "site",
@@ -251,6 +266,7 @@
       "maxLength": 10000,
       "maxImageBytes": 5242880,
       "maxVideoBytes": 0,
+      "maxVideoSeconds": 0,
       "connect": "credentials",
       "credentials": [
         "handle",
@@ -269,6 +285,7 @@
       "maxLength": 10000,
       "maxImageBytes": 0,
       "maxVideoBytes": 0,
+      "maxVideoSeconds": 0,
       "connect": "credentials",
       "credentials": [
         "token"

@@ -202,6 +202,8 @@ export interface MediaItem {
   bytes?: number;
   /** A video's still frame (an image in uploads/), for thumbnails and for the AI to see what it shows. */
   posterFilename?: string;
+  /** A video's length, when ffmpeg could read it. */
+  seconds?: number;
   /** User-written or AI-written description, used to match media to posts. */
   description: string;
   /** The buckets it's in (an item can be in several, or none). */

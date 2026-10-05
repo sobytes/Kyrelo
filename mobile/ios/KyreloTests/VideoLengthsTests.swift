@@ -3,13 +3,13 @@ import XCTest
 
 final class VideoLengthsTests: XCTestCase {
     func testAShortClipFitsEverywhere() {
-        XCTAssertFalse(VideoLengths.guidance(seconds: 45).contains("Too long"))
+        XCTAssertFalse(VideoLengths.guidance(seconds: 45).contains("first"))
     }
 
     func testALongVideoNamesWhereItIsTooLong() {
         let text = VideoLengths.guidance(seconds: 4 * 60 + 12)
         XCTAssertTrue(text.hasPrefix("Fits YouTube, TikTok"))
-        XCTAssertTrue(text.contains("Too long for Bluesky (3:00), X (2:20)"))
+        XCTAssertTrue(text.contains("Your computer sends Bluesky the first 3:00 and X the first 2:20"))
     }
 
     func testClock() {

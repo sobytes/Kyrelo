@@ -16,6 +16,8 @@ struct MediaItem: Decodable, Identifiable, Hashable {
     let bytes: Int?
     /// A video's still frame, for its thumbnail.
     let posterFilename: String?
+    /// A video's length, when the computer could read it.
+    let seconds: Double?
     let description: String
     let bucketIds: [String]?
     let addedAt: String

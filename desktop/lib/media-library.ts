@@ -4,6 +4,7 @@ import path from "node:path";
 import { describeImage } from "./campaign-ai";
 import { getGrokSettings, listMediaBuckets, listMediaItems, modifyMediaBuckets, modifyMediaItems } from "./storage";
 import { MediaBucket, MediaItem } from "./types";
+import { cutClip, hasFfmpeg, makePoster, probe } from "./ffmpeg";
 import { imageTypeForFilename, saveImage, saveUpload, uploadsDir } from "./uploads";
 
 // The Media library: images and videos the user keeps for posts and auto
@@ -44,7 +45,11 @@ export async function addMediaItem(
 ): Promise<MediaItem> {
   const filename = await saveUpload(data);
   const kind = /\.(mp4|mov)$/i.test(filename) ? "video" : "image";
-  const posterFilename = kind === "video" && opts.poster ? await saveImage(opts.poster).catch(() => undefined) : undefined;
+  // A video's thumbnail: the app's frame, or one ffmpeg takes (any format the browser can't show).
+  const videoFile = path.join(uploadsDir(), filename);
+  let posterFilename = kind === "video" && opts.poster ? await saveImage(opts.poster).catch(() => undefined) : undefined;
+  if (kind === "video" && !posterFilename && hasFfmpeg()) posterFilename = await makePoster(videoFile).catch(() => undefined);
+  const seconds = kind === "video" && hasFfmpeg() ? await probe(videoFile).then((i) => i.seconds, () => undefined) : undefined;
   const buckets = await listMediaBuckets();
   const bucketIds = opts.bucketId && buckets.some((b) => b.id === opts.bucketId) ? [opts.bucketId] : [];
   let description = (opts.description ?? "").trim().slice(0, MAX_DESCRIPTION);
@@ -59,6 +64,7 @@ export async function addMediaItem(
     kind,
     bytes: data.length,
     ...(posterFilename ? { posterFilename } : {}),
+    ...(seconds !== undefined ? { seconds: Math.round(seconds * 10) / 10 } : {}),
     description,
     bucketIds,
     addedAt: new Date().toISOString(),
@@ -147,4 +153,29 @@ export async function mediaForCampaign(bucketId?: string): Promise<MediaItem[]> 
     await modifyMediaItems((all) => all.map((m) => (described.has(m.id) ? { ...m, description: described.get(m.id)! } : m)));
   }
   return items.map((m) => (described.has(m.id) ? { ...m, description: described.get(m.id)! } : m));
+}
+
+/**
+ * Cuts start–end (seconds) of a library video into a new item, kept next to
+ * the original with its description and buckets.
+ */
+export async function clipMediaItem(id: string, start: number, end: number): Promise<MediaItem> {
+  if (!hasFfmpeg()) throw new Error("Cutting clips needs ffmpeg, which comes with the Kyrelo app.");
+  const source = (await listMediaItems()).find((m) => m.id === id);
+  if (!source || source.kind !== "video") throw new Error("That video isn't in the library any more.");
+  const filename = await cutClip(path.join(uploadsDir(), source.filename), start, end);
+  const file = path.join(uploadsDir(), filename);
+  const clip: MediaItem = {
+    id: randomUUID().slice(0, 8),
+    filename,
+    kind: "video",
+    bytes: (await fs.stat(file)).size,
+    posterFilename: await makePoster(file).catch(() => undefined),
+    seconds: Math.round((end - start) * 10) / 10,
+    description: source.description,
+    bucketIds: source.bucketIds ?? [],
+    addedAt: new Date().toISOString(),
+  };
+  await modifyMediaItems((items) => [...items, clip]);
+  return clip;
 }

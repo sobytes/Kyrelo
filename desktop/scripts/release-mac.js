@@ -160,13 +160,14 @@ function build() {
   console.log("");
 
   // One .dmg per Mac chip. The Next build is the same for both, but the
-  // bundled Playwright Chromium is arch-specific, so it's re-downloaded for
+  // bundled Playwright Chromium (and ffmpeg) is arch-specific, so it's re-downloaded for
   // each (pw-install wipes the cache when the arch changes) and packaged with
   // that arch's build. extraResources copies build/pw-browsers at package
   // time, so the builds must run one after the other.
   for (const arch of MAC_ARCHES) {
-    console.log(`Downloading Playwright Chromium (${arch})…`);
+    console.log(`Downloading Playwright Chromium and ffmpeg (${arch})…`);
     run("npm run pw:install", { env: { ...process.env, PW_TARGET_ARCH: arch } });
+    run("npm run ffmpeg:install", { env: { ...process.env, FFMPEG_TARGET_ARCH: arch } });
 
     if (TEST_MODE) {
       console.log(`Packaging ${arch} (test — no notarize)…`);

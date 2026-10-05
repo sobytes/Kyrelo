@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AutoCampaignModal } from "@/components/AutoCampaignModal";
 import { CalendarView } from "@/components/CalendarView";
 import { FeedsPanel } from "@/components/FeedsPanel";
-import { LibraryPicker } from "@/components/MediaPanel";
+import { clock, LibraryPicker, useMediaTools } from "@/components/MediaPanel";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { PLATFORMS, postImageError, postVideoError } from "@/lib/platforms";
 import { Account, GrokSettings, MediaItem, PlatformId, PostStats, ScheduledPost } from "@/lib/types";
@@ -64,6 +64,7 @@ export function SchedulerPanel() {
   const [editingPost, setEditingPost] = useState<ScheduledPost | null>(null);
   const [aiProvider, setAiProvider] = useState<GrokSettings["aiProvider"]>("claude");
   const attachment = useMediaAttachment(null);
+  const tools = useMediaTools();
   const { media } = attachment;
   const imagePath = media?.kind === "image" ? media.filename : null;
   const [campaignOpen, setCampaignOpen] = useState(false);
@@ -158,7 +159,7 @@ export function SchedulerPanel() {
             accountId: account.id,
             text: textFor(account),
             // Platforms that can't take the attachment get the text alone.
-            ...(media && attachmentFits(account.platform, media)
+            ...(media && attachmentFits(account.platform, media, tools.ffmpeg)
               ? media.kind === "image"
                 ? { imagePath: media.filename }
                 : { videoPath: media.filename }
@@ -247,7 +248,12 @@ export function SchedulerPanel() {
 
   const canAttachImage = targets.some((a) => PLATFORMS[a.platform].maxImageBytes > 0);
   const canAttachVideo = targets.some((a) => PLATFORMS[a.platform].maxVideoBytes > 0);
-  const mediaDropped = media ? targets.filter((a) => !attachmentFits(a.platform, media)) : [];
+  const mediaDropped = media ? targets.filter((a) => !attachmentFits(a.platform, media, tools.ffmpeg)) : [];
+  // Platforms whose length limit a video will be cut to when it posts.
+  const videoLimits =
+    media?.kind === "video" && tools.ffmpeg
+      ? [...new Set(targets.map((a) => a.platform))].filter((p) => PLATFORMS[p].maxVideoSeconds > 0 && PLATFORMS[p].maxVideoBytes > 0)
+      : [];
   // Instagram needs a photo, and only takes JPEG or PNG.
   const needsImage = targets.find((a) => PLATFORMS[a.platform].requiresImage)?.platform;
   // YouTube needs a video.
@@ -363,7 +369,15 @@ export function SchedulerPanel() {
           {media && mediaDropped.length > 0 && (
             <p className="text-xs text-muted">
               {[...new Set(mediaDropped.map((a) => PLATFORMS[a.platform].label))].join(" and ")} posts are sent without
-              the {media.kind}: {mediaDropReason(mediaDropped[0].platform, media)}.
+              the {media.kind}: {mediaDropReason(mediaDropped[0].platform, media, tools.ffmpeg)}.
+            </p>
+          )}
+
+          {videoLimits.length > 0 && (
+            <p className="text-xs text-muted">
+              When it posts, each platform gets a version of the video that fits:{" "}
+              {videoLimits.map((p) => `${PLATFORMS[p].label} takes up to ${clock(PLATFORMS[p].maxVideoSeconds)}`).join(", ")}, so a
+              longer video is cut there. To choose which part, trim it in Media.
             </p>
           )}
 
@@ -532,12 +546,13 @@ interface Media {
 }
 
 /** Whether a platform takes this attachment; if not, its post goes out as text alone. */
-function attachmentFits(platform: PlatformId, media: Media): boolean {
-  return mediaDropReason(platform, media) === null;
+function attachmentFits(platform: PlatformId, media: Media, canShrink: boolean): boolean {
+  return mediaDropReason(platform, media, canShrink) === null;
 }
 
-function mediaDropReason(platform: PlatformId, media: Media): string | null {
-  if (media.kind === "video") return postVideoError(platform, media.filename, media.bytes);
+/** `canShrink`: this computer has ffmpeg, so a video too big for a platform is made to fit when it posts. */
+function mediaDropReason(platform: PlatformId, media: Media, canShrink: boolean): string | null {
+  if (media.kind === "video") return postVideoError(platform, media.filename, media.bytes, canShrink);
   return PLATFORMS[platform].maxImageBytes > 0 ? null : `Kyrelo can't post images to ${PLATFORMS[platform].label}`;
 }
 
@@ -938,6 +953,7 @@ function EditPostModal({
   const [scheduledFor, setScheduledFor] = useState(() =>
     toDateTimeLocal(new Date(post.scheduledFor)),
   );
+  const tools = useMediaTools();
   const attachment = useMediaAttachment(
     post.imagePath
       ? { filename: post.imagePath, kind: "image" }
@@ -1018,8 +1034,8 @@ function EditPostModal({
           <div className="mt-3">
             <div className="label">{spec.maxVideoBytes > 0 ? "Image or video" : "Image"}</div>
             <MediaPicker attachment={attachment} images={spec.maxImageBytes > 0} videos={spec.maxVideoBytes > 0} />
-            {media && mediaDropReason(post.platform, media) && (
-              <p className="mt-1 text-xs text-warning">{mediaDropReason(post.platform, media)}.</p>
+            {media && mediaDropReason(post.platform, media, tools.ffmpeg) && (
+              <p className="mt-1 text-xs text-warning">{mediaDropReason(post.platform, media, tools.ffmpeg)}.</p>
             )}
           </div>
         )}

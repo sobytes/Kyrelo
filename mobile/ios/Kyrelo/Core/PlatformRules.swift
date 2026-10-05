@@ -72,6 +72,17 @@ extension PlatformId {
         }
     }
 
+    /// Longest video the platform takes for most accounts, in seconds; 0: no
+    /// limit to keep to. The desktop cuts longer ones to fit when it posts.
+    var maxVideoSeconds: Int {
+        switch self {
+        case .twitter: 140
+        case .bluesky: 180
+        case .tiktok: 600
+        default: 0
+        }
+    }
+
     /// Every post needs an image (Instagram): text-only posts can't go there.
     var requiresImage: Bool { self == .instagram }
 

@@ -280,6 +280,10 @@ export function SettingsPanel() {
           OpenAI; their names are used only to say what Kyrelo works with or compares to.
         </p>
         <p>
+          Kyrelo bundles FFmpeg (ffmpeg.org) to fit videos to each platform. FFmpeg is free software under the GPL; its
+          licence and where to get its source are in the app&apos;s Resources/ffmpeg folder.
+        </p>
+        <p>
           You&apos;re responsible for how you use it, including following each platform&apos;s terms and
           automation rules. X in particular may limit or suspend accounts it thinks are automated.
         </p>

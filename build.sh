@@ -152,6 +152,11 @@ build_desktop() {
         echo -e "${YELLOW}First run: downloading Playwright Chromium...${NC}"
         npm run pw:install || return 1
     fi
+    # Same for ffmpeg, which fits videos to each platform (lib/ffmpeg.ts).
+    if [ ! -d "$BASE_DIR/desktop/build/ffmpeg" ]; then
+        echo -e "${YELLOW}First run: downloading ffmpeg...${NC}"
+        npm run ffmpeg:install || return 1
+    fi
     echo -e "${GREEN}Launching Kyrelo in dev mode...${NC}"
     kill_port 3000
     npm run desktop

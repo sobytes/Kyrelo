@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
-import { MediaBucket, MediaItem } from "@/lib/types";
+import { useEffect, useRef, useState } from "react";
+import { PLATFORMS } from "@/lib/platforms";
+import { MediaBucket, MediaItem, PlatformId } from "@/lib/types";
 
 // The Media page: buckets on the left, the library on the right. Also exports
 // the pieces the Scheduler's "From library" picker and the campaign window use.
@@ -88,6 +89,26 @@ async function videoPoster(file: File): Promise<Blob | null> {
   }
 }
 
+/** 252.3 → "4:12". */
+export function clock(seconds: number): string {
+  const s = Math.max(0, Math.round(seconds));
+  return s >= 3600
+    ? `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
+    : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** Whether this computer has ffmpeg (fitting videos to platforms, cutting clips). */
+export function useMediaTools(): { ffmpeg: boolean } {
+  const [tools, setTools] = useState({ ffmpeg: false });
+  useEffect(() => {
+    void fetch("/api/media-tools")
+      .then((r) => r.json())
+      .then((t) => setTools({ ffmpeg: Boolean(t.ffmpeg) }))
+      .catch(() => {});
+  }, []);
+  return tools;
+}
+
 function formatBytes(n?: number): string {
   if (!n) return "";
   return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`;
@@ -95,6 +116,8 @@ function formatBytes(n?: number): string {
 
 export function MediaPanel() {
   const { items, buckets, loaded, load } = useMediaLibrary();
+  const tools = useMediaTools();
+  const [trimming, setTrimming] = useState<MediaItem | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [newBucket, setNewBucket] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
@@ -261,9 +284,26 @@ export function MediaPanel() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {shown.map((m) => (
-              <MediaCard key={m.id} item={m} buckets={buckets} onUpdate={(patch) => update(m, patch)} onRemove={() => remove(m)} />
+              <MediaCard
+                key={m.id}
+                item={m}
+                buckets={buckets}
+                onUpdate={(patch) => update(m, patch)}
+                onRemove={() => remove(m)}
+                onTrim={tools.ffmpeg && m.kind === "video" ? () => setTrimming(m) : undefined}
+              />
             ))}
           </div>
+        )}
+        {trimming && (
+          <ClipDialog
+            item={trimming}
+            onClose={() => setTrimming(null)}
+            onSaved={async () => {
+              setTrimming(null);
+              await load();
+            }}
+          />
         )}
         <p className="text-[11px] leading-relaxed text-muted">
           The AI looks at each image, and a frame of each video, and describes it, so auto campaigns can pick the right
@@ -279,11 +319,14 @@ function MediaCard({
   buckets,
   onUpdate,
   onRemove,
+  onTrim,
 }: {
   item: MediaItem;
   buckets: MediaBucket[];
   onUpdate: (patch: { description?: string; bucketIds?: string[] }) => void;
   onRemove: () => void;
+  /** Set for videos when this computer can cut clips. */
+  onTrim?: () => void;
 }) {
   const ids = item.bucketIds ?? [];
   return (
@@ -318,11 +361,21 @@ function MediaCard({
           })}
         </div>
       )}
-      <div className="flex items-center justify-between text-[10px] text-muted">
-        <span className="font-mono">{formatBytes(item.bytes)}</span>
-        <button type="button" onClick={onRemove} className="hover:text-error">
-          Remove
-        </button>
+      <div className="flex items-center justify-between gap-3 text-[10px] text-muted">
+        <span className="font-mono">
+          {item.seconds !== undefined && `${clock(item.seconds)} · `}
+          {formatBytes(item.bytes)}
+        </span>
+        <span className="flex gap-3">
+          {onTrim && (
+            <button type="button" onClick={onTrim} className="hover:text-fg">
+              Trim
+            </button>
+          )}
+          <button type="button" onClick={onRemove} className="hover:text-error">
+            Remove
+          </button>
+        </span>
       </div>
     </div>
   );
@@ -369,6 +422,109 @@ export function LibraryPicker({
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Platforms with a length limit, for the one-tap "first 2:20 for X" clips. */
+const SHORT_PLATFORMS = (Object.keys(PLATFORMS) as PlatformId[]).filter((p) => PLATFORMS[p].maxVideoSeconds > 0);
+
+/**
+ * Cut a clip from a library video: play it and mark the start and end, or
+ * take the first part a platform allows in one tap. The clip is a new item;
+ * the original stays.
+ */
+function ClipDialog({ item, onClose, onSaved }: { item: MediaItem; onClose: () => void; onSaved: () => void }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [duration, setDuration] = useState(item.seconds ?? 0);
+  const [start, setStart] = useState(0);
+  const [end, setEnd] = useState(item.seconds ?? 0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const valid = end > start + 0.5;
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      const r = await fetch(`/api/media-library/${item.id}/clip`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ start, end }),
+      }).then((res) => res.json());
+      if (r.error) setError(r.error);
+      else onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const here = () => video.current?.currentTime ?? 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-fg/40 p-4 animate-fade-in" onClick={onClose}>
+      <div className="w-full max-w-2xl space-y-4 rounded-lg border border-line bg-surface p-5 shadow-md" onClick={(e) => e.stopPropagation()}>
+        <div className="label !mb-0">Trim into a clip</div>
+        <video
+          ref={video}
+          src={`/api/scheduler/uploads/${item.filename}`}
+          controls
+          className="max-h-[50vh] w-full rounded-md border border-line bg-fg"
+          onLoadedMetadata={(e) => {
+            const d = e.currentTarget.duration;
+            if (Number.isFinite(d)) {
+              setDuration(d);
+              if (!end) setEnd(d);
+            }
+          }}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setStart(here())} className="btn-ghost text-xs">
+              Start here
+            </button>
+            <span className="font-mono text-sm text-fg">{clock(start)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setEnd(here())} className="btn-ghost text-xs">
+              End here
+            </button>
+            <span className="font-mono text-sm text-fg">{clock(end)}</span>
+          </div>
+        </div>
+        {duration > 0 && SHORT_PLATFORMS.some((p) => duration > PLATFORMS[p].maxVideoSeconds) && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+            Quick:
+            {SHORT_PLATFORMS.filter((p) => duration > PLATFORMS[p].maxVideoSeconds).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => {
+                  setStart(0);
+                  setEnd(PLATFORMS[p].maxVideoSeconds);
+                }}
+                className="chip-suggest"
+              >
+                First {clock(PLATFORMS[p].maxVideoSeconds)} for {PLATFORMS[p].label}
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="text-[11px] text-muted">
+          Play the video and tap Start here and End here, or pick a quick option. The clip ({clock(Math.max(0, end - start))})
+          is saved as a new item in the same buckets; the original stays. You don&apos;t have to trim for length limits:
+          when a post goes out, each platform gets a version that fits.
+        </p>
+        {error && <p className="text-xs text-error">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="btn-ghost text-sm">
+            Cancel
+          </button>
+          <button type="button" onClick={save} disabled={!valid || saving} className="btn-primary text-sm">
+            {saving ? "Cutting the clip…" : "Save clip"}
+          </button>
+        </div>
       </div>
     </div>
   );

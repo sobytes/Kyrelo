@@ -112,27 +112,20 @@ struct PickedMovie: Transferable {
 }
 
 /// How long a video each platform takes, for the guidance on the phone
-/// (the platforms' own limits for most accounts; nil: long videos are fine).
+/// (PlatformId.maxVideoSeconds, shared with the desktop).
 enum VideoLengths {
-    static let limits: [(platform: PlatformId, seconds: Double?)] = [
-        (.youtube, nil),
-        (.tiktok, 600),
-        (.facebook, nil),
-        (.mastodon, nil),
-        (.telegram, nil),
-        (.bluesky, 180),
-        (.twitter, 140),
-    ]
+    /// The platforms people post video to, most generous first.
+    static let platforms: [PlatformId] = [.youtube, .tiktok, .facebook, .mastodon, .telegram, .bluesky, .twitter]
 
-    /// "Fits YouTube, TikTok… Too long for X (2:20), Bluesky (3:00)."
+    /// "Fits YouTube, TikTok… Your computer sends Bluesky the first 3:00 and X the first 2:20."
     static func guidance(seconds: Double) -> String {
-        let fits = limits.filter { $0.seconds.map { seconds <= $0 } ?? true }.map(\.platform.label)
-        let tooLong = limits.compactMap { limit -> String? in
-            guard let max = limit.seconds, seconds > max else { return nil }
-            return "\(limit.platform.label) (\(clock(max)))"
-        }
+        let fits = platforms.filter { $0.maxVideoSeconds == 0 || seconds <= Double($0.maxVideoSeconds) }.map(\.label)
+        let cut = platforms.filter { $0.maxVideoSeconds > 0 && seconds > Double($0.maxVideoSeconds) }
+            .map { "\($0.label) the first \(clock(Double($0.maxVideoSeconds)))" }
         var text = "Fits \(fits.joined(separator: ", "))."
-        if !tooLong.isEmpty { text += " Too long for \(tooLong.joined(separator: ", ")): trim a short clip for those." }
+        if !cut.isEmpty {
+            text += " Your computer sends \(cut.joined(separator: " and ")), or Trim to choose the part."
+        }
         return text
     }
 

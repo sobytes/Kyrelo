@@ -60,7 +60,7 @@ The app opens on a home screen: the **Scheduler**, which posts to all your accou
    Where a platform needs a developer app (Threads, LinkedIn, YouTube, TikTok, and Instagram or Facebook comments), you make your own, so its limits and approvals are yours: YouTube keeps uploads private until Google audits your project, and TikTok videos land in your TikTok inbox to finish there. Reddit and Pinterest now approve every new API app by hand, so they're not supported yet.
 2. **Settings → API keys** → add a Claude or OpenAI key for AI replies, rewrites and auto campaigns. The page has step-by-step instructions for getting one.
 3. **Scheduler** → write and schedule posts to any of your accounts at once, with an image or a video (X, Bluesky, Mastodon, Telegram, Discord, YouTube, TikTok, and Facebook Pages with a token), and switch to the **Calendar** to see everything planned. Tick **Different text for each account** to tailor each version, with **Adapt** to have the AI suit it to the platform. **Auto-post from a feed** turns new articles in an RSS or Atom feed into posts. **Auto-generate campaign** plans a whole series and posts it to every account you pick, written to fit the strictest platform's limit.
-4. **Media** → keep your images and videos in named buckets (an item can be in several). The AI looks at each image, and a frame of each video, and describes it. Attach any of them to a post with **From library** in the Scheduler, or give an auto campaign a bucket, and the AI picks the item that best fits each post.
+4. **Media** → keep your images and videos in named buckets (an item can be in several). The AI looks at each image, and a frame of each video, and describes it. **Trim** cuts a clip from a video (play it and tap Start here / End here, or one tap for "the first 2:20 for X"). You don't have to think about limits: when a post goes out, each platform gets a version of the video that fits its length and size limits. Attach any of them to a post with **From library** in the Scheduler, or give an auto campaign a bucket, and the AI picks the item that best fits each post.
 5. **Comments** → turn on background checks; new comments on your posts arrive with reply drafts. Pick one, edit it, and reply. Instagram and Facebook comments need a token from your own Meta app (the page walks you through it); with one, a Facebook Page also posts through Meta's API instead of the browser.
 
 The Scheduler, Comments and campaigns cover every platform they can; a service's own tools are set in [`contracts/services.json`](./contracts/services.json): X has Monitor, Deleter, Unfollow and Accounts, the others Accounts for now.
@@ -127,6 +127,10 @@ Until the connection is encrypted:
 - **If you think the token leaked:** reset pairing in **Settings → Phone app** and scan the new code. Old tokens stop working right away.
 
 Phone access is off until you turn it on, so if you don't use the iPhone app this doesn't affect you.
+
+## Third-party software
+
+The desktop app bundles [FFmpeg](https://ffmpeg.org) (static builds from the [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) project) to fit videos to each platform and cut clips. FFmpeg is free software under the GPL; it runs as a separate program, and its licence and where to get its source ship next to it in the app (`Resources/ffmpeg/LICENSE` and `README`). `npm run ffmpeg:install` (in `desktop/`) downloads it for development.
 
 ## Disclaimer
 

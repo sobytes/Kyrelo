@@ -46,6 +46,7 @@ describe("contract: platform rules", () => {
         maxLength: PLATFORMS[id].maxLength,
         maxImageBytes: PLATFORMS[id].maxImageBytes,
         maxVideoBytes: PLATFORMS[id].maxVideoBytes,
+        maxVideoSeconds: PLATFORMS[id].maxVideoSeconds,
         requiresImage: PLATFORMS[id].requiresImage,
         requiresVideo: PLATFORMS[id].requiresVideo,
         campaignLimit: PLATFORMS[id].campaignLimit,
@@ -139,7 +140,7 @@ describe("contract: media sample", () => {
   const sample = contract("media.json");
 
   it("uses only fields MediaItem and MediaBucket define", () => {
-    const item = "id filename kind bytes posterFilename description bucketIds addedAt".split(" ");
+    const item = "id filename kind bytes posterFilename seconds description bucketIds addedAt".split(" ");
     for (const key of keyPaths(sample.items)) expect(item).toContain(key);
     for (const key of keyPaths(sample.buckets)) expect(["id", "name", "createdAt"]).toContain(key);
   });
