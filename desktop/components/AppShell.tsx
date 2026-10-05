@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import pkg from "@/package.json";
-import { SERVICES, serviceBySlug } from "@/lib/services";
+import { ServiceSpec, SERVICES, serviceBySlug } from "@/lib/services";
+import { Account, PlatformId } from "@/lib/types";
 import { COMMENTS_ICON, MEDIA_ICON, SCHEDULER_ICON, SECTIONS, SETTINGS_ICON } from "./sections";
 import { ServiceIcon } from "./ServiceIcon";
 
@@ -10,6 +12,30 @@ interface NavItem {
   href: string;
   label: string;
   icon: React.ReactNode;
+  /** Connected accounts on this service: a dot, and the number when more than one. */
+  connected?: number;
+}
+
+/** Connected accounts per platform, refreshed on every page change and every 30 s. */
+function useConnectedCounts(pathname: string): Partial<Record<PlatformId, number>> | null {
+  const [counts, setCounts] = useState<Partial<Record<PlatformId, number>> | null>(null);
+  useEffect(() => {
+    let live = true;
+    const load = async () => {
+      const r = (await fetch("/api/accounts").then((res) => res.json()).catch(() => null)) as { accounts?: Account[] } | null;
+      if (!live || !r?.accounts) return;
+      const next: Partial<Record<PlatformId, number>> = {};
+      for (const a of r.accounts) next[a.platform] = (next[a.platform] ?? 0) + 1;
+      setCounts(next);
+    };
+    void load();
+    const timer = setInterval(load, 30_000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [pathname]);
+  return counts;
 }
 
 const ALL_SERVICES_ICON = (
@@ -29,17 +55,21 @@ const ALL_SERVICES_ICON = (
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const service = serviceBySlug(pathname.split("/")[1] ?? "");
+  const counts = useConnectedCounts(pathname);
+  const serviceItem = (s: ServiceSpec): NavItem => ({
+    href: `/${s.slug}`,
+    label: s.label,
+    icon: <ServiceIcon service={s.id} className="h-4 w-4" />,
+    connected: counts?.[s.id],
+  });
+  // On the home screen: the services in use, then the rest folded away under
+  // "Add a service" (until accounts have loaded, nothing is folded).
+  const connected = SERVICES.filter((s) => !counts || counts[s.id]);
+  const unused = counts ? SERVICES.filter((s) => !counts[s.id]) : [];
 
   const items: NavItem[] = service
     ? service.sections.map((s) => ({ href: `/${service.slug}/${s}`, label: SECTIONS[s].label, icon: SECTIONS[s].icon }))
-    : [
-        { href: "/", label: "All services", icon: ALL_SERVICES_ICON },
-        ...SERVICES.map((s) => ({
-          href: `/${s.slug}`,
-          label: s.label,
-          icon: <ServiceIcon service={s.id} className="h-4 w-4" />,
-        })),
-      ];
+    : [{ href: "/", label: "All services", icon: ALL_SERVICES_ICON }, ...connected.map(serviceItem)];
 
   return (
     <div className="flex min-h-screen">
@@ -74,6 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               active={item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(item.href + "/")}
             />
           ))}
+          {!service && unused.length > 0 && <AddService services={unused} openAtFirst={connected.length === 0} />}
         </nav>
 
         <div className="space-y-0.5 border-t border-line p-2">
@@ -97,7 +128,66 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       }
     >
       <span className="h-4 w-4 shrink-0">{item.icon}</span>
-      <span>{item.label}</span>
+      <span className="flex-1 truncate">{item.label}</span>
+      {item.connected ? (
+        <span className="flex items-center gap-1 font-mono text-[10px] text-muted" title={`${item.connected} connected`}>
+          {item.connected > 1 && item.connected}
+          <span className="h-1.5 w-1.5 rounded-full bg-success" />
+        </span>
+      ) : null}
     </Link>
+  );
+}
+
+/**
+ * Services with nothing connected, folded under one row so the sidebar shows
+ * what's in use. Each opens straight on its connect screen. Open or closed is
+ * remembered on this computer.
+ */
+function AddService({ services, openAtFirst }: { services: ServiceSpec[]; openAtFirst: boolean }) {
+  const [open, setOpen] = useState(openAtFirst);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("kyrelo.addServiceOpen");
+      if (saved !== null) setOpen(saved === "1");
+    } catch {
+      // storage unavailable: keep the default
+    }
+  }, []);
+  const toggle = () => {
+    setOpen(!open);
+    try {
+      localStorage.setItem("kyrelo.addServiceOpen", open ? "0" : "1");
+    } catch {
+      // not remembered, that's all
+    }
+  };
+  return (
+    <div className="pt-1">
+      <button
+        type="button"
+        onClick={toggle}
+        className="flex w-full items-center gap-3 rounded border border-dashed border-line px-3 py-2 text-sm text-muted transition-colors hover:border-muted hover:text-fg"
+      >
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-base leading-none">+</span>
+        <span className="flex-1 text-left">Add a service</span>
+        <span className="font-mono text-[10px]">{open ? "▴" : services.length}</span>
+      </button>
+      {open && (
+        <div className="mt-0.5 space-y-0.5">
+          {services.map((s) => (
+            <Link
+              key={s.id}
+              href={`/${s.slug}/accounts`}
+              className="flex items-center gap-3 rounded px-3 py-1.5 text-[13px] text-muted opacity-80 transition hover:text-fg hover:opacity-100"
+            >
+              <ServiceIcon service={s.id} className="h-3.5 w-3.5 shrink-0" />
+              <span className="flex-1 truncate">{s.label}</span>
+              <span className="text-[10px]">Connect</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
