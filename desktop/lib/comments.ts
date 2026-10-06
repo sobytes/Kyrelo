@@ -1,5 +1,6 @@
 import { aiErrorMessage, draftCommentReplies } from "./ai";
 import { takeBackgroundDraft } from "./ai-usage";
+import { isQuietHours } from "./pacing";
 import {
   getAccountSecret,
   getCommentSettings,
@@ -312,7 +313,9 @@ async function checkOnce(force: boolean): Promise<CommentsCheckResult> {
   const accountErrors: Record<string, string> = {};
   const stored = (await getCommentsState()).comments;
   for (const account of accounts) {
-    if (account.platform === "twitter" && connectingPlatform()) continue;
+    // X is read through the browser: not while connecting, and not overnight
+    // unless asked (lib/pacing.ts). API platforms are checked any time.
+    if (account.platform === "twitter" && (connectingPlatform() || (!force && isQuietHours()))) continue;
     const known = new Set(
       stored.filter((c) => c.platform === account.platform && c.accountId === account.id).map((c) => c.target.id ?? c.target.uri),
     );

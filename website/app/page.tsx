@@ -183,7 +183,7 @@ const FEATURE_GROUPS = [
       },
       {
         title: "Monitor the accounts that matter",
-        body: "Add the X handles you care about and Kyrelo checks them every 90 seconds, with a desktop notification when they post, so you can be among the first to reply.",
+        body: "Add the X handles you care about and Kyrelo checks them every few minutes, at a human pace, with a desktop notification when they post, so you can be among the first to reply.",
         icon: "radar",
       },
       {

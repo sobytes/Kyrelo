@@ -1,5 +1,6 @@
 import { aiErrorMessage, draftReplies } from "./ai";
 import { takeBackgroundDraft } from "./ai-usage";
+import { isQuietHours } from "./pacing";
 import { getGrokSettings, getGrokState, listAccounts, modifyGrokState } from "./storage";
 import { defaultXAccountId } from "./accounts";
 import { connectingPlatform } from "./browser-connect";
@@ -42,7 +43,9 @@ export interface WatchResult {
 const watcherState = ((globalThis as { __kyreloWatcher?: { inFlight?: Promise<WatchResult>; offset: number } })
   .__kyreloWatcher ??= { offset: 0 });
 
-export function runGrokWatcher(): Promise<WatchResult> {
+/** `force`: the user pressed Check now, so it runs even in quiet hours (lib/pacing.ts). */
+export function runGrokWatcher(opts: { force?: boolean } = {}): Promise<WatchResult> {
+  if (!opts.force && isQuietHours()) return Promise.resolve({ skipped: "quiet-hours" });
   watcherState.inFlight ??= runGrokWatcherOnce().finally(() => {
     watcherState.inFlight = undefined;
   });

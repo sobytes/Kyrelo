@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { BrowserContext, chromium, Page } from "playwright";
 import { findChrome } from "./system-chrome";
@@ -25,66 +26,49 @@ export interface OpenOptions {
   accountId: string;
 }
 
-const UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+// Kyrelo drives the user's own installed Chrome (findChrome), and the best
+// disguise is to let it be exactly that: its own user agent, version, system
+// language, timezone and graphics card. Earlier versions overrode them (a
+// fixed Chrome 131 user agent, New York time, en-US, a fake Intel GPU), and
+// each mismatch with the real browser and the user's IP is what bot checks
+// look for. Only headless runs need one fix: headless Chrome names itself
+// "HeadlessChrome", so presentAsChrome() reports it as the Chrome it is.
 
-// Init script that patches the most common headless-detection tells. This is the
-// minimum surface; sophisticated detectors (Akamai, Cloudflare Bot Management)
-// look at TLS fingerprint and behavior over time, which scripts can't fix.
-const STEALTH_INIT = `
-  // navigator.webdriver — the obvious one
-  Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => undefined });
-
-  // navigator.languages — headless reports [] sometimes
-  Object.defineProperty(Navigator.prototype, 'languages', {
-    get: () => ['en-US', 'en'],
-  });
-
-  // navigator.plugins — empty in headless. Spoof a non-empty PluginArray.
-  Object.defineProperty(Navigator.prototype, 'plugins', {
-    get: () => {
-      const arr = [
-        { name: 'PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
-        { name: 'Chrome PDF Viewer', filename: 'internal-pdf-viewer', description: '' },
-        { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer', description: '' },
-        { name: 'Microsoft Edge PDF Viewer', filename: 'internal-pdf-viewer', description: '' },
-        { name: 'WebKit built-in PDF', filename: 'internal-pdf-viewer', description: '' },
-      ];
-      arr.item = (i) => arr[i];
-      arr.namedItem = (n) => arr.find((p) => p.name === n) ?? null;
-      arr.refresh = () => {};
-      Object.setPrototypeOf(arr, PluginArray.prototype);
-      return arr;
+/**
+ * Makes a headless page report the normal Chrome it is: the same user agent
+ * without "HeadlessChrome", and matching client hints (navigator.userAgentData
+ * and the Sec-CH-UA headers), so the two never disagree.
+ */
+async function presentAsChrome(context: BrowserContext, page: Page): Promise<void> {
+  const cdp = await context.newCDPSession(page);
+  const { userAgent, product } = await cdp.send("Browser.getVersion");
+  const full = product.split("/")[1] ?? "";
+  const major = full.split(".")[0];
+  if (!userAgent.includes("HeadlessChrome") || !major) return;
+  const platform = process.platform === "darwin" ? "macOS" : process.platform === "win32" ? "Windows" : "Linux";
+  // Darwin 24 is macOS 15; Windows reports 10.0 for 10 and up.
+  const platformVersion = process.platform === "darwin" ? `${Number(os.release().split(".")[0]) - 9}.0.0` : process.platform === "win32" ? "10.0.0" : "";
+  const brands = [
+    { brand: "Google Chrome", version: major },
+    { brand: "Chromium", version: major },
+    { brand: "Not.A/Brand", version: "99" },
+  ];
+  await cdp.send("Network.setUserAgentOverride", {
+    userAgent: userAgent.replace("HeadlessChrome", "Chrome"),
+    userAgentMetadata: {
+      brands,
+      fullVersionList: brands.map((b) => ({ ...b, version: b.brand === "Not.A/Brand" ? "99.0.0.0" : full })),
+      fullVersion: full,
+      platform,
+      platformVersion,
+      architecture: process.arch === "arm64" ? "arm" : "x86",
+      bitness: "64",
+      model: "",
+      mobile: false,
+      wow64: false,
     },
   });
-
-  // window.chrome — present in real Chrome, absent in vanilla Chromium / headless.
-  if (!window.chrome) {
-    window.chrome = { runtime: {}, app: { isInstalled: false } };
-  }
-
-  // Permissions API — real Chrome returns "default" for notifications when no
-  // user choice; headless returns "denied" inconsistently. Normalise.
-  if (navigator.permissions && navigator.permissions.query) {
-    const orig = navigator.permissions.query.bind(navigator.permissions);
-    navigator.permissions.query = (params) => {
-      if (params && params.name === 'notifications') {
-        return Promise.resolve({ state: Notification.permission, onchange: null });
-      }
-      return orig(params);
-    };
-  }
-
-  // WebGL vendor/renderer — common fingerprint check. Spoof to look like a
-  // typical Mac/Intel Iris combo (real users have plenty of variety so this
-  // doesn't have to match anything specific).
-  const getParameter = WebGLRenderingContext.prototype.getParameter;
-  WebGLRenderingContext.prototype.getParameter = function (p) {
-    if (p === 37445) return 'Intel Inc.';                           // UNMASKED_VENDOR_WEBGL
-    if (p === 37446) return 'Intel Iris OpenGL Engine';             // UNMASKED_RENDERER_WEBGL
-    return getParameter.call(this, p);
-  };
-`;
+}
 
 // Per-profile mutex, keyed `platform:accountId`. launchPersistentContext locks
 // the profile dir, so two concurrent opens of the same profile collide on
@@ -238,12 +222,12 @@ export async function openBrowser(
     // the same profile dir each time." History, GPU caches, fonts, even cookies
     // all persist exactly as a real user accumulates them. Strongest free win
     // against fingerprint-based detection.
+    // No user agent, locale or timezone of our own: the real Chrome's (see
+    // presentAsChrome). Headless needs a window size; a visible window keeps
+    // its natural one.
     const launchOptions = {
       headless,
-      userAgent: UA,
-      viewport: { width: 1366, height: 820 },
-      locale: "en-US",
-      timezoneId: "America/New_York",
+      viewport: headless ? { width: 1366, height: 820 } : null,
       args: ["--disable-blink-features=AutomationControlled"],
       ignoreDefaultArgs: ["--enable-automation"],
     };
@@ -274,7 +258,7 @@ export async function openBrowser(
     shared.openBrowserCount++;
     // Non-optional alias: close() below runs later, where `context` isn't narrowed.
     const launched = context;
-    await launched.addInitScript({ content: STEALTH_INIT });
+    if (headless) launched.on("page", (p) => void presentAsChrome(launched, p).catch(() => {}));
 
     // Inject cookies saved by the Connect flow.
     const sidecar = path.join(dir, "kyrelo-cookies.json");
@@ -302,6 +286,7 @@ export async function openBrowser(
     }
 
     const page = launched.pages()[0] ?? (await launched.newPage());
+    if (headless) await presentAsChrome(launched, page).catch((err) => console.warn("[session] couldn't present as Chrome:", err));
     console.log(
       `[session] openBrowser(${platform}/${opts.accountId}): ready, headless=${headless}`,
     );

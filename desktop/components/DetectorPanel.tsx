@@ -342,7 +342,7 @@ function Hero({
               {!watching && !inLogin && !needsConnect && needsHandles &&
                 "Pick a handle or add a keyword in the sidebar to start."}
               {!watching && !inLogin && !needsConnect && !needsHandles &&
-                "Click Start Watching to begin polling every 90 seconds."}
+                "Click Start Watching to begin checking every few minutes."}
             </p>
           </div>
         </div>
@@ -680,7 +680,7 @@ function Feed({
         <span>No tweets yet.</span>
         <span className="text-xs">
           {settings.enabled
-            ? "Polling every 90 seconds. Hit Check now to scrape immediately."
+            ? "Checking every few minutes, at uneven times, and resting overnight (1–7am) so X sees a person, not a bot. Hit Check now to check immediately."
             : "Start watching to begin polling."}
         </span>
       </div>

@@ -33,7 +33,11 @@ loadEnvFile(".env.local");
 loadEnvFile(".env");
 
 const baseUrl = process.env.APP_URL ?? "http://localhost:3000";
-const intervalMs = Number(process.env.WORKER_GROK_INTERVAL_MS ?? 90_000);
+// The Monitor browses X, so it checks at uneven times (3 to 6 minutes apart
+// by default) rather than on a fixed beat, which reads as a bot. It also
+// pauses overnight (lib/pacing.ts).
+const intervalMs = Number(process.env.WORKER_GROK_INTERVAL_MS ?? 180_000);
+const intervalJitterMs = Number(process.env.WORKER_GROK_JITTER_MS ?? 180_000);
 const schedulerIntervalMs = Number(process.env.WORKER_SCHEDULER_INTERVAL_MS ?? 30_000);
 const commentsIntervalMs = Number(process.env.WORKER_COMMENTS_INTERVAL_MS ?? 300_000);
 const feedsIntervalMs = Number(process.env.WORKER_FEEDS_INTERVAL_MS ?? 600_000);
@@ -177,7 +181,7 @@ async function armNextPost() {
 }
 
 console.log(
-  `Worker started. watch-grok every ${intervalMs / 1000}s, scheduler every ${schedulerIntervalMs / 1000}s, comments every ${commentsIntervalMs / 1000}s, feeds every ${feedsIntervalMs / 1000}s, stats every ${statsIntervalMs / 1000}s.`,
+  `Worker started. watch-grok every ${intervalMs / 1000}-${(intervalMs + intervalJitterMs) / 1000}s, scheduler every ${schedulerIntervalMs / 1000}s, comments every ${commentsIntervalMs / 1000}s, feeds every ${feedsIntervalMs / 1000}s, stats every ${statsIntervalMs / 1000}s.`,
 );
 // Fire the first ticks in parallel so a slow watch-grok scrape can't block
 // the scheduler from picking up due posts.
@@ -186,7 +190,12 @@ void schedulerTick();
 void commentsTick();
 void feedsTick();
 void statsTick();
-setInterval(tick, intervalMs);
+// Each check schedules the next after it finishes, a random time later.
+async function tickThenWait() {
+  await tick();
+  setTimeout(tickThenWait, intervalMs + Math.random() * intervalJitterMs);
+}
+setTimeout(tickThenWait, intervalMs + Math.random() * intervalJitterMs);
 setInterval(schedulerTick, schedulerIntervalMs);
 setInterval(commentsTick, commentsIntervalMs);
 setInterval(feedsTick, feedsIntervalMs);
