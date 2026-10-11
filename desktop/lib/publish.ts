@@ -70,8 +70,15 @@ const PUBLISHERS: Record<PlatformId, Publisher> = {
     const secret = await getAccountSecret("facebook", account.id);
     if (secret?.token && secret.userId) {
       await opts.onSendingStarted();
-      const { postToFacebookPage } = await import("./meta");
-      return postToFacebookPage(secret.userId, secret.token, text, { imagePath: opts.imagePath, videoPath: opts.videoPath });
+      const { postToFacebookPage, isPermissionError } = await import("./meta");
+      try {
+        return await postToFacebookPage(secret.userId, secret.token, text, { imagePath: opts.imagePath, videoPath: opts.videoPath });
+      } catch (err) {
+        // Tokens made for Comments before Kyrelo posted through the API lack
+        // pages_manage_posts; text and photos still go through the browser.
+        if (opts.videoPath || !isPermissionError(err)) throw err;
+        console.warn(`[publish] Facebook token can't post (${err instanceof Error ? err.message : err}); using the browser`);
+      }
     }
     if (opts.videoPath) throw new Error("Videos go to Facebook through its API: add a Page token on the Comments page.");
     const { postToFacebookBrowser } = await import("./browser/facebook-post");

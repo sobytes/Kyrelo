@@ -190,7 +190,8 @@ export async function handleBridgeRequest(
     const upstream = await fetch(`${localApiUrl()}${url.pathname}${url.search}`, {
       method: req.method,
       headers: { "Content-Type": contentType },
-      body: body ? new Uint8Array(body) : undefined,
+      // A view of the received bytes, not a copy: uploads can be 256 MB.
+      body: body ? new Uint8Array(body.buffer as ArrayBuffer, body.byteOffset, body.byteLength) : undefined,
       // A video arriving over Wi-Fi and being described can take a while.
       signal: AbortSignal.timeout(limit ? 600_000 : 180_000),
     });

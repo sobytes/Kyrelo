@@ -1,6 +1,5 @@
 import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { BrowserContext, chromium, Page } from "playwright";
 import { findChrome } from "./system-chrome";
@@ -34,38 +33,61 @@ export interface OpenOptions {
 // look for. Only headless runs need one fix: headless Chrome names itself
 // "HeadlessChrome", so presentAsChrome() reports it as the Chrome it is.
 
+type ClientHints = {
+  brands: { brand: string; version: string }[];
+  fullVersionList: { brand: string; version: string }[];
+  uaFullVersion: string;
+  platform: string;
+  platformVersion: string;
+  architecture: string;
+  bitness: string;
+  model: string;
+  mobile: boolean;
+  wow64: boolean;
+};
+
 /**
- * Makes a headless page report the normal Chrome it is: the same user agent
- * without "HeadlessChrome", and matching client hints (navigator.userAgentData
- * and the Sec-CH-UA headers), so the two never disagree.
+ * The browser's own client hints, exactly as it reports them (brand order,
+ * OS version and all). They only show on a secure page, so a throwaway page
+ * loads a stand-in https address served from here, never the network.
  */
-async function presentAsChrome(context: BrowserContext, page: Page): Promise<void> {
+async function ownClientHints(context: BrowserContext): Promise<ClientHints> {
+  const page = await context.newPage();
+  try {
+    await page.route("https://kyrelo.invalid/", (r) => r.fulfill({ body: "<html></html>", contentType: "text/html" }));
+    await page.goto("https://kyrelo.invalid/");
+    return await page.evaluate(() =>
+      (navigator as unknown as { userAgentData: { getHighEntropyValues(k: string[]): Promise<ClientHints> } }).userAgentData.getHighEntropyValues(
+        ["architecture", "bitness", "fullVersionList", "model", "platformVersion", "uaFullVersion", "wow64"],
+      ),
+    );
+  } finally {
+    await page.close();
+  }
+}
+
+/**
+ * Makes a headless page report the normal Chrome it is. Headless Chrome's
+ * client hints already match the visible browser; only its user agent says
+ * "HeadlessChrome". Overriding the user agent drops the hints unless they are
+ * passed too, so the browser's own go back in unchanged.
+ */
+async function presentAsChrome(context: BrowserContext, page: Page, hints: ClientHints): Promise<void> {
   const cdp = await context.newCDPSession(page);
-  const { userAgent, product } = await cdp.send("Browser.getVersion");
-  const full = product.split("/")[1] ?? "";
-  const major = full.split(".")[0];
-  if (!userAgent.includes("HeadlessChrome") || !major) return;
-  const platform = process.platform === "darwin" ? "macOS" : process.platform === "win32" ? "Windows" : "Linux";
-  // Darwin 24 is macOS 15; Windows reports 10.0 for 10 and up.
-  const platformVersion = process.platform === "darwin" ? `${Number(os.release().split(".")[0]) - 9}.0.0` : process.platform === "win32" ? "10.0.0" : "";
-  const brands = [
-    { brand: "Google Chrome", version: major },
-    { brand: "Chromium", version: major },
-    { brand: "Not.A/Brand", version: "99" },
-  ];
+  const { userAgent } = await cdp.send("Browser.getVersion");
   await cdp.send("Network.setUserAgentOverride", {
     userAgent: userAgent.replace("HeadlessChrome", "Chrome"),
     userAgentMetadata: {
-      brands,
-      fullVersionList: brands.map((b) => ({ ...b, version: b.brand === "Not.A/Brand" ? "99.0.0.0" : full })),
-      fullVersion: full,
-      platform,
-      platformVersion,
-      architecture: process.arch === "arm64" ? "arm" : "x86",
-      bitness: "64",
-      model: "",
-      mobile: false,
-      wow64: false,
+      brands: hints.brands,
+      fullVersionList: hints.fullVersionList,
+      fullVersion: hints.uaFullVersion,
+      platform: hints.platform,
+      platformVersion: hints.platformVersion,
+      architecture: hints.architecture,
+      bitness: hints.bitness,
+      model: hints.model,
+      mobile: hints.mobile,
+      wow64: hints.wow64,
     },
   });
 }
@@ -258,7 +280,6 @@ export async function openBrowser(
     shared.openBrowserCount++;
     // Non-optional alias: close() below runs later, where `context` isn't narrowed.
     const launched = context;
-    if (headless) launched.on("page", (p) => void presentAsChrome(launched, p).catch(() => {}));
 
     // Inject cookies saved by the Connect flow.
     const sidecar = path.join(dir, "kyrelo-cookies.json");
@@ -286,7 +307,15 @@ export async function openBrowser(
     }
 
     const page = launched.pages()[0] ?? (await launched.newPage());
-    if (headless) await presentAsChrome(launched, page).catch((err) => console.warn("[session] couldn't present as Chrome:", err));
+    if (headless) {
+      try {
+        const hints = await ownClientHints(launched);
+        await presentAsChrome(launched, page, hints);
+        launched.on("page", (p) => void presentAsChrome(launched, p, hints).catch(() => {}));
+      } catch (err) {
+        console.warn("[session] couldn't present as Chrome:", err);
+      }
+    }
     console.log(
       `[session] openBrowser(${platform}/${opts.accountId}): ready, headless=${headless}`,
     );

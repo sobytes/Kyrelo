@@ -21,6 +21,18 @@ export function hasFfmpeg(): boolean {
   return existsSync(ffmpegPath());
 }
 
+// Re-encodes use every core, so they run one at a time: a campaign that
+// schedules ten videos queues ten encodes instead of starting them together.
+let encoding: Promise<unknown> = Promise.resolve();
+function encode(args: string[], timeoutMs: number): Promise<string> {
+  const next = encoding.then(() => run(args, timeoutMs));
+  encoding = next.catch(() => {});
+  return next;
+}
+
+/** At most 1080 on the short side, so portrait videos keep their full width. */
+const SCALE = "scale='if(gt(iw,ih),-2,min(1080,iw))':'if(gt(iw,ih),min(1080,ih),-2)'";
+
 /** Runs ffmpeg; resolves with its log (stderr), which is where it reports what it read. */
 function run(args: string[], timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -92,7 +104,7 @@ export function fitArgs(input: string, output: string, seconds: number, maxBytes
     "-y",
     "-i", input,
     "-t", seconds.toFixed(2),
-    "-vf", "scale=-2:'min(1080,ih)'",
+    "-vf", SCALE,
     "-c:v", "libx264",
     "-preset", "veryfast",
     ...(videoBps ? ["-b:v", String(videoBps), "-maxrate", String(videoBps), "-bufsize", String(videoBps * 2)] : ["-crf", "23"]),
@@ -104,35 +116,73 @@ export function fitArgs(input: string, output: string, seconds: number, maxBytes
   ];
 }
 
-/**
- * A version of the video (an absolute path in uploads/) that fits the
- * platform: the first `maxSeconds`, shrunk under `maxBytes`. The video itself
- * when it already fits. Versions are kept, named by their limits, so posting
- * the same video to the same kind of platform again reuses one.
- */
-// Versions being made, by output path: scheduling starts one in the
-// background and sending may ask for the same one before it's done.
-const making = ((globalThis as { __kyreloFitting?: Map<string, Promise<string>> }).__kyreloFitting ??= new Map());
+// Versions being made, and the last failure of each, by output path:
+// scheduling starts one in the background, and sending picks up the result.
+const fitting = ((globalThis as { __kyreloFitting?: { making: Map<string, Promise<string>>; failed: Map<string, Error> } }).__kyreloFitting ??= {
+  making: new Map(),
+  failed: new Map(),
+});
 
-export async function fitVideo(file: string, limits: FitLimits): Promise<string> {
+/** Versions are kept, named by their limits, so the same video to the same kind of platform reuses one. */
+function fitPathFor(file: string, limits: FitLimits): string {
   const base = path.basename(file).replace(/\.(mp4|mov)$/i, "");
-  const out = path.join(uploadsDir(), `${base}_fit_${limits.maxSeconds ?? 0}_${limits.maxBytes ?? 0}.mp4`);
-  let job = making.get(out);
+  return path.join(uploadsDir(), `${base}_fit_${limits.maxSeconds ?? 0}_${limits.maxBytes ?? 0}.mp4`);
+}
+
+/**
+ * Starts making a version of the video (an absolute path in uploads/) that
+ * fits the platform: the first `maxSeconds`, shrunk under `maxBytes`.
+ * Resolves with the video itself when it already fits.
+ */
+export function fitVideo(file: string, limits: FitLimits): Promise<string> {
+  const out = fitPathFor(file, limits);
+  let job = fitting.making.get(out);
   if (!job) {
-    job = makeFit(file, out, limits).finally(() => making.delete(out));
-    making.set(out, job);
+    fitting.failed.delete(out);
+    job = makeFit(file, out, limits)
+      .catch((err: Error) => {
+        fitting.failed.set(out, err);
+        throw err;
+      })
+      .finally(() => fitting.making.delete(out));
+    fitting.making.set(out, job);
   }
   return job;
 }
 
-async function makeFit(file: string, out: string, limits: FitLimits): Promise<string> {
+/**
+ * The version to send right now: the video itself or a finished fitted copy,
+ * or null while one is still being made (this starts it if nothing has).
+ * Throws the last attempt's error once, so the post fails with the reason
+ * and a reschedule tries again.
+ */
+export async function readyFit(file: string, limits: FitLimits): Promise<string | null> {
+  const out = fitPathFor(file, limits);
+  const failure = fitting.failed.get(out);
+  if (failure) {
+    fitting.failed.delete(out);
+    throw failure;
+  }
+  if (fitting.making.has(out)) return null;
+  if (existsSync(out)) return out;
+  if (!(await needsFit(file, limits))) return file;
+  void fitVideo(file, limits).catch(() => {});
+  return null;
+}
+
+async function needsFit(file: string, limits: FitLimits): Promise<{ seconds: number; tooLong: boolean; tooBig: boolean } | null> {
   const { seconds } = await probe(file);
   const bytes = (await fs.stat(file)).size;
   const tooLong = Boolean(limits.maxSeconds && seconds > limits.maxSeconds + 0.5);
   const tooBig = Boolean(limits.maxBytes && bytes > limits.maxBytes);
-  if (!tooLong && !tooBig) return file;
+  return tooLong || tooBig ? { seconds, tooLong, tooBig } : null;
+}
 
+async function makeFit(file: string, out: string, limits: FitLimits): Promise<string> {
+  const need = await needsFit(file, limits);
+  if (!need) return file;
   if (existsSync(out)) return out;
+  const { seconds, tooLong, tooBig } = need;
 
   const length = tooLong ? limits.maxSeconds! : seconds;
   const part = `${out}.part.mp4`;
@@ -140,7 +190,7 @@ async function makeFit(file: string, out: string, limits: FitLimits): Promise<st
   try {
     // Only cut: keep normal quality, and squeeze the bitrate only if the cut is still too big.
     if (!tooBig) {
-      await run(fitArgs(file, part, length)!, 30 * 60_000);
+      await encode(fitArgs(file, part, length)!, 30 * 60_000);
       if (!limits.maxBytes || (await fs.stat(part)).size <= limits.maxBytes) {
         await fs.rename(part, out);
         return out;
@@ -148,7 +198,7 @@ async function makeFit(file: string, out: string, limits: FitLimits): Promise<st
     }
     const args = fitArgs(file, part, length, limits.maxBytes);
     if (!args) throw new Error(tooLongToShrink);
-    await run(args, 30 * 60_000);
+    await encode(args, 30 * 60_000);
     if ((await fs.stat(part)).size > limits.maxBytes!) {
       throw new Error("The video couldn't be made small enough for this platform. Trim it in Media and try again.");
     }
@@ -164,13 +214,19 @@ export async function cutClip(file: string, start: number, end: number): Promise
   if (!(end > start && start >= 0)) throw new Error("The clip's end must come after its start.");
   const filename = `${randomUUID()}.mp4`;
   const out = path.join(uploadsDir(), filename);
-  await run(
-    [
-      "-y", "-ss", start.toFixed(2), "-i", file, "-t", (end - start).toFixed(2),
-      "-vf", "scale=-2:'min(1080,ih)'", "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
-      "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", String(AUDIO_BPS), "-movflags", "+faststart", out,
-    ],
-    30 * 60_000,
-  );
+  const part = `${out}.part.mp4`;
+  try {
+    await encode(
+      [
+        "-y", "-ss", start.toFixed(2), "-i", file, "-t", (end - start).toFixed(2),
+        "-vf", SCALE, "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", String(AUDIO_BPS), "-movflags", "+faststart", part,
+      ],
+      30 * 60_000,
+    );
+    await fs.rename(part, out);
+  } finally {
+    await fs.rm(part, { force: true });
+  }
   return filename;
 }

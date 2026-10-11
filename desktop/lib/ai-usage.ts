@@ -4,7 +4,11 @@ import { getAiUsage, modifyAiUsage } from "./storage";
 // tweets, Comments under new comments), so a busy keyword or a viral post
 // can't run up the AI bill overnight. Drafts the user asks for aren't capped.
 
-const today = () => new Date().toISOString().slice(0, 10);
+/** The local date, so the limit resets at the user's midnight. */
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 /** Counts one background draft against today's limit; false (and nothing counted) once it's reached. */
 export async function takeBackgroundDraft(): Promise<boolean> {

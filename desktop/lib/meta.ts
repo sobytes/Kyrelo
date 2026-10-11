@@ -12,7 +12,7 @@
 // pages_read_user_content, pages_manage_engagement and pages_manage_posts.
 // Personal profiles have no API for this.
 
-import { promises as fs } from "node:fs";
+import { openAsBlob } from "node:fs";
 import path from "node:path";
 import { imageTypeForFilename, videoTypeForFilename } from "./uploads";
 
@@ -142,6 +142,11 @@ export async function replyOnFacebook(token: string, commentId: string, text: st
   return { url: permalink_url ?? "https://www.facebook.com/" };
 }
 
+/** Graph's "not allowed" errors: (#10) and (#200) permissions, (#190) a token that no longer works. */
+export function isPermissionError(err: unknown): boolean {
+  return err instanceof Error && /\(#(10|190|200)\)|permission/i.test(err.message);
+}
+
 /**
  * Posts to the Page through the Graph API, with the photo or video uploaded
  * straight from this computer, and returns the post's link.
@@ -162,7 +167,8 @@ export async function postToFacebookPage(
   form.append("access_token", token);
   form.append(media.videoPath ? "description" : "caption", text);
   const type = (media.videoPath ? videoTypeForFilename(name) : imageTypeForFilename(name)) ?? "application/octet-stream";
-  form.append("source", new Blob([new Uint8Array(await fs.readFile(file))], { type }), name);
+  // File-backed, so a big video isn't read into memory.
+  form.append("source", await openAsBlob(file, { type }), name);
   // Videos go to graph-video, Facebook's host for video uploads.
   const endpoint = media.videoPath
     ? `https://graph-video.facebook.com/v23.0/${pageId}/videos`

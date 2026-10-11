@@ -171,7 +171,7 @@ export async function clipMediaItem(id: string, start: number, end: number): Pro
     kind: "video",
     bytes: (await fs.stat(file)).size,
     posterFilename: await makePoster(file).catch(() => undefined),
-    seconds: Math.round((end - start) * 10) / 10,
+    seconds: await probe(file).then((i) => Math.round(i.seconds * 10) / 10, () => Math.round((end - start) * 10) / 10),
     description: source.description,
     bucketIds: source.bucketIds ?? [],
     addedAt: new Date().toISOString(),

@@ -90,13 +90,21 @@ export function hasStats(platform: PlatformId): boolean {
 }
 
 // One refresh at a time, shared by the worker and the Scheduler's button.
-const refreshState = ((globalThis as { __kyreloStats?: { inFlight?: Promise<{ updated: number }> } }).__kyreloStats ??= {});
+const refreshState = ((globalThis as { __kyreloStats?: { inFlight?: Promise<{ updated: number }>; forced?: boolean } }).__kyreloStats ??= {});
 
 /** Refreshes the stats of sent posts from the last month that are due for it (or all of them, when `force`). */
 export function refreshStats(opts: { force?: boolean } = {}): Promise<{ updated: number }> {
-  refreshState.inFlight ??= refreshOnce(opts.force ?? false).finally(() => {
-    refreshState.inFlight = undefined;
-  });
+  const force = opts.force ?? false;
+  // The button asks for everything: if the worker's lighter run is going, do a full one after it.
+  if (refreshState.inFlight && force && !refreshState.forced) {
+    return refreshState.inFlight.catch(() => {}).then(() => refreshStats(opts));
+  }
+  if (!refreshState.inFlight) {
+    refreshState.forced = force;
+    refreshState.inFlight = refreshOnce(force).finally(() => {
+      refreshState.inFlight = undefined;
+    });
+  }
   return refreshState.inFlight;
 }
 

@@ -27,7 +27,7 @@ export function useMediaLibrary() {
     void load();
   }, []);
 
-  return { items, buckets, loaded, load };
+  return { items, buckets, loaded, load, setItems };
 }
 
 export function inFilter(item: MediaItem, filter: Filter): boolean {
@@ -115,7 +115,7 @@ function formatBytes(n?: number): string {
 }
 
 export function MediaPanel() {
-  const { items, buckets, loaded, load } = useMediaLibrary();
+  const { items, buckets, loaded, load, setItems } = useMediaLibrary();
   const tools = useMediaTools();
   const [trimming, setTrimming] = useState<MediaItem | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -177,6 +177,8 @@ export function MediaPanel() {
   }
 
   async function update(item: MediaItem, patch: { description?: string; bucketIds?: string[] }) {
+    // Shown at once, so a second quick click builds on this one rather than the old list.
+    setItems((all) => all.map((m) => (m.id === item.id ? { ...m, ...patch } : m)));
     await json(`/api/media-library/${item.id}`, { method: "PATCH", body: JSON.stringify(patch) });
     await load();
   }

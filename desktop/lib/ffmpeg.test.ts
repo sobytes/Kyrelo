@@ -54,4 +54,34 @@ describe.runIf(Boolean(process.env.FFMPEG_PATH) || existsSync(path.join(process.
     expect((await ff.probe(path.join(uploadsDir(), clip))).seconds).toBeCloseTo(3, 0);
     expect((await stat(path.join(uploadsDir(), clip))).size).toBeGreaterThan(0);
   }, 60_000);
+
+  it("keeps portrait videos full width, and caps the short side at 1080", async () => {
+    const { uploadsDir } = await import("./uploads");
+    const make = (name: string, size: string) => {
+      const file = path.join(uploadsDir(), name);
+      execFileSync(ff.ffmpegPath(), ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", `testsrc=duration=3:size=${size}:rate=10`, "-pix_fmt", "yuv420p", file]);
+      return file;
+    };
+    const size = async (file: string) => {
+      const { width, height } = await ff.probe(file);
+      return `${width}x${height}`;
+    };
+    const cut = { maxSeconds: 1 };
+    expect(await size(await ff.fitVideo(make("aaaaaaaaaaaa.mp4", "1080x1920"), cut))).toBe("1080x1920");
+    expect(await size(await ff.fitVideo(make("bbbbbbbbbbbb.mp4", "1440x2560"), cut))).toBe("1080x1920");
+    expect(await size(await ff.fitVideo(make("cccccccccccc.mp4", "2560x1440"), cut))).toBe("1920x1080");
+    expect(await size(path.join(uploadsDir(), await ff.cutClip(make("dddddddddddd.mp4", "1080x1920"), 0, 1)))).toBe("1080x1920");
+  }, 120_000);
+
+  it("tells the scheduler to wait while a version is being made, then hands it over", async () => {
+    const { uploadsDir } = await import("./uploads");
+    const src = path.join(uploadsDir(), "eeeeeeeeeeee.mp4");
+    execFileSync(ff.ffmpegPath(), ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=duration=4:size=320x240:rate=10", "-pix_fmt", "yuv420p", src]);
+    const limits = { maxSeconds: 2 };
+    expect(await ff.readyFit(src, limits)).toBeNull();
+    const done = await ff.fitVideo(src, limits);
+    expect(await ff.readyFit(src, limits)).toBe(done);
+    expect(await ff.readyFit(src, { maxSeconds: 60 })).toBe(src);
+    await expect(ff.readyFit(path.join(uploadsDir(), "ffffffffffff.mp4"), limits)).rejects.toThrow();
+  }, 60_000);
 });

@@ -14,7 +14,7 @@ import { PLATFORMS, postImageError, postVideoError } from "./platforms";
 import { publish } from "./publish";
 import { ScheduledPost } from "./types";
 import { SAFE_IMAGE_FILENAME, SAFE_VIDEO_FILENAME, uploadsDir } from "./uploads";
-import { fitVideo, hasFfmpeg } from "./ffmpeg";
+import { fitVideo, hasFfmpeg, readyFit } from "./ffmpeg";
 
 export interface DispatchOutcome {
   ran: number;
@@ -88,6 +88,19 @@ async function dispatchDuePosts(): Promise<DispatchOutcome> {
   let posted = 0;
   let failed = 0;
   for (const candidate of due) {
+    // A video still being fitted to the platform leaves the post pending, so
+    // a long encode doesn't hold up every other due post; a later run sends it.
+    let videoPath: string | undefined;
+    let videoError: unknown;
+    if (candidate.videoPath) {
+      try {
+        const ready = await videoFor(candidate.platform, path.join(uploadsDir(), candidate.videoPath));
+        if (!ready) continue;
+        videoPath = ready;
+      } catch (err) {
+        videoError = err;
+      }
+    }
     // Claim the post from its latest stored copy. The user may have edited,
     // rescheduled or cancelled it since `due` was read; only a post that is
     // still pending and due gets marked "posting", so it can't be sent twice.
@@ -116,8 +129,8 @@ async function dispatchDuePosts(): Promise<DispatchOutcome> {
     // Result updates go through updateScheduledPost, which does nothing if
     // the user cancelled (deleted) the post mid-send, so it doesn't come back.
     try {
+      if (videoError) throw videoError;
       const imagePath = post.imagePath ? path.join(uploadsDir(), post.imagePath) : undefined;
-      const videoPath = post.videoPath ? await videoFor(post.platform, path.join(uploadsDir(), post.videoPath)) : undefined;
       const r = await publish(account, post.text, {
         headless,
         imagePath,
@@ -203,25 +216,29 @@ export async function postMediaError(
   return postVideoError(platform, videoPath, bytes, hasFfmpeg());
 }
 
+const fitLimits = (platform: ScheduledPost["platform"]) => ({
+  maxSeconds: PLATFORMS[platform].maxVideoSeconds || undefined,
+  maxBytes: PLATFORMS[platform].maxVideoBytes,
+});
+
 /**
- * The version of a video to send to `platform`: cut to its length limit and
- * shrunk under its size limit (lib/ffmpeg.ts), or the video itself when it
- * fits or there's no ffmpeg. Versions are kept, so this is quick the second
- * time (see prepareVideo).
+ * The version of a video to send to `platform` now: cut to its length limit
+ * and shrunk under its size limit (lib/ffmpeg.ts), or the video itself when
+ * it fits or there's no ffmpeg. Null while that version is still being made.
  */
-export async function videoFor(platform: ScheduledPost["platform"], file: string): Promise<string> {
-  if (!hasFfmpeg()) return file;
-  const spec = PLATFORMS[platform];
-  return fitVideo(file, { maxSeconds: spec.maxVideoSeconds || undefined, maxBytes: spec.maxVideoBytes });
+function videoFor(platform: ScheduledPost["platform"], file: string): Promise<string | null> {
+  if (!hasFfmpeg()) return Promise.resolve(file);
+  return readyFit(file, fitLimits(platform));
 }
 
 /**
  * Starts making the platform's version of a scheduled video in the
- * background, so it's ready when the post goes out. A failure here is
- * retried (and reported) at send time.
+ * background, so it's ready when the post goes out. A failure is reported
+ * when the post is due.
  */
 export function prepareVideo(platform: ScheduledPost["platform"], videoPath: string): void {
-  void videoFor(platform, path.join(uploadsDir(), videoPath)).catch((err) =>
+  if (!hasFfmpeg()) return;
+  void fitVideo(path.join(uploadsDir(), videoPath), fitLimits(platform)).catch((err) =>
     console.warn(`[scheduler] couldn't prepare ${videoPath} for ${platform} yet: ${err instanceof Error ? err.message : err}`),
   );
 }
