@@ -70,7 +70,7 @@ struct UnfollowView: View {
                 selected = []
             }
         } message: {
-            Text("Done slowly in Chrome on your computer. You can follow them again from the history.")
+            Text("Kyrelo unfollows them slowly, in Chrome on your computer. You can follow them again from the history.")
         }
         .task(id: accountId) {
             selected = []
@@ -143,7 +143,7 @@ struct UnfollowView: View {
                 }
             }
         } footer: {
-            Text("Swipe to keep an account: kept accounts are never suggested. Up to \(maxPerRun) at a time.")
+            Text("Swipe to keep an account. Kyrelo never suggests kept accounts. Up to \(maxPerRun) at a time.")
                 .font(.inter(.caption))
         }
     }

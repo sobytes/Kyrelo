@@ -250,7 +250,7 @@ export function AutoCampaignModal({
               )}
               {platforms.some((p) => PLATFORMS[p].requiresImage) && (
                 <p className="mt-1 text-[11px] text-muted">
-                  Instagram only takes posts with a photo: Kyrelo asks for an image on every post, and any post without one
+                  Instagram only takes posts with a photo, so Kyrelo asks for an image on every post, and any post without one
                   skips Instagram.
                 </p>
               )}

@@ -24,7 +24,7 @@ struct AutopilotSheet: View {
                 Section {
                     Toggle("Draft replies automatically", isOn: $settings.enabled)
                 } footer: {
-                    Text("Scores new tweets and drafts replies under them. Nothing is posted: you choose a draft and send it from X.")
+                    Text("Scores new tweets and drafts replies under them. Autopilot never posts. You choose a draft and send it from X.")
                 }
 
                 Section("Tone") {
@@ -48,7 +48,7 @@ struct AutopilotSheet: View {
                         Slider(value: $settings.creativity, in: 0...1, step: 0.1)
                     }
                 } footer: {
-                    Text("Tweets scoring below the minimum are skipped, with the reason shown.")
+                    Text("Autopilot skips tweets that score below the minimum and shows the reason.")
                 }
 
                 Section("Topics you care about") {

@@ -73,7 +73,7 @@ struct ReplySheet: View {
                     .disabled(drafting)
 
                     if let error { Text(error).font(.inter(.footnote)).foregroundStyle(Theme.error) }
-                    Text("Copies the reply and opens the tweet in X. Tap reply there, paste and send. The tweet is marked as replied in Kyrelo.")
+                    Text("Copies the reply and opens the tweet in X. Tap reply there, paste and send. Kyrelo marks the tweet as replied.")
                         .font(.inter(.footnote)).foregroundStyle(Theme.muted)
                 }
                 .padding(20)

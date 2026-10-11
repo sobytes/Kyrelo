@@ -306,7 +306,7 @@ const TOKEN_GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
   ),
   facebook: (
     <ol className="list-decimal space-y-1 pl-5">
-      <li>Comments can only be answered on a Facebook Page, not a personal profile.</li>
+      <li>Kyrelo can answer comments on a Facebook Page, but not on a personal profile.</li>
       <li>
         <ExtLinkButton href="https://developers.facebook.com/apps/creation/">Create a Meta app</ExtLinkButton>, then open
         the <ExtLinkButton href="https://developers.facebook.com/tools/explorer/">Graph API Explorer</ExtLinkButton>.
@@ -316,7 +316,7 @@ const TOKEN_GUIDES: Partial<Record<PlatformId, React.ReactNode>> = {
         <em>pages_manage_posts</em>, choose your Page under <em>User or Page</em>, and generate the token.
       </li>
       <li>
-        Make it last: paste it into the{" "}
+        To make the token last, paste it into the{" "}
         <ExtLinkButton href="https://developers.facebook.com/tools/debug/accesstoken/">Access Token Debugger</ExtLinkButton>,
         press <em>Extend Access Token</em>, then get the Page token again with the extended one. Paste it below.
       </li>
@@ -405,8 +405,8 @@ function SettingsCard({ settings, onChange }: { settings: CommentSettings; onCha
         </label>
       </div>
       <p className="text-[11px] leading-relaxed text-muted">
-        Every few minutes Kyrelo reads new comments on your posts and drafts replies. Nothing is sent until you press
-        Reply.
+        Every few minutes Kyrelo reads new comments on your posts and drafts replies. Kyrelo sends nothing until you
+        press Reply.
       </p>
 
       <div>

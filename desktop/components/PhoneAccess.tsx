@@ -95,9 +95,9 @@ export function PhoneAccess() {
 
       <p className="text-[10px] leading-relaxed text-muted">
         {hasTailscale
-          ? "Tailscale is connected: your phone can reach this computer from anywhere, encrypted."
+          ? "Tailscale is connected, so your phone can reach this computer from anywhere, encrypted."
           : "Works when your phone is on the same Wi-Fi. Install Tailscale on both devices to use it anywhere."}{" "}
-        On shared or public Wi-Fi, use Tailscale: on a plain network the connection isn&apos;t encrypted. Your Mac
+        On shared or public Wi-Fi, use Tailscale, because on a plain network the connection isn&apos;t encrypted. Your Mac
         may ask to allow incoming connections the first time.
       </p>
     </section>

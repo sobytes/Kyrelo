@@ -338,7 +338,7 @@ function Hero({
               {!watching && inLogin && connect.phase === "connecting" &&
                 "After you log in, come back and click I'm logged in."}
               {!watching && !inLogin && needsConnect &&
-                "Sign in once — the session is saved for future scrapes and replies."}
+                "Sign in once. Kyrelo saves the session for future scrapes and replies."}
               {!watching && !inLogin && !needsConnect && needsHandles &&
                 "Pick a handle or add a keyword in the sidebar to start."}
               {!watching && !inLogin && !needsConnect && !needsHandles &&
@@ -611,7 +611,7 @@ function KeywordsCard({
             const latest = latestMatch(k);
             return (
               <li key={k}>
-                “{k}”: {latest ? `latest post ${timeAgo(latest)}` : "no posts found yet"}
+                &quot;{k}&quot;: {latest ? `latest post ${timeAgo(latest)}` : "no posts found yet"}
               </li>
             );
           })}
@@ -726,7 +726,7 @@ function TweetCard({
             </span>
             {tweet.keyword && (
               <span className="rounded-sm bg-accent/30 px-1.5 py-0.5 font-mono text-[11px] text-fg" title="Found by a keyword search">
-                “{tweet.keyword}”
+                &quot;{tweet.keyword}&quot;
               </span>
             )}
           </div>

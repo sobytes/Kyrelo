@@ -42,9 +42,9 @@ export function AccountsPanel({ platform }: { platform: PlatformId }) {
       </p>
 
       <div className="section text-xs leading-relaxed text-muted">
-        <strong className="text-fg">How this works.</strong> {HOW_IT_WORKS[platform]} Nothing is sent anywhere except{" "}
-        {spec.label} itself. Kyrelo isn&apos;t affiliated with {spec.label}: using it is at your own risk, and it&apos;s up
-        to you to stay within their terms.
+        <strong className="text-fg">How this works.</strong> {HOW_IT_WORKS[platform]} Kyrelo sends nothing anywhere except{" "}
+        {spec.label} itself. Kyrelo isn&apos;t affiliated with {spec.label}, so you use it at your own risk, and it&apos;s
+        up to you to stay within their terms.
       </div>
     </div>
   );
@@ -60,14 +60,14 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
   instagram:
     "Each Instagram account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through instagram.com, the way you would. Every Instagram post needs a photo (JPEG or PNG). Instagram doesn't officially support posting this way, so it can break when they change their site.",
   facebook:
-    "Each Facebook account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through facebook.com as whichever profile you were using: to post as a Page, switch to it (your picture at the top right → the Page) before clicking I'm logged in. Connect again to add another Page. Facebook doesn't officially support posting this way, so it can break when they change their site.",
+    "Each Facebook account gets its own Chrome profile on this computer; you sign in once and Kyrelo posts through facebook.com as whichever profile you were using. To post as a Page, switch to it (your picture at the top right → the Page) before clicking I'm logged in. Connect again to add another Page. Facebook doesn't officially support posting this way, so it can break when they change their site.",
   telegram:
-    "Kyrelo posts to your channel through your own Telegram bot, with Telegram's official Bot API. The bot token is stored only on this computer.",
-  slack: "Kyrelo posts to the channel through an incoming webhook from your own Slack app. The webhook link is stored only on this computer; anyone with it can post there. Text only: webhooks can't upload files.",
+    "Kyrelo posts to your channel through your own Telegram bot, with Telegram's official Bot API. Kyrelo stores the bot token only on this computer.",
+  slack: "Kyrelo posts to the channel through an incoming webhook from your own Slack app. Kyrelo stores the webhook link only on this computer, and anyone with it can post there. Webhooks can't upload files, so posts are text only.",
   devto: "Kyrelo publishes articles with DEV's API and your API key, stored only on this computer. The post's first line is the title; the rest is the article, in Markdown.",
   hashnode: "Kyrelo publishes articles to your blog with Hashnode's API and your token, stored only on this computer. The post's first line is the title; the rest is the article, in Markdown.",
   wordpress: "Kyrelo publishes to your site with WordPress's REST API and an application password, stored only on this computer (revoke it any time in your profile). The post's first line is the title, the rest the content, and an image becomes the featured image.",
-  lemmy: "Kyrelo posts to the community with Lemmy's API, signed in as you; your password is stored only on this computer. The post's first line is the title. Add the same account again to post to another community.",
+  lemmy: "Kyrelo posts to the community with Lemmy's API, signed in as you. Kyrelo stores your password only on this computer. The post's first line is the title. Add the same account again to post to another community.",
   nostr: "Kyrelo signs each note with your secret key, stored only on this computer, and sends it to popular public relays. Anyone with the key can post as you, so keep it private.",
   tiktok:
     "Kyrelo sends each video to your TikTok inbox with TikTok's Content Posting API, through your own TikTok developer app. TikTok notifies you; add the caption (it's in the post in Kyrelo) and post it from the app. Posting straight to your profile needs TikTok to audit your app.",
@@ -76,7 +76,7 @@ const HOW_IT_WORKS: Record<PlatformId, string> = {
   linkedin:
     "Kyrelo posts with LinkedIn's official API, using a token from your own LinkedIn app, stored only on this computer. LinkedIn tokens last 60 days; then make a new one and connect again.",
   discord:
-    "Kyrelo posts to the channel through its webhook, Discord's official way for apps to post. The webhook link is stored only on this computer; anyone with it can post there, so keep it private.",
+    "Kyrelo posts to the channel through its webhook, Discord's official way for apps to post. Kyrelo stores the webhook link only on this computer. Anyone with it can post there, so keep it private.",
 };
 
 function BrowserConnectCard({
@@ -111,7 +111,7 @@ function BrowserConnectCard({
                 ? "Saving session…"
                 : platform === "facebook"
                   ? `Connect opens Chrome to ${host}. Sign in, switch to the Page you want Kyrelo to post as (your picture at the top right → the Page), then click I'm logged in.`
-                  : `Connect opens Chrome to ${host}. Sign in once and the session is saved to its own profile.`}
+                  : `Connect opens Chrome to ${host}. Sign in once and Kyrelo saves the session to its own profile.`}
         </div>
       </div>
 
@@ -140,7 +140,7 @@ function BrowserConnectCard({
 
       {busyHere && (
         <p className="text-[11px] text-muted">
-          Connecting in progress. The Monitor and scheduled posts pause until it finishes.
+          Kyrelo is connecting an account. The Monitor and scheduled posts pause until it finishes.
         </p>
       )}
     </div>
@@ -166,7 +166,7 @@ function MastodonConnectCard({ title, connect }: { title: string; connect: Retur
       <div>
         <div className="text-sm font-semibold text-fg">{title}</div>
         <div className="mt-0.5 text-xs text-muted">
-          Enter the server you signed up on. Your browser opens it to approve Kyrelo, and that&apos;s it.
+          Enter the server you signed up on. Your browser opens it so you can approve Kyrelo.
         </div>
       </div>
       <div className="flex max-w-md gap-2">

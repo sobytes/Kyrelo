@@ -34,7 +34,7 @@ struct CommentsView: View {
                     .font(.inter(.subheadline))
                     .tint(Theme.primary)
                 } footer: {
-                    Text("Every few minutes your computer reads new comments and drafts replies. Nothing is sent until you tap Reply.")
+                    Text("Every few minutes your computer reads new comments and drafts replies. Kyrelo sends nothing until you tap Reply.")
                         .font(.inter(.caption))
                 }
             }

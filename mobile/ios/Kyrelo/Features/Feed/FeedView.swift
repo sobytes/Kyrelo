@@ -131,7 +131,7 @@ struct TweetRow: View {
                         .font(.inter(.caption)).foregroundStyle(Theme.muted)
                 }
                 if let keyword = tweet.keyword {
-                    Text("“\(keyword)”")
+                    Text("\"\(keyword)\"")
                         .font(.inter(.caption2))
                         .foregroundStyle(Theme.primary)
                         .padding(.horizontal, 6).padding(.vertical, 2)

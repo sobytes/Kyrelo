@@ -153,7 +153,7 @@ export function repliesToOthersIn(json: unknown, userId: string): string[] {
 async function signedInUserId(page: Page): Promise<string> {
   const twid = (await page.context().cookies("https://x.com")).find((c) => c.name === "twid")?.value ?? "";
   const id = decodeURIComponent(twid).replace(/^u=/, "");
-  if (!/^\d+$/.test(id)) throw new Error("Couldn't tell which X account is signed in. Reconnect it under Connected.");
+  if (!/^\d+$/.test(id)) throw new Error("Couldn't tell which X account is signed in. Reconnect it under X → Accounts.");
   return id;
 }
 

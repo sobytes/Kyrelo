@@ -21,13 +21,13 @@ struct AccountsView: View {
             Section {
                 switch service.id.connect {
                 case .browser:
-                    Text("\(service.label) accounts connect in Kyrelo on your computer: it opens Chrome there for you to sign in once."
+                    Text("\(service.label) accounts connect in Kyrelo on your computer. It opens Chrome there for you to sign in once."
                          + (service.id == .facebook ? " To post as a Page, switch to it in Facebook before clicking I'm logged in." : ""))
                         .foregroundStyle(Theme.muted)
                 case .oauth:
                     MastodonConnect(client: client, onDone: onChange)
                 case .app:
-                    Text("\(service.label) connects in Kyrelo on your computer, with your own developer app: the steps are on its \(service.label) page, and approving it opens in the computer's browser.")
+                    Text("\(service.label) connects in Kyrelo on your computer, with your own developer app. The steps are on its \(service.label) page, and you approve it in the computer's browser.")
                         .foregroundStyle(Theme.muted)
                 case let .credentials(fields):
                     CredentialsConnect(platform: service.id, fields: fields, client: client, onDone: onChange)

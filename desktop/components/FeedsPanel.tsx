@@ -79,8 +79,8 @@ export function FeedsPanel({ accounts }: { accounts: Account[] }) {
         <div>
           <div className="label !mb-0">Auto-post from a feed</div>
           <p className="mt-1 text-xs text-muted">
-            New articles in an RSS or Atom feed (your blog, newsletter or YouTube channel) are queued as posts to the
-            accounts you pick.
+            Kyrelo queues new articles in an RSS or Atom feed (your blog, newsletter or YouTube channel) as posts to
+            the accounts you pick.
           </p>
         </div>
         {!adding && (

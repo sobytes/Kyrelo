@@ -270,7 +270,7 @@ private struct AddMediaSheet: View {
                     }
                 } footer: {
                     if let videoInfo, isVideo {
-                        Text("\(VideoLengths.guidance(seconds: videoInfo.seconds)) Big videos are made smaller automatically.")
+                        Text("\(VideoLengths.guidance(seconds: videoInfo.seconds)) Your phone shrinks big videos before sending them.")
                     }
                 }
                 Section {

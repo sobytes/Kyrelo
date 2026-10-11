@@ -201,7 +201,7 @@ export function SettingsPanel() {
           </button>
         )}
         <p className="text-[10px] leading-relaxed text-muted">
-          Keys are stored locally, and each key is only ever sent to its own provider.
+          Kyrelo stores keys on this computer and sends each key only to its own provider.
         </p>
       </section>
 
@@ -216,8 +216,8 @@ export function SettingsPanel() {
           onChange={(e) => save({ ...settings, styleHint: e.target.value })}
         />
         <p className="text-[10px] leading-relaxed text-muted">
-          Fed to the AI when you click Generate reply. Be specific — &ldquo;contrarian on AI
-          hype&rdquo; works better than &ldquo;edgy&rdquo;.
+          Kyrelo gives this to the AI when you click Generate reply. Be specific. &quot;Contrarian on AI
+          hype&quot; works better than &quot;edgy&quot;.
         </p>
       </section>
 
@@ -398,8 +398,8 @@ function AiSpending() {
         </span>
       </div>
       <p className="text-[10px] leading-relaxed text-muted">
-        Autopilot and Comments draft replies on their own; once this many are made in a day they wait until tomorrow.
-        Drafts you ask for aren&apos;t counted. To keep costs down, Kyrelo also reuses a campaign&apos;s web research for
+        Autopilot and Comments draft replies on their own. Once they make this many in a day, they wait until tomorrow.
+        The limit doesn&apos;t count drafts you ask for. To keep costs down, Kyrelo also reuses a campaign&apos;s web research for
         three days, limits how many searches and pages each one reads, and uses Claude&apos;s cheaper current models.
       </p>
     </section>

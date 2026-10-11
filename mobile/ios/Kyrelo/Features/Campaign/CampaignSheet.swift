@@ -197,7 +197,7 @@ struct CampaignSheet: View {
                         Text("Each post goes to every account picked, written to fit the strictest limit.")
                     }
                     if model.platforms.contains(where: \.requiresImage) {
-                        Text("Instagram only takes posts with a photo: Kyrelo asks for an image on every post, and any post without one skips Instagram.")
+                        Text("Instagram only takes posts with a photo, so Kyrelo asks for an image on every post, and any post without one skips Instagram.")
                     }
                 }
             }
@@ -272,7 +272,7 @@ struct CampaignSheet: View {
             ForEach($model.drafts) { $draft in
                 if draft.removed {
                     Section {
-                        Button("Post removed — undo") { draft.removed = false }
+                        Button("Post removed. Undo") { draft.removed = false }
                     }
                 } else {
                     Section(draft.angle.capitalized) {

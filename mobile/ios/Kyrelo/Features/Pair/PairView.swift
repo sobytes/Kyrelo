@@ -44,7 +44,7 @@ struct PairView: View {
                     }
                 }
 
-                Text("Works on the same Wi-Fi as your computer. Install Tailscale on both to use it anywhere, and on public Wi-Fi.")
+                Text("Works on the same Wi-Fi as your computer. Install Tailscale on both devices to use it anywhere, including on public Wi-Fi.")
                     .font(.inter(.footnote)).foregroundStyle(Theme.muted)
             }
             .padding(20)

@@ -63,7 +63,7 @@ function Hero() {
           Kyrelo is a free, open-source alternative to Buffer and Postiz for 17 platforms, from X,
           LinkedIn and Instagram to YouTube, TikTok and Bluesky. Schedule posts and videos, answer
           every comment from one inbox with AI drafts you approve, let AI plan a whole campaign,
-          and clean up old tweets and dead follows. No SaaS and no outages: it runs on your machine with your own
+          and clean up old tweets and dead follows. No SaaS and no outages. It runs on your machine with your own
           accounts and your own AI key.
         </p>
         <div id="download" className="mt-8 flex flex-wrap items-center gap-3">
@@ -109,7 +109,7 @@ function Demo() {
           {/* youtube-nocookie: no tracking cookies until the visitor presses play. */}
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${DEMO_VIDEO_ID}?rel=0`}
-            title="Kyrelo is a free, open-source alternative to Buffer, TweetDelete etc"
+            title="Kyrelo, a free, open-source alternative to Buffer and TweetDelete"
             className="absolute inset-0 h-full w-full"
             loading="lazy"
             allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -128,12 +128,12 @@ function Why() {
       <div className={`${PAGE} grid items-start gap-12 md:grid-cols-2`}>
         <SectionHeader eyebrow="Why this exists" title="Because cloud schedulers go down.">
           <p>
-            Buffer&apos;s status page is a working-day fixture. Multi-hour outages across web, iOS,
-            Android and API. ~97% uptime over the last quarter. When the scheduling layer is someone
-            else&apos;s cloud, it breaks at exactly the moments you need it up.
+            Buffer&apos;s status page shows outages most working days, some of them several hours
+            long, across web, iOS, Android and the API, and about 97% uptime over the last quarter.
+            When their servers are down, your posts don&apos;t go out.
           </p>
           <p>
-            Kyrelo runs entirely on your machine. No backend, no SaaS account, no shared
+            Kyrelo runs on your machine. No backend, no SaaS account, no shared
             infrastructure. Your logins and AI keys live in a local data folder, and Kyrelo only
             talks to the networks you connect, the AI provider whose key you add, and any site you
             point an auto campaign at. If something breaks, it breaks for you alone, and you can
@@ -178,7 +178,7 @@ const FEATURE_GROUPS = [
     features: [
       {
         title: "Answer every comment from one inbox",
-        body: "Comments on your posts on X, Bluesky, Mastodon, Threads, YouTube, Instagram, Facebook Pages, Lemmy and Nostr arrive in one place, with reply drafts in your voice. Spam and trolls are skipped. You pick a draft, edit it and press Reply: nothing is sent without you.",
+        body: "Comments on your posts on X, Bluesky, Mastodon, Threads, YouTube, Instagram, Facebook Pages, Lemmy and Nostr arrive in one place, with reply drafts in your voice. Kyrelo skips spam and trolls. You pick a draft, edit it and press Reply. Kyrelo sends nothing until you do.",
         icon: "reply",
       },
       {
@@ -188,7 +188,7 @@ const FEATURE_GROUPS = [
       },
       {
         title: "Autopilot reply drafts",
-        body: "Autopilot scores each new post for how worth replying to it is and writes a few replies underneath, in the tone you choose. You pick one, edit it and send it yourself. Kyrelo never replies on its own, so every reply is really yours.",
+        body: "Autopilot scores each new post for how worth replying to it is and writes a few replies underneath, in the tone you choose. You pick one, edit it and send it yourself. Kyrelo never replies on its own, so every reply is yours.",
         icon: "reply",
       },
     ],
@@ -198,7 +198,7 @@ const FEATURE_GROUPS = [
     features: [
       {
         title: "Bulk delete posts, replies & likes",
-        body: "Delete old posts and replies, undo reposts and unlike likes, up to 100 at a time. Keep your newest ones, and your pinned tweet is never touched.",
+        body: "Delete old posts and replies, undo reposts and unlike likes, up to 100 at a time. Keep your newest ones. Kyrelo never deletes your pinned tweet.",
         icon: "trash",
       },
       {
@@ -213,17 +213,17 @@ const FEATURE_GROUPS = [
 const EXTRAS = [
   {
     title: "iPhone companion app",
-    body: "Shoot a photo or video and send it to a Media bucket for your campaigns, answer comments, check your Monitor feed, schedule posts and run campaigns from your phone. Your computer does the work; the phone connects to it over Wi-Fi or Tailscale. Open source; build it with Xcode.",
+    body: "Shoot a photo or video and send it to a Media bucket for your campaigns, answer comments, check your Monitor feed, schedule posts and run campaigns from your phone. Your computer does the work, and the phone connects to it over Wi-Fi or Tailscale. It's open source, and you build it with Xcode.",
     icon: "phone",
   },
   {
     title: "Private by design",
-    body: "No Kyrelo account and no Kyrelo servers. Your logins, keys and posts stay in a folder on your computer. Bring your own Claude or OpenAI key; AI features are optional.",
+    body: "No Kyrelo account and no Kyrelo servers. Your logins, keys and posts stay in a folder on your computer. Bring your own Claude or OpenAI key. AI features are optional.",
     icon: "lock",
   },
   {
     title: "macOS and Windows, signed",
-    body: "Signed and notarized for macOS on Apple Silicon and Intel, and signed for Windows. MIT licensed: read it, change it, build it yourself.",
+    body: "Signed and notarized for macOS on Apple Silicon and Intel, and signed for Windows. MIT licensed, so you can read, change and build it yourself.",
     icon: "shield",
   },
 ];
@@ -232,7 +232,7 @@ function Features() {
   return (
     <section id="features" className="section">
       <div className={PAGE}>
-        <SectionHeader eyebrow="Features" title="Publish, engage, clean up. On your machine." />
+        <SectionHeader eyebrow="Features" title="Publish, engage and clean up, on your own machine." />
         <div className="mt-12 grid gap-x-12 gap-y-12 md:grid-cols-3">
           {FEATURE_GROUPS.map((group) => (
             <div key={group.heading}>
@@ -315,15 +315,15 @@ const CLEANUP_POINTS = [
   },
   {
     title: "Replies, reposts and likes too",
-    body: "Delete your replies to other people (your own threads are kept), undo old reposts, or unlike your likes. Set “Starting at” to keep your most recent ones. Pinned tweets are always left alone.",
+    body: "Delete your replies to other people (your own threads are kept), undo old reposts, or unlike your likes. Set \"Starting at\" to keep your most recent ones. Kyrelo never touches pinned tweets.",
   },
   {
     title: "Unfollow with reasons",
-    body: "Scan who you follow and get suggestions: no posts in months, never interacts with you, bot-like, or doesn't follow back. Every suggestion says why, and nothing is unfollowed until you say so.",
+    body: "Scan who you follow and get suggestions: no posts in months, never interacts with you, bot-like, or doesn't follow back. Every suggestion says why, and Kyrelo unfollows no one until you say so.",
   },
   {
     title: "Never lose the people who matter",
-    body: "Accounts that interact with you, the handles you watch and big accounts are kept automatically. Add anyone to your keep list, and follow back anyone you unfollowed with one click.",
+    body: "Kyrelo always keeps accounts that interact with you, the handles you watch and big accounts. Add anyone to your keep list, and follow back anyone you unfollowed with one click.",
   },
 ];
 
@@ -334,15 +334,15 @@ const CLEANUP_FAQ = [
   },
   {
     q: "Can I delete reposts, replies and likes as well?",
-    a: "Yes. When deleting posts, turn on “Include reposts” to undo retweets too. Choose Replies to delete your replies to other people, or Likes to unlike posts, newest first. DMs aren't covered: X now keeps them in its end-to-end encrypted Chat.",
+    a: "Yes. When deleting posts, turn on \"Include reposts\" to undo retweets too. Choose Replies to delete your replies to other people, or Likes to unlike posts, newest first. Kyrelo can't delete DMs, because X now keeps them in its end-to-end encrypted Chat.",
   },
   {
     q: "Can I keep my newest tweets and only delete old ones?",
-    a: "Yes. The “Starting at” setting skips your most recent posts, so you can keep, say, your latest 50 and delete everything older. Your pinned tweet is never deleted.",
+    a: "Yes. The \"Starting at\" setting skips your most recent posts, so you can keep, say, your latest 50 and delete everything older. Kyrelo never deletes your pinned tweet.",
   },
   {
     q: "How do I unfollow inactive accounts on X?",
-    a: "Open Unfollow in Kyrelo and scan who you follow. Turn on “Are dead” to find accounts with no posts in 3, 6 or 12 months, or that barely post, then review the list and unfollow the ones you pick. Follower, following and post counts come straight from your Following list; checking when each account last posted opens their profile, least active first.",
+    a: "Open Unfollow in Kyrelo and scan who you follow. Turn on \"Are dead\" to find accounts with no posts in 3, 6 or 12 months, or that barely post. Then review the list and unfollow the ones you pick. Follower, following and post counts come straight from your Following list. To check when each account last posted, Kyrelo opens their profile, least active first.",
   },
   {
     q: "Will unfollowing lots of accounts get my X account locked?",
@@ -383,7 +383,7 @@ function CleanUp() {
               account. Kyrelo bulk deletes your old posts and reposts, and unfollows the accounts
               that went quiet, straight from your own computer at no cost. Wipe years of old
               tweets, tidy up your profile before a job hunt, or get your feed back to the people
-              you actually read.
+              you read.
             </p>
             <p>
               <a href="/tweetdelete-alternative" className="font-medium text-primary hover:text-primary-hover">
@@ -426,7 +426,7 @@ const STEPS = [
   {
     n: 1,
     title: "Download & open",
-    body: "Grab the signed installer for your OS from GitHub releases. macOS: pick the -arm64 .dmg for Apple Silicon (M1 and later) or the -x64 .dmg for Intel, then drag to Applications. Windows: run the .exe installer.",
+    body: "Grab the signed installer for your OS from GitHub releases. On a Mac, pick the -arm64 .dmg for Apple Silicon (M1 and later) or the -x64 .dmg for Intel, then drag it to Applications. On Windows, run the .exe installer.",
   },
   {
     n: 2,
@@ -468,7 +468,7 @@ function CTA() {
             Stop refreshing the status page.
           </h2>
           <p className="mt-3 text-base text-muted">
-            Kyrelo is free, open source, and lives on your laptop. Bring your own accounts.
+            Kyrelo is free, open source, and runs on your own computer. Bring your own accounts.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">

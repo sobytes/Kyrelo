@@ -29,13 +29,13 @@ export async function hasApiKey(provider: keyof ApiKeys): Promise<boolean> {
 
 export async function resolveAnthropicKey(): Promise<string> {
   const key = await findApiKey("anthropic");
-  if (!key) throw new Error("ANTHROPIC_API_KEY is not set. Add it under Settings → API keys.");
+  if (!key) throw new Error("There's no Claude API key yet. Add one under Settings → API keys.");
   return key;
 }
 
 export async function resolveOpenAiKey(): Promise<string> {
   const key = await findApiKey("openai");
-  if (!key) throw new Error("OPENAI_API_KEY is not set. Add it under Settings → API keys.");
+  if (!key) throw new Error("There's no OpenAI API key yet. Add one under Settings → API keys.");
   return key;
 }
 

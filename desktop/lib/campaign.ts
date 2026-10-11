@@ -177,7 +177,7 @@ export async function discardCampaign(id: string): Promise<void> {
   const c = await getCampaign(id);
   if (!c) throw new Error("campaign not found");
   if (c.status !== "review" && c.status !== "failed") {
-    throw new Error("only a campaign waiting for review can be discarded");
+    throw new Error("You can only discard a campaign that's waiting for review.");
   }
   await upsertCampaign({ ...c, status: "discarded" });
 }
